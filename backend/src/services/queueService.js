@@ -6,6 +6,7 @@ import ApiError from "../utils/ApiError.js";
 import { serviceDate } from "../utils/date.js";
 import { emit, rooms } from "../socket/index.js";
 import { findDepartment, findHospital } from "./hospitalService.js";
+import { sendSimulatedSms } from "./notificationService.js";
 
 // Estimated wait uses the average of the last N consultations in a department.
 const CONSULT_SAMPLE_SIZE = 10;
@@ -108,14 +109,36 @@ async function buildSnapshot(ctx) {
       .lean(),
   ]);
 
+  const capacity = department.seatingCapacity || 15;
+  const ratio = waiting.length / capacity;
+  let overcrowdingColor = "green";
+  let overcrowdingLabel = "Normal";
+  if (ratio > 1.0) {
+    overcrowdingColor = "red";
+    overcrowdingLabel = "Overcrowded";
+  } else if (ratio >= 0.7) {
+    overcrowdingColor = "amber";
+    overcrowdingLabel = "Busy";
+  }
+
   const snapshot = {
     hospital: department.hospital,
     department: {
       id: department._id,
       code: department.code,
       name: department.name,
+      description: department.description,
       floor: department.floor,
       rooms: department.rooms,
+      seatingCapacity: capacity,
+      translations: department.translations,
+    },
+    overcrowding: {
+      status: overcrowdingColor,
+      label: overcrowdingLabel,
+      waitingCount: waiting.length,
+      capacity,
+      ratio: Number(ratio.toFixed(2)),
     },
     nowServing: called.map((t) => ({ tokenNumber: t.tokenNumber, room: t.room })),
     nextTokens: waiting.slice(0, 3).map((t) => t.tokenNumber),
@@ -152,15 +175,36 @@ async function broadcastQueue(departmentId) {
       snapshot
     );
 
-    waiting.forEach((t, peopleAhead) => {
+    waiting.forEach(async (t, peopleAhead) => {
+      const waitMin = estimateWait(peopleAhead, ctx);
       emit(rooms.ticket(t.publicId), "ticket:position", {
         publicId: t.publicId,
         tokenNumber: t.tokenNumber,
         peopleAhead,
-        estimatedWaitMinutes: estimateWait(peopleAhead, ctx),
+        estimatedWaitMinutes: waitMin,
         nowServing: snapshot.nowServing,
         updatedAt: snapshot.updatedAt,
       });
+
+      // When 3 people are ahead: trigger simulated SMS alert
+      if (peopleAhead === 3) {
+        try {
+          const fullTicket = await Ticket.findOne({ publicId: t.publicId }).populate("department");
+          if (fullTicket) {
+            await sendSimulatedSms({
+              ticket: fullTicket,
+              type: "near_turn",
+              metadata: {
+                deptName: ctx.department.name,
+                room: ctx.department.rooms[0] || "Room",
+                floor: ctx.department.floor,
+              },
+            });
+          }
+        } catch {
+          // non-critical
+        }
+      }
     });
   } catch (err) {
     // The change itself is already saved; a failed broadcast shouldn't fail the request.
@@ -170,7 +214,15 @@ async function broadcastQueue(departmentId) {
 
 // ---------- Patients ----------
 
-export async function createTicket({ hospitalCode, departmentCode, patient, language }) {
+export async function createTicket({
+  hospitalCode,
+  departmentCode,
+  patient,
+  language,
+  isAssisted = false,
+  helperName,
+  accessibility = {},
+}) {
   const hospital = await findHospital(hospitalCode);
   const department = await findDepartment(hospital, departmentCode);
 
@@ -184,11 +236,33 @@ export async function createTicket({ hospitalCode, departmentCode, patient, lang
     hospital: hospital._id,
     department: department._id,
     patient,
-    language,
+    language: language || "en",
+    isAssisted: Boolean(isAssisted),
+    helperName: helperName || undefined,
+    accessibility: {
+      avoidStairs: Boolean(accessibility?.avoidStairs),
+      largeText: Boolean(accessibility?.largeText),
+      readAloud: Boolean(accessibility?.readAloud),
+      highContrast: Boolean(accessibility?.highContrast),
+    },
   });
 
+  const status = await getTicketStatus(ticket.publicId);
+
+  // Dispatch initial welcome SMS alert
+  sendSimulatedSms({
+    ticket,
+    type: "registered",
+    metadata: {
+      deptName: department.name,
+      room: department.rooms[0] || "Room 1",
+      floor: department.floor,
+      estimatedWaitMinutes: status.estimatedWaitMinutes,
+    },
+  }).catch(() => {});
+
   await broadcastQueue(department._id);
-  return getTicketStatus(ticket.publicId);
+  return status;
 }
 
 // What the patient sees: token, first name and department only, plus queue position.
@@ -317,6 +391,18 @@ export async function callNext(doctor) {
       "token:called",
       call
     );
+
+    // Dispatch simulated SMS alert to called patient
+    sendSimulatedSms({
+      ticket: next,
+      type: "called",
+      metadata: {
+        room: next.room,
+        floor: next.department.floor,
+        doctorName: doctor.name,
+        deptName: next.department.name,
+      },
+    }).catch(() => {});
   }
 
   await broadcastQueue(doctor.department);
@@ -346,6 +432,100 @@ async function closeTicket(doctor, ticketId, status) {
 export const completeTicket = (doctor, ticketId) => closeTicket(doctor, ticketId, "completed");
 export const markNoShow = (doctor, ticketId) => closeTicket(doctor, ticketId, "no_show");
 
+// Send a patient to the end of the queue (e.g. they stepped out or arrived late)
+export async function requeueTicket(doctor, ticketId) {
+  const ticket = await Ticket.findOne({
+    _id: ticketId,
+    hospital: doctor.hospital,
+    status: { $in: ["called", "waiting"] },
+  });
+  if (!ticket) throw ApiError.notFound("Active ticket not found");
+
+  const hospital = await findHospital(ticket.hospital);
+  const department = await Department.findById(ticket.department);
+  const date = ticket.serviceDate || serviceDate();
+
+  // Atomically fetch next sequence to place at the tail of the line
+  const newSequence = await Counter.next(`${hospital.code}:${department.code}:${date}`);
+
+  ticket.status = "waiting";
+  ticket.sequence = newSequence;
+  ticket.doctor = null;
+  ticket.room = null;
+  ticket.calledAt = null;
+  await ticket.save();
+
+  emit(rooms.ticket(ticket.publicId), "ticket:updated", {
+    publicId: ticket.publicId,
+    status: "waiting",
+    message: "Moved to the end of the queue",
+  });
+
+  await broadcastQueue(department._id);
+  return staffTicket(ticket);
+}
+
+// Move a patient to another department
+export async function transferTicket(doctor, ticketId, targetDepartmentCode) {
+  const ticket = await Ticket.findOne({
+    _id: ticketId,
+    hospital: doctor.hospital,
+  });
+  if (!ticket) throw ApiError.notFound("Ticket not found");
+
+  const hospital = await findHospital(ticket.hospital);
+  const newDept = await findDepartment(hospital, targetDepartmentCode);
+  const oldDeptId = ticket.department;
+
+  if (oldDeptId.toString() === newDept._id.toString()) {
+    throw ApiError.badRequest("Ticket is already in this department");
+  }
+
+  const date = serviceDate();
+  const sequence = await Counter.next(`${hospital.code}:${newDept.code}:${date}`);
+  const newTokenNumber = `${newDept.code}-${String(sequence).padStart(3, "0")}`;
+
+  ticket.department = newDept._id;
+  ticket.tokenNumber = newTokenNumber;
+  ticket.sequence = sequence;
+  ticket.serviceDate = date;
+  ticket.status = "waiting";
+  ticket.doctor = null;
+  ticket.room = null;
+  ticket.calledAt = null;
+  ticket.completedAt = null;
+  await ticket.save();
+
+  const populated = await ticket.populate("department", "code name floor rooms");
+
+  sendSimulatedSms({
+    ticket: populated,
+    type: "transferred",
+    metadata: {
+      deptName: newDept.name,
+      room: newDept.rooms[0] || "Room",
+      floor: newDept.floor,
+    },
+  }).catch(() => {});
+
+  emit(rooms.ticket(ticket.publicId), "ticket:transferred", {
+    publicId: ticket.publicId,
+    newTokenNumber,
+    newDepartment: {
+      code: newDept.code,
+      name: newDept.name,
+      floor: newDept.floor,
+    },
+  });
+
+  await Promise.all([
+    broadcastQueue(oldDeptId),
+    broadcastQueue(newDept._id),
+  ]);
+
+  return staffTicket(populated);
+}
+
 export async function updateDoctorStatus(doctor, { state, until, delayMinutes }) {
   if (!DOCTOR_STATES.includes(state)) {
     throw ApiError.badRequest(`state must be one of: ${DOCTOR_STATES.join(", ")}`);
@@ -370,11 +550,32 @@ export async function updateDoctorStatus(doctor, { state, until, delayMinutes })
   }
 
   const updated = await User.findByIdAndUpdate(doctor._id, { $set: { status } }, { returnDocument: "after" });
-  if (updated.department) await broadcastQueue(updated.department);
+  if (updated.department) {
+    await broadcastQueue(updated.department);
+
+    if (state === "running_late") {
+      Ticket.find({ department: updated.department, serviceDate: serviceDate(), status: "waiting" })
+        .populate("department")
+        .then((waitingList) => {
+          waitingList.forEach((t) => {
+            sendSimulatedSms({
+              ticket: t,
+              type: "doctor_delay",
+              metadata: {
+                room: updated.room || "Room",
+                delayMinutes: status.delayMinutes,
+              },
+            }).catch(() => {});
+          });
+        })
+        .catch(() => {});
+    }
+  }
+
   return updated;
 }
 
-// ---------- Urgent flags ----------
+// ---------- Urgent flags & Emergency SLA ----------
 // The app never decides who is urgent. It only raises the flag so qualified staff see it immediately.
 
 export async function raiseUrgent(publicId) {
@@ -406,14 +607,119 @@ export async function listUrgentFlags(doctor) {
 }
 
 export async function acknowledgeUrgent(doctor, ticketId) {
+  const existing = await Ticket.findOne({
+    _id: ticketId,
+    hospital: doctor.hospital,
+    "urgent.raised": true,
+    "urgent.seenAt": null,
+  });
+  if (!existing) throw ApiError.notFound("No unseen urgent flag on this ticket");
+
+  const now = new Date();
+  const responseTimeSeconds = existing.urgent?.raisedAt
+    ? Math.max(1, Math.round((now - existing.urgent.raisedAt) / 1000))
+    : 0;
+
   const ticket = await Ticket.findOneAndUpdate(
     { _id: ticketId, hospital: doctor.hospital, "urgent.raised": true, "urgent.seenAt": null },
-    { $set: { "urgent.seenAt": new Date(), "urgent.seenBy": doctor._id } },
+    {
+      $set: {
+        "urgent.seenAt": now,
+        "urgent.seenBy": doctor._id,
+        "urgent.responseTimeSeconds": responseTimeSeconds,
+      },
+    },
     { returnDocument: "after" }
   );
-  if (!ticket) throw ApiError.notFound("No unseen urgent flag on this ticket");
 
-  emit(rooms.staff(doctor.hospital), "urgent:seen", { id: ticket._id, seenBy: doctor.name });
+  emit(rooms.staff(doctor.hospital), "urgent:seen", {
+    id: ticket._id,
+    seenBy: doctor.name,
+    responseTimeSeconds,
+  });
   emit(rooms.ticket(ticket.publicId), "ticket:updated", { publicId: ticket.publicId, urgentSeen: true });
   return staffTicket(ticket);
+}
+
+// "I have my slip": Look up a ticket by its printed token number (e.g. MED-001)
+export async function getTicketByTokenNumber(hospitalCode, tokenNumber) {
+  const hospital = await findHospital(hospitalCode);
+  const date = serviceDate();
+  const ticket = await Ticket.findOne({
+    hospital: hospital._id,
+    serviceDate: date,
+    tokenNumber: String(tokenNumber).toUpperCase().trim(),
+  }).select("publicId");
+  if (!ticket) throw ApiError.notFound(`No active ticket found today with token ${tokenNumber}`);
+  return getTicketStatus(ticket.publicId);
+}
+
+// Update patient accessibility & language preferences
+export async function updateTicketPreferences(publicId, { accessibility = {}, language }) {
+  const update = {};
+  if (language) update.language = language;
+  for (const [k, v] of Object.entries(accessibility)) {
+    update[`accessibility.${k}`] = Boolean(v);
+  }
+
+  const ticket = await Ticket.findOneAndUpdate(
+    { publicId },
+    { $set: update },
+    { returnDocument: "after" }
+  ).populate("hospital department doctor");
+  if (!ticket) throw ApiError.notFound("Ticket not found");
+
+  return getTicketStatus(ticket.publicId);
+}
+
+// Full OPD Slip payload for printing, image saving, and offline caching
+export async function getTicketSlip(publicId) {
+  const ticket = await Ticket.findOne({ publicId })
+    .populate("hospital", "code name address contact")
+    .populate("department", "code name floor rooms description")
+    .populate("doctor", "name")
+    .lean();
+  if (!ticket) throw ApiError.notFound("Ticket not found");
+
+  const status = await getTicketStatus(publicId);
+
+  return {
+    publicId: ticket.publicId,
+    tokenNumber: ticket.tokenNumber,
+    serviceDate: ticket.serviceDate,
+    createdAt: ticket.createdAt,
+    hospital: {
+      code: ticket.hospital.code,
+      name: ticket.hospital.name,
+      address: ticket.hospital.address,
+      contact: ticket.hospital.contact,
+    },
+    department: {
+      code: ticket.department.code,
+      name: ticket.department.name,
+      floor: ticket.department.floor,
+      description: ticket.department.description,
+    },
+    room: ticket.room || ticket.department.rooms[0] || "Room 1",
+    doctorName: ticket.doctor?.name ?? "Assigned OPD Specialist",
+    patient: {
+      firstName: ticket.patient.firstName,
+      age: ticket.patient.age,
+      gender: ticket.patient.gender,
+      mobile: ticket.patient.mobile ? `${ticket.patient.mobile.slice(0, 4)}XXXXXX` : null,
+    },
+    isAssisted: Boolean(ticket.isAssisted),
+    helperName: ticket.helperName || null,
+    accessibility: ticket.accessibility || {},
+    language: ticket.language || "en",
+    status: ticket.status,
+    peopleAhead: status.peopleAhead,
+    estimatedWaitMinutes: status.estimatedWaitMinutes,
+    qrPayload: `https://queuemitra.in/my-turn/${ticket.publicId}`,
+    disclaimer: {
+      en: "This OPD token is valid for today only. In case of sudden chest pain, heavy bleeding, or emergency, proceed immediately to Ground Floor Casualty without a token.",
+      hi: "यह ओपीडी टोकन केवल आज के लिए मान्य है। सीने में दर्द, अत्यधिक रक्तस्राव या आपात स्थिति में बिना टोकन सीधे ग्राउंड फ्लोर कैजुअल्टी जाएं।",
+      ta: "இந்த ஓபிடி டோக்கன் இன்று மட்டுமே செல்லுபடியாகும். அவசர காலங்களில் உடனடியாக தரைத்தள அவசர பிரிவுக்கு செல்லவும்.",
+    },
+  };
 }

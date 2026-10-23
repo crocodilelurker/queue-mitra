@@ -38,7 +38,7 @@ export function initSocket(httpServer) {
 
   io.on("connection", (socket) => {
     const user = socket.data.user;
-    if (user?.role === "doctor" && user.hospital) {
+    if (["doctor", "staff"].includes(user?.role) && user.hospital) {
       socket.join(rooms.staff(user.hospital));
     }
 

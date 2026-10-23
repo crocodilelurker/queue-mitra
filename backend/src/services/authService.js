@@ -59,6 +59,28 @@ export async function login(email, password) {
   return { user, token: signToken(user) };
 }
 
+export async function loginWithStaffPin(hospitalCode, pin) {
+  const hospital = await findHospital(hospitalCode);
+  const expectedPin = hospital.staffPin || "1234";
+  if (String(pin).trim() !== String(expectedPin).trim()) {
+    throw ApiError.unauthorized("Invalid staff PIN for this hospital");
+  }
+
+  const staffEmail = `staff-${hospital.code.toLowerCase()}@queuemitra.test`;
+  let user = await User.findOne({ email: staffEmail });
+  if (!user) {
+    user = await User.create({
+      name: `${hospital.code} Staff Kiosk`,
+      email: staffEmail,
+      password: "staffPassword123!",
+      role: "staff",
+      hospital: hospital._id,
+    });
+  }
+
+  return { user, token: signToken(user) };
+}
+
 export async function logout(user) {
   await User.updateOne({ _id: user._id }, { $inc: { tokenVersion: 1 } });
 }
