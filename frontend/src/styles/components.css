@@ -228,9 +228,8 @@
 
 /* /new ticket form */
 .main--form {
-  max-width: 36rem;
+  max-width: 42rem;
   margin-top: var(--sp-3);
-  padding-bottom: 5rem; /* clearance for the fixed emergency bar */
 }
 .hero--sm {
   font-size: clamp(1.7rem, 1.3rem + 2vw, 2.4rem);
@@ -422,50 +421,45 @@ textarea.field__control {
   white-space: pre-wrap;
 }
 
-/* Emergency button (fixed on every /new step) */
-.emergency-bar {
-  position: fixed;
-  inset-inline: 0;
-  bottom: 0;
-  z-index: 10;
+/* Round emergency button beside the /new form (sticky so it stays in reach while scrolling) */
+.form-layout {
   display: flex;
-  justify-content: center;
-  padding: var(--sp-1) var(--sp-2) max(var(--sp-1), env(safe-area-inset-bottom));
-  background: linear-gradient(to top, var(--bg) 60%, transparent);
-  pointer-events: none;
+  align-items: flex-start;
+  gap: var(--sp-1);
+}
+.form-layout .form-card {
+  flex: 1;
+  min-width: 0;
 }
 .emergency-btn {
-  pointer-events: auto;
-  width: min(100%, 36rem);
-  min-height: 52px;
-  padding: 0 var(--sp-3);
+  position: sticky;
+  top: var(--sp-2);
+  flex: none;
+  width: 3.5rem;
+  height: 3.5rem;
+  display: grid;
+  place-items: center;
+  padding: 0;
   background: #c92a2a;
   color: #fff;
   border: 2px solid #9c1f1f;
-  border-radius: 999px;
-  font-weight: 600;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  line-height: 1;
   cursor: pointer;
   transition: transform 0.12s ease, background-color 0.12s ease;
 }
 .emergency-btn:hover {
   background: #a61e1e;
-  transform: translateY(-1px);
+  transform: scale(1.06);
 }
-.emergency-dialog {
-  width: min(92vw, 26rem);
-  padding: var(--sp-3);
-  color: var(--ink);
+.emergency-btn:active {
+  transform: scale(0.96);
 }
-.emergency-dialog::backdrop {
-  background: rgba(0, 0, 0, 0.5);
-}
-.emergency-dialog[open] {
-  display: grid;
-  gap: var(--sp-2);
-}
-a.btn.emergency-call {
-  background: #c92a2a;
-  color: #fff;
-  border-color: #9c1f1f;
-  font-weight: 600;
+@media (min-width: 48em) {
+  .emergency-btn {
+    width: 4.5rem;
+    height: 4.5rem;
+    font-size: 2rem;
+  }
 }

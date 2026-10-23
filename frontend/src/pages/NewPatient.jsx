@@ -43,6 +43,7 @@ export default function NewPatient() {
         <main className="main main--form">
           <h1 className="hero hero--sm">{t.newTitle}</h1>
           <StepIndicator current={indicator} />
+          <div className="form-layout">
           <div className="box form-card">
             {step === 'info' && (
               <PatientInfoStep patient={patient} onChange={(p) => setPatient((prev) => ({ ...prev, ...p }))} onContinue={() => setStep('choice')} />
@@ -56,9 +57,10 @@ export default function NewPatient() {
             )}
             {step === 'done' && <Confirmation patient={patient} path={path} doctor={doctor} problem={problem} onStartOver={startOver} />}
           </div>
+          <EmergencyButton />
+          </div>
         </main>
       </div>
-      <EmergencyButton />
     </>
   )
 }
