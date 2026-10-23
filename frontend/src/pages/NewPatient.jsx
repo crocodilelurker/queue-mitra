@@ -8,6 +8,7 @@ import KnowledgeStep from '../components/new/KnowledgeStep.jsx'
 import DoctorDepartmentStep from '../components/new/DoctorDepartmentStep.jsx'
 import ProblemStep from '../components/new/ProblemStep.jsx'
 import Confirmation from '../components/new/Confirmation.jsx'
+import EmergencyButton from '../components/new/EmergencyButton.jsx'
 
 const EMPTY_PATIENT = { firstName: '', age: '', gender: '' }
 const EMPTY_DOCTOR = { doctorName: '', department: '' }
@@ -57,6 +58,7 @@ export default function NewPatient() {
           </div>
         </main>
       </div>
+      <EmergencyButton />
     </>
   )
 }

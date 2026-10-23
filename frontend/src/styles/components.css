@@ -226,10 +226,11 @@
   }
 }
 
-/* /new patient form */
+/* /new ticket form */
 .main--form {
   max-width: 36rem;
   margin-top: var(--sp-3);
+  padding-bottom: 5rem; /* clearance for the fixed emergency bar */
 }
 .hero--sm {
   font-size: clamp(1.7rem, 1.3rem + 2vw, 2.4rem);
@@ -419,4 +420,52 @@ textarea.field__control {
   margin: 0;
   overflow-wrap: anywhere;
   white-space: pre-wrap;
+}
+
+/* Emergency button (fixed on every /new step) */
+.emergency-bar {
+  position: fixed;
+  inset-inline: 0;
+  bottom: 0;
+  z-index: 10;
+  display: flex;
+  justify-content: center;
+  padding: var(--sp-1) var(--sp-2) max(var(--sp-1), env(safe-area-inset-bottom));
+  background: linear-gradient(to top, var(--bg) 60%, transparent);
+  pointer-events: none;
+}
+.emergency-btn {
+  pointer-events: auto;
+  width: min(100%, 36rem);
+  min-height: 52px;
+  padding: 0 var(--sp-3);
+  background: #c92a2a;
+  color: #fff;
+  border: 2px solid #9c1f1f;
+  border-radius: 999px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: transform 0.12s ease, background-color 0.12s ease;
+}
+.emergency-btn:hover {
+  background: #a61e1e;
+  transform: translateY(-1px);
+}
+.emergency-dialog {
+  width: min(92vw, 26rem);
+  padding: var(--sp-3);
+  color: var(--ink);
+}
+.emergency-dialog::backdrop {
+  background: rgba(0, 0, 0, 0.5);
+}
+.emergency-dialog[open] {
+  display: grid;
+  gap: var(--sp-2);
+}
+a.btn.emergency-call {
+  background: #c92a2a;
+  color: #fff;
+  border-color: #9c1f1f;
+  font-weight: 600;
 }
