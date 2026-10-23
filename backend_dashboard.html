@@ -1,0 +1,1103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Queue Mitra - Backend Architecture & State Dashboard</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <script src="https://cdn.jsdelivr.net/npm/mermaid@10/dist/mermaid.min.js"></script>
+  <style>
+    :root {
+      --bg: #090d16;
+      --card-bg: rgba(18, 26, 43, 0.75);
+      --card-border: rgba(255, 255, 255, 0.08);
+      --primary: #38bdf8;
+      --primary-glow: rgba(56, 189, 248, 0.25);
+      --accent: #818cf8;
+      --success: #34d399;
+      --warning: #fbbf24;
+      --danger: #f87171;
+      --text: #f1f5f9;
+      --text-muted: #94a3b8;
+      --font-sans: 'Plus Jakarta Sans', system-ui, sans-serif;
+      --font-mono: 'JetBrains Mono', monospace;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg);
+      background-image: 
+        radial-gradient(at 0% 0%, rgba(56, 189, 248, 0.12) 0px, transparent 50%),
+        radial-gradient(at 100% 100%, rgba(129, 140, 248, 0.10) 0px, transparent 50%),
+        radial-gradient(at 50% 50%, rgba(52, 211, 153, 0.05) 0px, transparent 50%);
+      color: var(--text);
+      font-family: var(--font-sans);
+      line-height: 1.6;
+      min-height: 100vh;
+      padding: 2rem 1.5rem 5rem;
+    }
+
+    .container {
+      max-width: 1280px;
+      margin: 0 auto;
+    }
+
+    /* Header & Hero */
+    header {
+      display: flex;
+      flex-direction: column;
+      gap: 1.5rem;
+      margin-bottom: 2.5rem;
+      border-bottom: 1px solid var(--card-border);
+      padding-bottom: 2rem;
+    }
+
+    .badge-row {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: 0.75rem;
+    }
+
+    .badge {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      padding: 0.35rem 0.8rem;
+      border-radius: 9999px;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+
+    .badge-success {
+      background: rgba(52, 211, 153, 0.15);
+      color: var(--success);
+      border: 1px solid rgba(52, 211, 153, 0.3);
+    }
+
+    .badge-primary {
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--primary);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+    }
+
+    .badge-accent {
+      background: rgba(129, 140, 248, 0.15);
+      color: var(--accent);
+      border: 1px solid rgba(129, 140, 248, 0.3);
+    }
+
+    .badge-live {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      font-size: 0.8rem;
+      font-weight: 600;
+      padding: 0.35rem 0.85rem;
+      border-radius: 9999px;
+      background: rgba(15, 23, 42, 0.9);
+      border: 1px solid var(--card-border);
+    }
+
+    .pulse-dot {
+      width: 8px;
+      height: 8px;
+      border-radius: 50%;
+      background: var(--warning);
+      box-shadow: 0 0 10px var(--warning);
+      animation: pulse 2s infinite;
+    }
+
+    @keyframes pulse {
+      0% { transform: scale(0.95); opacity: 0.8; }
+      50% { transform: scale(1.3); opacity: 1; }
+      100% { transform: scale(0.95); opacity: 0.8; }
+    }
+
+    h1 {
+      font-size: 2.75rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      line-height: 1.15;
+      background: linear-gradient(135deg, #ffffff 40%, #94a3b8 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+
+    .subtitle {
+      color: var(--text-muted);
+      font-size: 1.15rem;
+      max-width: 800px;
+    }
+
+    /* Grid Layouts */
+    .grid-2 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(340px, 1fr));
+      gap: 1.5rem;
+      margin-bottom: 2rem;
+    }
+
+    .grid-3 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+      gap: 1.25rem;
+      margin-bottom: 2rem;
+    }
+
+    .grid-4 {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+      gap: 1rem;
+      margin-bottom: 2rem;
+    }
+
+    /* Card Component */
+    .card {
+      background: var(--card-bg);
+      backdrop-filter: blur(16px);
+      -webkit-backdrop-filter: blur(16px);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 1.5rem;
+      transition: transform 0.2s ease, border-color 0.2s ease;
+      position: relative;
+      overflow: hidden;
+    }
+
+    .card:hover {
+      border-color: rgba(56, 189, 248, 0.35);
+      transform: translateY(-2px);
+    }
+
+    .card-title {
+      font-size: 1.2rem;
+      font-weight: 700;
+      margin-bottom: 0.5rem;
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+    }
+
+    .card-icon {
+      width: 32px;
+      height: 32px;
+      border-radius: 8px;
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      background: rgba(56, 189, 248, 0.15);
+      color: var(--primary);
+      font-size: 1rem;
+    }
+
+    /* Metrics highlight */
+    .stat-number {
+      font-size: 2.25rem;
+      font-weight: 800;
+      letter-spacing: -0.03em;
+      color: var(--text);
+      line-height: 1;
+      margin: 0.5rem 0 0.25rem;
+    }
+
+    .stat-label {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      font-weight: 600;
+    }
+
+    /* Tabs */
+    .tab-nav {
+      display: flex;
+      gap: 0.5rem;
+      border-bottom: 1px solid var(--card-border);
+      margin-bottom: 1.5rem;
+      overflow-x: auto;
+      padding-bottom: 0.5rem;
+    }
+
+    .tab-btn {
+      background: none;
+      border: none;
+      color: var(--text-muted);
+      font-family: var(--font-sans);
+      font-size: 0.95rem;
+      font-weight: 600;
+      padding: 0.6rem 1.2rem;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+
+    .tab-btn:hover {
+      color: var(--text);
+      background: rgba(255, 255, 255, 0.05);
+    }
+
+    .tab-btn.active {
+      color: var(--primary);
+      background: rgba(56, 189, 248, 0.12);
+      border: 1px solid rgba(56, 189, 248, 0.25);
+    }
+
+    .tab-pane {
+      display: none;
+    }
+
+    .tab-pane.active {
+      display: block;
+      animation: fadeIn 0.3s ease;
+    }
+
+    @keyframes fadeIn {
+      from { opacity: 0; transform: translateY(6px); }
+      to { opacity: 1; transform: translateY(0); }
+    }
+
+    /* API Endpoint Table / Box */
+    .endpoint-item {
+      background: rgba(10, 15, 26, 0.6);
+      border: 1px solid var(--card-border);
+      border-radius: 12px;
+      margin-bottom: 1rem;
+      overflow: hidden;
+      transition: border-color 0.2s ease;
+    }
+
+    .endpoint-item:hover {
+      border-color: rgba(255, 255, 255, 0.18);
+    }
+
+    .endpoint-header {
+      padding: 1rem 1.25rem;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .endpoint-left {
+      display: flex;
+      align-items: center;
+      gap: 0.85rem;
+    }
+
+    .method {
+      font-family: var(--font-mono);
+      font-size: 0.75rem;
+      font-weight: 700;
+      padding: 0.25rem 0.6rem;
+      border-radius: 6px;
+      text-transform: uppercase;
+    }
+
+    .method-get { background: rgba(52, 211, 153, 0.2); color: var(--success); }
+    .method-post { background: rgba(56, 189, 248, 0.2); color: var(--primary); }
+    .method-patch { background: rgba(251, 191, 36, 0.2); color: var(--warning); }
+    .method-delete { background: rgba(248, 113, 113, 0.2); color: var(--danger); }
+
+    .endpoint-path {
+      font-family: var(--font-mono);
+      font-size: 0.95rem;
+      font-weight: 500;
+      color: #e2e8f0;
+    }
+
+    .endpoint-desc {
+      font-size: 0.85rem;
+      color: var(--text-muted);
+    }
+
+    .endpoint-body {
+      display: none;
+      padding: 1.25rem;
+      border-top: 1px solid var(--card-border);
+      background: rgba(6, 10, 18, 0.8);
+    }
+
+    .endpoint-body.open {
+      display: block;
+    }
+
+    pre {
+      background: #030712;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      border-radius: 8px;
+      padding: 1rem;
+      overflow-x: auto;
+      font-family: var(--font-mono);
+      font-size: 0.82rem;
+      color: #cbd5e1;
+      margin: 0.5rem 0 1rem;
+    }
+
+    .code-label {
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--text-muted);
+    }
+
+    /* Diagram wrapper */
+    .diagram-container {
+      background: rgba(10, 15, 26, 0.8);
+      border: 1px solid var(--card-border);
+      border-radius: 16px;
+      padding: 2rem 1.5rem;
+      margin-bottom: 2rem;
+      overflow-x: auto;
+    }
+
+    /* Quick Test Bar */
+    .quick-test-bar {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 1rem;
+      background: linear-gradient(135deg, rgba(56, 189, 248, 0.1), rgba(129, 140, 248, 0.1));
+      border: 1px solid rgba(56, 189, 248, 0.25);
+      border-radius: 14px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .btn {
+      background: var(--primary);
+      color: #030712;
+      font-weight: 700;
+      font-size: 0.9rem;
+      padding: 0.6rem 1.25rem;
+      border-radius: 8px;
+      border: none;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+    }
+
+    .btn:hover {
+      transform: translateY(-1px);
+      box-shadow: 0 4px 15px var(--primary-glow);
+    }
+
+    .btn-secondary {
+      background: rgba(255, 255, 255, 0.1);
+      color: var(--text);
+    }
+
+    .btn-secondary:hover {
+      background: rgba(255, 255, 255, 0.18);
+    }
+
+    /* Table */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 1rem 0;
+      font-size: 0.9rem;
+    }
+
+    th, td {
+      padding: 0.85rem 1rem;
+      text-align: left;
+      border-bottom: 1px solid var(--card-border);
+    }
+
+    th {
+      color: var(--text-muted);
+      font-weight: 600;
+      text-transform: uppercase;
+      font-size: 0.75rem;
+      letter-spacing: 0.05em;
+    }
+
+    tr:hover td {
+      background: rgba(255, 255, 255, 0.02);
+    }
+
+    .check-icon {
+      color: var(--success);
+      font-weight: bold;
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+
+    <!-- Header -->
+    <header>
+      <div class="badge-row">
+        <span class="badge badge-success">✓ Backend Ready</span>
+        <span class="badge badge-primary">Express 5 + Socket.io 4</span>
+        <span class="badge badge-accent">Dijkstra Pathfinder</span>
+        <div class="badge-live" id="connection-status">
+          <span class="pulse-dot" id="status-dot"></span>
+          <span id="status-text">Checking localhost:5000...</span>
+        </div>
+      </div>
+      <div>
+        <h1>Queue Mitra: Backend System Dashboard</h1>
+        <p class="subtitle">Complete visual architectural overview, active services, data models, and live REST/WebSocket API contracts for Hackcache Hackathon (Problem Statement 2: Smart Queue & Navigation).</p>
+      </div>
+    </header>
+
+    <!-- Quick Metrics -->
+    <div class="grid-4">
+      <div class="card">
+        <div class="card-icon">⚡</div>
+        <div class="stat-number">24</div>
+        <div class="stat-label">REST API Endpoints</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">📍</div>
+        <div class="stat-number">28</div>
+        <div class="stat-label">Navigation Places & Floors</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">🩺</div>
+        <div class="stat-number">7</div>
+        <div class="stat-label">OPD Departments Seeded</div>
+      </div>
+      <div class="card">
+        <div class="card-icon">🌐</div>
+        <div class="stat-number">3</div>
+        <div class="stat-label">Languages (EN / HI / TA)</div>
+      </div>
+    </div>
+
+    <!-- Quick Action / Diagnostic Bar -->
+    <div class="quick-test-bar">
+      <div>
+        <h3 style="font-size: 1.1rem; font-weight: 700; margin-bottom: 0.2rem;">Live Backend Verification</h3>
+        <p style="font-size: 0.88rem; color: var(--text-muted);">Ensure MongoDB and the Express server are running locally with <code style="font-family: var(--font-mono); color: var(--primary);">npm run dev</code>.</p>
+      </div>
+      <div style="display: flex; gap: 0.75rem;">
+        <button class="btn" onclick="testHealth()">Ping /api/health</button>
+        <button class="btn btn-secondary" onclick="seedPatientsDemo()">Run 20-Patient Demo</button>
+        <button class="btn btn-secondary" onclick="toggleAutoSimulate()" id="sim-btn">Start 10x Simulation</button>
+      </div>
+    </div>
+
+    <!-- Tabs Navigation -->
+    <div class="tab-nav">
+      <button class="tab-btn active" onclick="openTab('arch')">Architecture & Flows</button>
+      <button class="tab-btn" onclick="openTab('apis')">REST API Contracts (24)</button>
+      <button class="tab-btn" onclick="openTab('navigation')">Hospital Dijkstra Graph</button>
+      <button class="tab-btn" onclick="openTab('rubric')">p2.pdf Scoring Matrix</button>
+      <button class="tab-btn" onclick="openTab('quickstart')">Developer Setup & Auth</button>
+    </div>
+
+    <!-- TAB 1: Architecture -->
+    <div id="tab-arch" class="tab-pane active">
+      <div class="diagram-container">
+        <div class="mermaid">
+flowchart TB
+    subgraph Frontend["Frontend Layer (React 18 + PWA)"]
+        F1["Home & Triage ('/')"]
+        F2["Registration ('/register')"]
+        F3["OPD Slip ('/slip/:id')"]
+        F4["My Turn Live Queue ('/my-turn/:id')"]
+        F5["Navigation Map ('/map')"]
+        F6["Doctor/Staff Kiosk ('/doctor')"]
+        F7["TV Waiting Board ('/board')"]
+        F8["Admin Analytics ('/analytics')"]
+    end
+
+    subgraph BackendServices["Backend Services & Business Logic"]
+        S_Triage["triageService.js\n• Emergency Red-flag Detection\n• Safe Dept Suggestion"]
+        S_Queue["queueService.js\n• Atomic Call Next\n• Wait Calculation\n• Requeue & Transfer"]
+        S_Nav["navigationService.js\n• Dijkstra Shortest Path\n• Avoid Stairs Filter\n• Landmark Checkpoints"]
+        S_Sms["notificationService.js\n• Simulated SMS Alerts\n• 3-Ahead Proximity Dispatch"]
+        S_Analytics["analyticsService.js\n• Overcrowding Heatmap\n• Emergency Response SLA"]
+        S_Demo["demoService.js\n• 10x Auto-simulation Runner\n• Seed 20 Patients"]
+    end
+
+    subgraph RealTime["Real-Time Gateway (Socket.io)"]
+        W1["ticket:position (wait countdown)"]
+        W2["ticket:called (screen popup)"]
+        W3["ticket:sms (simulated SMS)"]
+        W4["urgent:raised (siren chime)"]
+        W5["token:called (TV announcements)"]
+    end
+
+    subgraph Storage["Database & Spatial Graph"]
+        DB[(MongoDB 9 / Mongoose)\nHospitals, Departments, Users,\nTickets, Counters, Notifications]
+        MapGraph[(CDH Spatial Graph)\n28 Nodes, 3 Floors, Edges]
+    end
+
+    Frontend --> BackendServices
+    BackendServices <--> RealTime
+    BackendServices --> Storage
+    RealTime <--> Frontend
+        </div>
+      </div>
+
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">
+            <span class="card-icon">🎯</span>
+            Atomic Ticket-Matching Engine
+          </div>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.75rem;">
+            Guarantees that multiple doctors clicking "Call Next" simultaneously can never receive the same patient. Uses MongoDB <code style="font-family: var(--font-mono); color: var(--primary);">findOneAndUpdate</code> with sequence sequencing.
+          </p>
+          <div style="background: rgba(0,0,0,0.3); padding: 0.75rem; border-radius: 8px; font-family: var(--font-mono); font-size: 0.8rem;">
+            Estimated Wait = round5( ceil(peopleAhead / doctorsOnDuty) × avgConsultTime + delay )
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <span class="card-icon">🚨</span>
+            Emergency Safety & Audit SLA
+          </div>
+          <p style="color: var(--text-muted); font-size: 0.9rem; margin-bottom: 0.75rem;">
+            Strict adherence to the hackathon rule: <strong>The app never triages emergencies as safe.</strong> Red-flag symptoms trigger immediate directions to Casualty and 112/108 numbers.
+          </p>
+          <div style="background: rgba(0,0,0,0.3); padding: 0.75rem; border-radius: 8px; font-family: var(--font-mono); font-size: 0.8rem;">
+            "I Need Urgent Help" -> Sound Chime to Staff -> Logs responseTimeSeconds SLA
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 2: REST APIs -->
+    <div id="tab-apis" class="tab-pane">
+      <div style="margin-bottom: 1.5rem; display: flex; justify-content: space-between; align-items: center;">
+        <h2 style="font-size: 1.4rem;">Complete REST API Directory</h2>
+        <span style="font-size: 0.85rem; color: var(--text-muted);">Click any endpoint to inspect request & response payloads</span>
+      </div>
+
+      <!-- Group 1: Tickets & Registration -->
+      <h3 style="color: var(--primary); font-size: 1.05rem; margin: 1.5rem 0 0.75rem;">1. Patient Registration & Queue</h3>
+
+      <div class="endpoint-item">
+        <div class="endpoint-header" onclick="toggleEndpoint(this)">
+          <div class="endpoint-left">
+            <span class="method method-post">POST</span>
+            <span class="endpoint-path">/api/tickets</span>
+          </div>
+          <span class="endpoint-desc">Register patient & issue daily token (e.g. MED-001)</span>
+        </div>
+        <div class="endpoint-body">
+          <div class="code-label">Request Body</div>
+          <pre>{
+  "hospitalCode": "CDH",
+  "departmentCode": "MED",
+  "firstName": "Kamla",
+  "age": 62,
+  "gender": "female",
+  "mobile": "9876543210",
+  "language": "hi",
+  "isAssisted": true,
+  "accessibility": { "avoidStairs": true, "largeText": true }
+}</pre>
+          <div class="code-label">Response (201 Created)</div>
+          <pre>{
+  "publicId": "3fa85f64-5717-4562-b3fc-2c963f66afa6",
+  "tokenNumber": "MED-001",
+  "status": "waiting",
+  "firstName": "Kamla",
+  "peopleAhead": 0,
+  "estimatedWaitMinutes": 5,
+  "department": { "code": "MED", "name": "General Medicine", "floor": 1 }
+}</pre>
+        </div>
+      </div>
+
+      <div class="endpoint-item">
+        <div class="endpoint-header" onclick="toggleEndpoint(this)">
+          <div class="endpoint-left">
+            <span class="method method-post">POST</span>
+            <span class="endpoint-path">/api/tickets/counter</span>
+          </div>
+          <span class="endpoint-desc">Fast counter walk-in registration (assisted mode on by default)</span>
+        </div>
+        <div class="endpoint-body">
+          <div class="code-label">Request Body</div>
+          <pre>{
+  "hospitalCode": "CDH",
+  "departmentCode": "ORT",
+  "firstName": "Ramesh",
+  "age": 70,
+  "gender": "male"
+}</pre>
+          <div class="code-label">Response (201 Created) - Full printable slip</div>
+          <pre>{
+  "publicId": "7c9e6679-7425-40de-944b-e07fc1f90ae7",
+  "tokenNumber": "ORT-002",
+  "room": "Room 5",
+  "doctorName": "Dr. Imran Khan",
+  "isAssisted": true,
+  "qrPayload": "https://queuemitra.in/my-turn/7c9e6679-7425-40de-944b-e07fc1f90ae7"
+}</pre>
+        </div>
+      </div>
+
+      <div class="endpoint-item">
+        <div class="endpoint-header" onclick="toggleEndpoint(this)">
+          <div class="endpoint-left">
+            <span class="method method-get">GET</span>
+            <span class="endpoint-path">/api/tickets/:publicId/slip</span>
+          </div>
+          <span class="endpoint-desc">Full printable OPD slip data with hospital disclaimers</span>
+        </div>
+        <div class="endpoint-body">
+          <div class="code-label">Response (200 OK)</div>
+          <pre>{
+  "tokenNumber": "MED-001",
+  "hospital": { "name": "City District Hospital", "contact": { "emergencyPhone": "108" } },
+  "department": { "name": "General Medicine", "floor": 1 },
+  "room": "Room 1",
+  "doctorName": "Dr. Anita Sharma",
+  "disclaimer": {
+    "hi": "यह ओपीडी टोकन केवल आज के लिए मान्य है। आपात स्थिति में सीधे ग्राउंड फ्लोर कैजुअल्टी जाएं।"
+  }
+}</pre>
+        </div>
+      </div>
+
+      <div class="endpoint-item">
+        <div class="endpoint-header" onclick="toggleEndpoint(this)">
+          <div class="endpoint-left">
+            <span class="method method-patch">PATCH</span>
+            <span class="endpoint-path">/api/tickets/:publicId/preferences</span>
+          </div>
+          <span class="endpoint-desc">Save patient accessibility preferences</span>
+        </div>
+        <div class="endpoint-body">
+          <div class="code-label">Request Body</div>
+          <pre>{
+  "language": "hi",
+  "accessibility": { "avoidStairs": true, "largeText": true, "readAloud": true }
+}</pre>
+        </div>
+      </div>
+
+      <div class="endpoint-item">
+        <div class="endpoint-header" onclick="toggleEndpoint(this)">
+          <div class="endpoint-left">
+            <span class="method method-post">POST</span>
+            <span class="endpoint-path">/api/tickets/:publicId/urgent</span>
+          </div>
+          <span class="endpoint-desc">"I need urgent help" button -> broadcasts alarm to staff</span>
+        </div>
+        <div class="endpoint-body">
+          <div class="code-label">Response</div>
+          <pre>{ "publicId": "...", "urgentRaised": true, "raisedAt": "2026-10-23T23:00:00.000Z" }</pre>
+        </div>
+      </div>
+
+      <!-- Group 2: Navigation -->
+      <h3 style="color: var(--primary); font-size: 1.05rem; margin: 1.5rem 0 0.75rem;">2. Dijkstra Navigation & Landmark Checkpoints</h3>
+
+      <div class="endpoint-item">
+        <div class="endpoint-header" onclick="toggleEndpoint(this)">
+          <div class="endpoint-left">
+            <span class="method method-post">POST</span>
+            <span class="endpoint-path">/api/navigation/route</span>
+          </div>
+          <span class="endpoint-desc">Dijkstra shortest path with 'avoid stairs' filter</span>
+        </div>
+        <div class="endpoint-body">
+          <div class="code-label">Request Body</div>
+          <pre>{
+  "from": "main_entrance_0",
+  "to": "room_3",
+  "avoidStairs": true,
+  "language": "hi"
+}</pre>
+          <div class="code-label">Response</div>
+          <pre>{
+  "totalDistanceMeters": 42,
+  "estimatedWalkMinutes": 1,
+  "avoidStairsUsed": true,
+  "steps": [
+    { "stepNumber": 1, "name": "Main Entrance", "floor": 0, "instruction": "Start at Main Entrance (Floor 0)." },
+    { "stepNumber": 2, "name": "Lift / Elevator (Ground)", "instruction": "Walk straight through lobby to the lift" },
+    { "stepNumber": 3, "name": "Lift / Elevator (First Floor)", "instruction": "Take lift up to Floor 1" },
+    { "stepNumber": 4, "name": "Room 3 (Children)", "landmark": "कार्टून चित्रों वाला तीसरा दरवाजा (डॉ. मीना अय्यर)" }
+  ]
+}</pre>
+        </div>
+      </div>
+
+      <div class="endpoint-item">
+        <div class="endpoint-header" onclick="toggleEndpoint(this)">
+          <div class="endpoint-left">
+            <span class="method method-post">POST</span>
+            <span class="endpoint-path">/api/navigation/from-checkpoint</span>
+          </div>
+          <span class="endpoint-desc">Calculate route from scanned physical QR poster</span>
+        </div>
+        <div class="endpoint-body">
+          <div class="code-label">Request Body</div>
+          <pre>{
+  "checkpointId": "CP_LIFT_G",
+  "room": "Room 6",
+  "avoidStairs": true,
+  "language": "en"
+}</pre>
+        </div>
+      </div>
+
+      <div class="endpoint-item">
+        <div class="endpoint-header" onclick="toggleEndpoint(this)">
+          <div class="endpoint-left">
+            <span class="method method-post">POST</span>
+            <span class="endpoint-path">/api/navigation/lost</span>
+          </div>
+          <span class="endpoint-desc">"I'm lost" -> finds nearest Help Desk & generates bilingual Staff Card</span>
+        </div>
+        <div class="endpoint-body">
+          <div class="code-label">Request Body</div>
+          <pre>{ "currentFloor": 1, "destinationPlaceId": "room_6", "language": "hi" }</pre>
+        </div>
+      </div>
+
+      <!-- Group 3: Emergency & Triage -->
+      <h3 style="color: var(--primary); font-size: 1.05rem; margin: 1.5rem 0 0.75rem;">3. Emergency Triage</h3>
+
+      <div class="endpoint-item">
+        <div class="endpoint-header" onclick="toggleEndpoint(this)">
+          <div class="endpoint-left">
+            <span class="method method-post">POST</span>
+            <span class="endpoint-path">/api/triage/suggest</span>
+          </div>
+          <span class="endpoint-desc">Symptom analyzer with red-flag emergency detection</span>
+        </div>
+        <div class="endpoint-body">
+          <div class="code-label">Emergency Request Example</div>
+          <pre>{ "text": "severe chest pain and sweating", "language": "en" }</pre>
+          <div class="code-label">Emergency Response Example</div>
+          <pre>{
+  "isEmergency": true,
+  "emergencyWarning": { "code": "chest_pain", "reason": "Severe chest pain or suspected cardiac symptoms" },
+  "directive": "URGENT MEDICAL ATTENTION REQUIRED. Please go directly to Emergency (Casualty) on Ground Floor now. You do NOT need an OPD token.",
+  "emergencyContacts": { "ambulance": "108", "emergency": "112" }
+}</pre>
+        </div>
+      </div>
+
+      <!-- Group 4: Staff & Analytics -->
+      <h3 style="color: var(--primary); font-size: 1.05rem; margin: 1.5rem 0 0.75rem;">4. Staff, Analytics & Demo Controls</h3>
+
+      <div class="endpoint-item">
+        <div class="endpoint-header" onclick="toggleEndpoint(this)">
+          <div class="endpoint-left">
+            <span class="method method-get">GET</span>
+            <span class="endpoint-path">/api/analytics/CDH</span>
+          </div>
+          <span class="endpoint-desc">Hospital throughput, live overcrowding heatmap & emergency SLA</span>
+        </div>
+        <div class="endpoint-body">
+          <div class="code-label">Response</div>
+          <pre>{
+  "overview": { "totalPatientsToday": 24, "currentlyWaiting": 18, "completedToday": 6 },
+  "emergencySLA": { "averageResponseTimeSeconds": 14, "complianceRate": "100% compliant" },
+  "departmentHeatmap": [
+    { "code": "MED", "waitingCount": 8, "capacity": 25, "overcrowding": "green" },
+    { "code": "ORT", "waitingCount": 16, "capacity": 15, "overcrowding": "red" }
+  ]
+}</pre>
+        </div>
+      </div>
+
+      <div class="endpoint-item">
+        <div class="endpoint-header" onclick="toggleEndpoint(this)">
+          <div class="endpoint-left">
+            <span class="method method-post">POST</span>
+            <span class="endpoint-path">/api/demo/auto-simulate/start</span>
+          </div>
+          <span class="endpoint-desc">Run 10x speed live queue progression for hackathon judges</span>
+        </div>
+        <div class="endpoint-body">
+          <div class="code-label">Request Body</div>
+          <pre>{ "intervalMs": 3000, "hospitalCode": "CDH" }</pre>
+        </div>
+      </div>
+    </div>
+
+    <!-- TAB 3: Navigation Graph -->
+    <div id="tab-navigation" class="tab-pane">
+      <h2 style="font-size: 1.3rem; margin-bottom: 1rem;">City District Hospital: Spatial Layout & Graph Nodes</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Floor</th>
+            <th>Node Name</th>
+            <th>Category</th>
+            <th>Visible Landmark</th>
+            <th>Stairs Excluded</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>Floor 0</strong></td>
+            <td>Main Entrance</td>
+            <td>Entrance</td>
+            <td>Security booth at main gates</td>
+            <td><span class="check-icon">✓ Accessible</span></td>
+          </tr>
+          <tr>
+            <td><strong>Floor 0</strong></td>
+            <td>Help Desk / May I Help You</td>
+            <td>Help Desk</td>
+            <td>Opposite the blue chairs in central lobby</td>
+            <td><span class="check-icon">✓ Accessible</span></td>
+          </tr>
+          <tr>
+            <td><strong>Floor 0</strong></td>
+            <td>Emergency (Casualty)</td>
+            <td>Emergency</td>
+            <td>Red marked emergency corridor, Ground floor left wing</td>
+            <td><span class="check-icon">✓ Accessible</span></td>
+          </tr>
+          <tr>
+            <td><strong>Floor 0</strong></td>
+            <td>Pharmacy</td>
+            <td>Pharmacy</td>
+            <td>Next to Counter 4 & distribution window</td>
+            <td><span class="check-icon">✓ Accessible</span></td>
+          </tr>
+          <tr>
+            <td><strong>Floor 0</strong></td>
+            <td>Lift & Ramp</td>
+            <td>Vertical Transport</td>
+            <td>Braille elevator and gentle slope ramp</td>
+            <td><span class="check-icon">✓ Accessible</span></td>
+          </tr>
+          <tr>
+            <td><strong>Floor 1</strong></td>
+            <td>Waiting Hall A</td>
+            <td>Waiting Lounge</td>
+            <td>Digital TV board & stainless benches</td>
+            <td><span class="check-icon">✓ Accessible</span></td>
+          </tr>
+          <tr>
+            <td><strong>Floor 1</strong></td>
+            <td>Room 1 & 2 (General Medicine)</td>
+            <td>OPD Room</td>
+            <td>First & second doors on left corridor</td>
+            <td><span class="check-icon">✓ Accessible</span></td>
+          </tr>
+          <tr>
+            <td><strong>Floor 1</strong></td>
+            <td>Room 3 (Children / Paediatrics)</td>
+            <td>OPD Room</td>
+            <td>Third door on left with cartoon murals</td>
+            <td><span class="check-icon">✓ Accessible</span></td>
+          </tr>
+          <tr>
+            <td><strong>Floor 1</strong></td>
+            <td>Room 6 (Ear, Nose & Throat)</td>
+            <td>OPD Room</td>
+            <td>Opposite drinking water cooler, right corridor</td>
+            <td><span class="check-icon">✓ Accessible</span></td>
+          </tr>
+          <tr>
+            <td><strong>Floor 2</strong></td>
+            <td>Nurses' Station & Wards 4, 5, 6</td>
+            <td>Inpatient Wards</td>
+            <td>Opposite second floor elevator exit</td>
+            <td><span class="check-icon">✓ Accessible</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TAB 4: Scoring Matrix -->
+    <div id="tab-rubric" class="tab-pane">
+      <h2 style="font-size: 1.3rem; margin-bottom: 1rem;">Hackcache Evaluation Matrix Alignment (p2.pdf)</h2>
+      <table>
+        <thead>
+          <tr>
+            <th>Criteria</th>
+            <th>Brief Requirements</th>
+            <th>Backend Implementation</th>
+            <th>Status</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td><strong>1. Ease of Registration</strong></td>
+            <td>Minimal steps, clear instructions, OPD slip generation</td>
+            <td>Fast POST /api/tickets + /api/tickets/counter for smartphone-free walk-ins</td>
+            <td><span class="badge badge-success">Completed</span></td>
+          </tr>
+          <tr>
+            <td><strong>2. Language Accessibility</strong></td>
+            <td>Native regional language support across screens</td>
+            <td>Complete English, Hindi, and Tamil translations across all models & announcements</td>
+            <td><span class="badge badge-success">Completed</span></td>
+          </tr>
+          <tr>
+            <td><strong>3. Inclusive Design</strong></td>
+            <td>Assisted mode, voice input, avoid stairs routing</td>
+            <td>PATCH preferences for avoidStairs & largeText; assisted mode flags on slips</td>
+            <td><span class="badge badge-success">Completed</span></td>
+          </tr>
+          <tr>
+            <td><strong>4. Queue Efficiency</strong></td>
+            <td>Dynamic wait times, atomic matching, no race conditions</td>
+            <td>MongoDB atomic findOneAndUpdate, moving average of last 10 visits + delays</td>
+            <td><span class="badge badge-success">Completed</span></td>
+          </tr>
+          <tr>
+            <td><strong>5. Navigation Accuracy</strong></td>
+            <td>Deepest focus: slip to room, avoid stairs, lost mode</td>
+            <td>Full Dijkstra pathfinder, 7 wall QR checkpoints, landmark-guided instructions</td>
+            <td><span class="badge badge-success">Completed</span></td>
+          </tr>
+          <tr>
+            <td><strong>6. Emergency Handling</strong></td>
+            <td>Emergencies come first, app never makes urgent cases wait</td>
+            <td>Red-flag triage, persistent staff sirens, emergency response time SLA audit</td>
+            <td><span class="badge badge-success">Completed</span></td>
+          </tr>
+          <tr>
+            <td><strong>7. Technical Execution</strong></td>
+            <td>Real-time synchronization, PWA offline resilience</td>
+            <td>Socket.io multi-room gateway, simulated SMS engine, offline batch sync</td>
+            <td><span class="badge badge-success">Completed</span></td>
+          </tr>
+          <tr>
+            <td><strong>8. Real-world Usefulness</strong></td>
+            <td>Hospital staff tools, overcrowding management</td>
+            <td>Live analytics heatmap, 10x presentation auto-runner, TV board feeds</td>
+            <td><span class="badge badge-success">Completed</span></td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- TAB 5: Quickstart -->
+    <div id="tab-quickstart" class="tab-pane">
+      <div class="grid-2">
+        <div class="card">
+          <div class="card-title">
+            <span class="card-icon">💻</span>
+            Running the Backend
+          </div>
+          <pre>cd backend
+cp .env.example .env    # configure MONGODB_URI
+npm install
+npm run seed            # seeds CDH hospital, 7 departments, 8 doctors
+npm run dev             # runs on http://localhost:5000</pre>
+        </div>
+
+        <div class="card">
+          <div class="card-title">
+            <span class="card-icon">🔑</span>
+            Sample Demo Credentials
+          </div>
+          <p style="font-size: 0.9rem; margin-bottom: 0.5rem;"><strong>Hospital Code:</strong> <code style="font-family: var(--font-mono); color: var(--primary);">CDH</code></p>
+          <p style="font-size: 0.9rem; margin-bottom: 0.5rem;"><strong>Staff PIN:</strong> <code style="font-family: var(--font-mono); color: var(--primary);">1234</code> (for /api/auth/staff-pin)</p>
+          <p style="font-size: 0.9rem; margin-bottom: 0.5rem;"><strong>Sample Doctor Email:</strong> <code style="font-family: var(--font-mono); color: var(--primary);">anita@queuemitra.test</code></p>
+          <p style="font-size: 0.9rem;"><strong>Password for all doctors:</strong> <code style="font-family: var(--font-mono); color: var(--primary);">doctor123</code></p>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script>
+    mermaid.initialize({ startOnLoad: true, theme: 'dark' });
+
+    function openTab(tabId) {
+      document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+      document.querySelectorAll('.tab-pane').forEach(pane => pane.classList.remove('active'));
+      event.target.classList.add('active');
+      document.getElementById('tab-' + tabId).classList.add('active');
+    }
+
+    function toggleEndpoint(element) {
+      const body = element.nextElementSibling;
+      body.classList.toggle('open');
+    }
+
+    // Live health check
+    async function testHealth() {
+      const dot = document.getElementById('status-dot');
+      const text = document.getElementById('status-text');
+      try {
+        const res = await fetch('http://localhost:5000/api/health');
+        if (res.ok) {
+          const data = await res.json();
+          dot.style.background = '#34d399';
+          dot.style.boxShadow = '0 0 10px #34d399';
+          text.innerText = 'Connected: ' + data.status + ' (DB: ' + data.database + ')';
+        } else {
+          throw new Error('HTTP ' + res.status);
+        }
+      } catch (err) {
+        dot.style.background = '#f87171';
+        dot.style.boxShadow = '0 0 10px #f87171';
+        text.innerText = 'Backend Offline (Start with npm run dev)';
+      }
+    }
+
+    async function seedPatientsDemo() {
+      try {
+        const res = await fetch('http://localhost:5000/api/demo/seed-patients', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ hospitalCode: 'CDH' })
+        });
+        const data = await res.json();
+        alert(data.message || 'Seeded 20 sample patients!');
+      } catch (err) {
+        alert('Could not connect to backend. Please ensure backend is running.');
+      }
+    }
+
+    let isSimulating = false;
+    async function toggleAutoSimulate() {
+      const btn = document.getElementById('sim-btn');
+      try {
+        if (!isSimulating) {
+          const res = await fetch('http://localhost:5000/api/demo/auto-simulate/start', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ intervalMs: 3000, hospitalCode: 'CDH' })
+          });
+          const data = await res.json();
+          isSimulating = true;
+          btn.innerText = 'Stop Simulation';
+          btn.style.background = '#f87171';
+          alert(data.message);
+        } else {
+          const res = await fetch('http://localhost:5000/api/demo/auto-simulate/stop', { method: 'POST' });
+          const data = await res.json();
+          isSimulating = false;
+          btn.innerText = 'Start 10x Simulation';
+          btn.style.background = '';
+          alert(data.message);
+        }
+      } catch (err) {
+        alert('Could not connect to backend. Please ensure backend is running.');
+      }
+    }
+
+    // Initial ping on load
+    testHealth();
+  </script>
+</body>
+</html>

@@ -21,6 +21,17 @@ const urgentFlagSchema = new mongoose.Schema(
     raisedAt: Date,
     seenAt: Date,
     seenBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+    responseTimeSeconds: Number,
+  },
+  { _id: false }
+);
+
+const accessibilitySchema = new mongoose.Schema(
+  {
+    avoidStairs: { type: Boolean, default: false },
+    largeText: { type: Boolean, default: false },
+    readAloud: { type: Boolean, default: false },
+    highContrast: { type: Boolean, default: false },
   },
   { _id: false }
 );
@@ -37,6 +48,11 @@ const ticketSchema = new mongoose.Schema(
     department: { type: mongoose.Schema.Types.ObjectId, ref: "Department", required: true },
     patient: { type: patientSchema, required: true },
     language: { type: String, default: "en" },
+
+    // Assisted registration ("Someone is helping me")
+    isAssisted: { type: Boolean, default: false },
+    helperName: { type: String, trim: true },
+    accessibility: { type: accessibilitySchema, default: () => ({}) },
 
     status: { type: String, enum: TICKET_STATUSES, default: "waiting" },
     doctor: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },

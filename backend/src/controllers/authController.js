@@ -44,6 +44,13 @@ export async function login(req, res) {
   sendAuth(res, 200, await authService.login(email, password));
 }
 
+export async function loginStaffPin(req, res) {
+  const { hospitalCode, pin } = req.body ?? {};
+  if (!hospitalCode || !pin) throw ApiError.badRequest("hospitalCode and pin are required");
+
+  sendAuth(res, 200, await authService.loginWithStaffPin(hospitalCode, pin));
+}
+
 export async function logout(req, res) {
   await authService.logout(req.user);
   res.clearCookie("token", cookieOptions);

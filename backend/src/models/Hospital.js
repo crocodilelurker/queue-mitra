@@ -19,8 +19,10 @@ const hospitalSchema = new mongoose.Schema(
       emergencyPhone: { type: String, trim: true },
     },
     floors: { type: Number, default: 1, min: 1 },
+    // Prototype staff PIN for quick staff login (e.g. "1234")
+    staffPin: { type: String, default: "1234", trim: true },
     // Languages offered on this hospital's screens
-    languages: { type: [String], default: ["en", "hi"] },
+    languages: { type: [String], default: ["en", "hi", "ta"] },
     isActive: { type: Boolean, default: true },
   },
   { timestamps: true }
