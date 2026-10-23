@@ -16,6 +16,16 @@ export async function markNoShow(req, res) {
   res.json(await queueService.markNoShow(req.user, req.params.ticketId));
 }
 
+export async function requeueTicket(req, res) {
+  res.json(await queueService.requeueTicket(req.user, req.params.ticketId));
+}
+
+export async function transferTicket(req, res) {
+  const { departmentCode } = req.body ?? {};
+  if (!departmentCode) throw ApiError.badRequest("departmentCode is required");
+  res.json(await queueService.transferTicket(req.user, req.params.ticketId, departmentCode));
+}
+
 export async function updateStatus(req, res) {
   const user = await queueService.updateDoctorStatus(req.user, req.body ?? {});
   res.json({ user });

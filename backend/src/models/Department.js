@@ -12,6 +12,13 @@ const departmentSchema = new mongoose.Schema(
     rooms: [{ type: String, trim: true }],
     // Starting estimate until real consultation times are available
     avgConsultMinutes: { type: Number, default: 8, min: 1 },
+    // Seating capacity in the waiting area (used for overcrowding calculations: green, amber, red)
+    seatingCapacity: { type: Number, default: 15, min: 1 },
+    // Multilingual translations for patient cards & announcements
+    translations: {
+      hi: { name: { type: String, trim: true }, description: { type: String, trim: true } },
+      ta: { name: { type: String, trim: true }, description: { type: String, trim: true } },
+    },
     opdHours: {
       start: { type: String, default: "09:00" },
       end: { type: String, default: "14:00" },
