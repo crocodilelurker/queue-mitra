@@ -20,7 +20,7 @@
   text-align: center;
 }
 
-/* Hand-drawn style box (reference: rounded, dark outline, slight tilt of the stroke) */
+/* Sketch-style box (reference: rounded, dark outline) */
 .box {
   background: var(--surface);
   border: var(--border);

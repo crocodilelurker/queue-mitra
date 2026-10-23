@@ -1,12 +1,12 @@
 # Queue Mitra - Frontend
 
-Mobile-first Progressive Web App home page for Queue Mitra. It follows the hand-drawn grey/black/red look of the project's whiteboard sketch and the triage flow in it: describe a symptom (text, voice or photo), then pick a path (direct OPD, emergency, pharmacy) or ask for help when unsure.
+Mobile-first Progressive Web App home page for Queue Mitra. It follows the grey/black/red sketch look of the project's whiteboard sketch and the triage flow in it: describe a symptom (text, voice or photo), then pick a path (direct OPD, emergency, pharmacy) or ask for help when unsure.
 
 ## Technologies
 
 - React 18 + Vite 6 (no existing frontend stack was in the repo)
 - Plain CSS with design tokens (`src/styles/tokens.css`)
-- `@fontsource/patrick-hand` (bundled, so the font works offline)
+- `@fontsource-variable/inter` (Inter, bundled so the font works offline)
 - Hand-written web app manifest and service worker (no PWA plugin)
 - Browser Web Speech API for voice input (where supported)
 
@@ -80,6 +80,6 @@ Caching: navigations are network-first with an offline fallback to the app shell
 
 - UI only: the `/new` form does not submit anywhere, and the home page path buttons (OPD, Emergency, Pharmacy, Get help) and department suggestion are not wired to a backend yet. Audio-to-text uses the browser's speech API, and the photo is only previewed locally.
 - Languages: English and Hindi. The sketch lists a third language ("TX"), which is unspecified, so it is not included.
-- The Patrick Hand font has no Devanagari glyphs; Hindi text uses the fallback font.
+- Inter has no Devanagari glyphs; Hindi text uses the system fallback font.
 - Voice input needs a browser with the Web Speech API (e.g. Chrome, Safari) and is disabled elsewhere.
 - Icons are generated placeholders (red cross on grey); replace them in `public/icons/` with final branding.
