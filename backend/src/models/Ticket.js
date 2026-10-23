@@ -33,6 +33,7 @@ const ticketSchema = new mongoose.Schema(
     sequence: { type: Number, required: true },
     serviceDate: { type: String, required: true }, // YYYY-MM-DD, local hospital date
 
+    hospital: { type: mongoose.Schema.Types.ObjectId, ref: "Hospital", required: true },
     department: { type: mongoose.Schema.Types.ObjectId, ref: "Department", required: true },
     patient: { type: patientSchema, required: true },
     language: { type: String, default: "en" },
@@ -52,5 +53,7 @@ const ticketSchema = new mongoose.Schema(
 // The matching engine's main lookup: lowest-numbered waiting ticket in a department today.
 ticketSchema.index({ department: 1, serviceDate: 1, status: 1, sequence: 1 });
 ticketSchema.index({ department: 1, serviceDate: 1, sequence: 1 }, { unique: true });
+// Unseen urgent flags for one hospital's staff dashboard.
+ticketSchema.index({ hospital: 1, "urgent.raised": 1, "urgent.seenAt": 1 });
 
 export default mongoose.model("Ticket", ticketSchema);

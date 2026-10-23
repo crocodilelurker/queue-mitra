@@ -1,8 +1,8 @@
 import jwt from "jsonwebtoken";
 import env from "../config/env.js";
-import Department from "../models/Department.js";
 import User from "../models/User.js";
 import ApiError from "../utils/ApiError.js";
+import { findDepartment, findHospital } from "./hospitalService.js";
 
 export function signToken(user) {
   return jwt.sign({ sub: user.id, role: user.role, v: user.tokenVersion }, env.jwtSecret, {
@@ -28,9 +28,9 @@ export async function verifyToken(token) {
 }
 
 // Simple self-registration for doctors. Open to anyone for now; to be locked down later.
-export async function registerDoctor({ name, email, password, departmentCode, room }) {
-  const department = await Department.findOne({ code: String(departmentCode).toUpperCase(), isActive: true });
-  if (!department) throw ApiError.badRequest("Unknown department");
+export async function registerDoctor({ name, email, password, hospitalCode, departmentCode, room }) {
+  const hospital = await findHospital(hospitalCode);
+  const department = await findDepartment(hospital, departmentCode);
 
   if (department.rooms.length && !department.rooms.includes(room)) {
     throw ApiError.badRequest(`room must be one of: ${department.rooms.join(", ")}`);
@@ -44,6 +44,7 @@ export async function registerDoctor({ name, email, password, departmentCode, ro
     email,
     password,
     role: "doctor",
+    hospital: hospital._id,
     department: department._id,
     room,
   });

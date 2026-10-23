@@ -7,8 +7,9 @@ let io = null;
 export const rooms = {
   department: (departmentId) => `department:${departmentId}`,
   ticket: (publicId) => `ticket:${publicId}`,
-  staff: "staff",
-  board: "board",
+  // Staff and board rooms are per hospital so flags and calls never leak between hospitals.
+  staff: (hospitalId) => `staff:${hospitalId}`,
+  board: (hospitalId) => `board:${hospitalId}`,
 };
 
 function readCookie(header = "", name) {
@@ -36,15 +37,16 @@ export function initSocket(httpServer) {
   });
 
   io.on("connection", (socket) => {
-    if (socket.data.user?.role === "doctor") {
-      socket.join(rooms.staff);
+    const user = socket.data.user;
+    if (user?.role === "doctor" && user.hospital) {
+      socket.join(rooms.staff(user.hospital));
     }
 
     socket.on("department:join", (departmentId) => socket.join(rooms.department(departmentId)));
     socket.on("department:leave", (departmentId) => socket.leave(rooms.department(departmentId)));
     socket.on("ticket:join", (publicId) => socket.join(rooms.ticket(publicId)));
     socket.on("ticket:leave", (publicId) => socket.leave(rooms.ticket(publicId)));
-    socket.on("board:join", () => socket.join(rooms.board));
+    socket.on("board:join", (hospitalId) => socket.join(rooms.board(hospitalId)));
   });
 
   return io;

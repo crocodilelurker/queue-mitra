@@ -23,6 +23,7 @@ const userSchema = new mongoose.Schema(
     role: { type: String, enum: ROLES, default: "user" },
 
     // Doctor-only fields
+    hospital: { type: mongoose.Schema.Types.ObjectId, ref: "Hospital" },
     department: { type: mongoose.Schema.Types.ObjectId, ref: "Department" },
     room: { type: String, trim: true },
     status: { type: doctorStatusSchema, default: () => ({}) },

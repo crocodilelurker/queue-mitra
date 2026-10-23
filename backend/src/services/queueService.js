@@ -5,6 +5,7 @@ import User, { DOCTOR_STATES } from "../models/User.js";
 import ApiError from "../utils/ApiError.js";
 import { serviceDate } from "../utils/date.js";
 import { emit, rooms } from "../socket/index.js";
+import { findDepartment, findHospital } from "./hospitalService.js";
 
 // Estimated wait uses the average of the last N consultations in a department.
 const CONSULT_SAMPLE_SIZE = 10;
@@ -108,6 +109,7 @@ async function buildSnapshot(ctx) {
   ]);
 
   const snapshot = {
+    hospital: department.hospital,
     department: {
       id: department._id,
       code: department.code,
@@ -142,8 +144,13 @@ async function broadcastQueue(departmentId) {
   try {
     const ctx = await loadDepartmentContext(departmentId);
     const { snapshot, waiting } = await buildSnapshot(ctx);
+    const hospitalId = ctx.department.hospital;
 
-    emit([rooms.department(departmentId), rooms.staff, rooms.board], "queue:updated", snapshot);
+    emit(
+      [rooms.department(departmentId), rooms.staff(hospitalId), rooms.board(hospitalId)],
+      "queue:updated",
+      snapshot
+    );
 
     waiting.forEach((t, peopleAhead) => {
       emit(rooms.ticket(t.publicId), "ticket:position", {
@@ -163,20 +170,18 @@ async function broadcastQueue(departmentId) {
 
 // ---------- Patients ----------
 
-export async function createTicket({ departmentCode, patient, language }) {
-  const department = await Department.findOne({
-    code: String(departmentCode).toUpperCase(),
-    isActive: true,
-  });
-  if (!department) throw ApiError.notFound("Department not found");
+export async function createTicket({ hospitalCode, departmentCode, patient, language }) {
+  const hospital = await findHospital(hospitalCode);
+  const department = await findDepartment(hospital, departmentCode);
 
   const date = serviceDate();
-  const sequence = await Counter.next(`${department.code}:${date}`);
+  const sequence = await Counter.next(`${hospital.code}:${department.code}:${date}`);
 
   const ticket = await Ticket.create({
     tokenNumber: `${department.code}-${String(sequence).padStart(3, "0")}`,
     sequence,
     serviceDate: date,
+    hospital: hospital._id,
     department: department._id,
     patient,
     language,
@@ -189,6 +194,7 @@ export async function createTicket({ departmentCode, patient, language }) {
 // What the patient sees: token, first name and department only, plus queue position.
 export async function getTicketStatus(publicId) {
   const ticket = await Ticket.findOne({ publicId })
+    .populate("hospital", "code name")
     .populate("department", "code name floor")
     .populate("doctor", "name")
     .lean();
@@ -200,6 +206,7 @@ export async function getTicketStatus(publicId) {
     status: ticket.status,
     firstName: ticket.patient.firstName,
     language: ticket.language,
+    hospital: { code: ticket.hospital.code, name: ticket.hospital.name },
     department: {
       code: ticket.department.code,
       name: ticket.department.name,
@@ -305,7 +312,11 @@ export async function callNext(doctor) {
     };
     emit(rooms.ticket(next.publicId), "ticket:called", call);
     // The board announces this aloud ("Token MED-042, please go to Room 1").
-    emit([rooms.board, rooms.department(doctor.department), rooms.staff], "token:called", call);
+    emit(
+      [rooms.board(doctor.hospital), rooms.department(doctor.department), rooms.staff(doctor.hospital)],
+      "token:called",
+      call
+    );
   }
 
   await broadcastQueue(doctor.department);
@@ -374,7 +385,7 @@ export async function raiseUrgent(publicId) {
   ).populate("department", "code name floor");
   if (!ticket) throw ApiError.notFound("Ticket not found");
 
-  emit(rooms.staff, "urgent:raised", {
+  emit(rooms.staff(ticket.hospital), "urgent:raised", {
     id: ticket._id,
     tokenNumber: ticket.tokenNumber,
     firstName: ticket.patient.firstName,
@@ -385,8 +396,8 @@ export async function raiseUrgent(publicId) {
   return { publicId: ticket.publicId, urgentRaised: true, raisedAt: ticket.urgent.raisedAt };
 }
 
-export async function listUrgentFlags() {
-  const tickets = await Ticket.find({ "urgent.raised": true, "urgent.seenAt": null })
+export async function listUrgentFlags(doctor) {
+  const tickets = await Ticket.find({ hospital: doctor.hospital, "urgent.raised": true, "urgent.seenAt": null })
     .sort({ "urgent.raisedAt": 1 })
     .populate("department", "code name floor")
     .lean();
@@ -396,13 +407,13 @@ export async function listUrgentFlags() {
 
 export async function acknowledgeUrgent(doctor, ticketId) {
   const ticket = await Ticket.findOneAndUpdate(
-    { _id: ticketId, "urgent.raised": true, "urgent.seenAt": null },
+    { _id: ticketId, hospital: doctor.hospital, "urgent.raised": true, "urgent.seenAt": null },
     { $set: { "urgent.seenAt": new Date(), "urgent.seenBy": doctor._id } },
     { returnDocument: "after" }
   );
   if (!ticket) throw ApiError.notFound("No unseen urgent flag on this ticket");
 
-  emit(rooms.staff, "urgent:seen", { id: ticket._id, seenBy: doctor.name });
+  emit(rooms.staff(doctor.hospital), "urgent:seen", { id: ticket._id, seenBy: doctor.name });
   emit(rooms.ticket(ticket.publicId), "ticket:updated", { publicId: ticket.publicId, urgentSeen: true });
   return staffTicket(ticket);
 }

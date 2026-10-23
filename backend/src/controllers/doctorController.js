@@ -22,7 +22,7 @@ export async function updateStatus(req, res) {
 }
 
 export async function listUrgent(req, res) {
-  res.json({ flags: await queueService.listUrgentFlags() });
+  res.json({ flags: await queueService.listUrgentFlags(req.user) });
 }
 
 export async function acknowledgeUrgent(req, res) {

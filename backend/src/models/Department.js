@@ -2,8 +2,9 @@ import mongoose from "mongoose";
 
 const departmentSchema = new mongoose.Schema(
   {
-    // Short code used as the token prefix, e.g. "MED" -> MED-042
-    code: { type: String, required: true, unique: true, uppercase: true, trim: true },
+    hospital: { type: mongoose.Schema.Types.ObjectId, ref: "Hospital", required: true },
+    // Short code used as the token prefix, e.g. "MED" -> MED-042 (unique within a hospital)
+    code: { type: String, required: true, uppercase: true, trim: true },
     name: { type: String, required: true, trim: true },
     // Plain-words description shown on the department picture card
     description: { type: String, trim: true },
@@ -19,5 +20,7 @@ const departmentSchema = new mongoose.Schema(
   },
   { timestamps: true }
 );
+
+departmentSchema.index({ hospital: 1, code: 1 }, { unique: true });
 
 export default mongoose.model("Department", departmentSchema);

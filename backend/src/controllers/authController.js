@@ -21,15 +21,20 @@ function sendAuth(res, status, { user, token }) {
 
 // POST /api/auth/register/doctor
 export async function registerDoctor(req, res) {
-  const { name, email, password, departmentCode, room } = req.body ?? {};
+  const { name, email, password, hospitalCode, departmentCode, room } = req.body ?? {};
 
   if (!name?.trim()) throw ApiError.badRequest("name is required");
   if (!EMAIL_PATTERN.test(email ?? "")) throw ApiError.badRequest("A valid email is required");
   if (!password || password.length < 6) throw ApiError.badRequest("password must be at least 6 characters");
+  if (!hospitalCode) throw ApiError.badRequest("hospitalCode is required");
   if (!departmentCode) throw ApiError.badRequest("departmentCode is required");
   if (!room?.trim()) throw ApiError.badRequest("room is required");
 
-  sendAuth(res, 201, await authService.registerDoctor({ name, email, password, departmentCode, room }));
+  sendAuth(
+    res,
+    201,
+    await authService.registerDoctor({ name, email, password, hospitalCode, departmentCode, room })
+  );
 }
 
 export async function login(req, res) {

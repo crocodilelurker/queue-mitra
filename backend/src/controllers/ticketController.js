@@ -4,14 +4,16 @@ import ApiError from "../utils/ApiError.js";
 
 // POST /api/tickets: the registration form behind the QR code at the hospital gate.
 export async function createTicket(req, res) {
-  const { departmentCode, firstName, age, gender, mobile, language } = req.body ?? {};
+  const { hospitalCode, departmentCode, firstName, age, gender, mobile, language } = req.body ?? {};
 
+  if (!hospitalCode) throw ApiError.badRequest("hospitalCode is required");
   if (!departmentCode) throw ApiError.badRequest("departmentCode is required");
   if (!firstName?.trim()) throw ApiError.badRequest("firstName is required");
   if (!Number.isInteger(Number(age))) throw ApiError.badRequest("age must be a whole number");
   if (!GENDERS.includes(gender)) throw ApiError.badRequest(`gender must be one of: ${GENDERS.join(", ")}`);
 
   const ticket = await queueService.createTicket({
+    hospitalCode,
     departmentCode,
     patient: { firstName, age: Number(age), gender, mobile: mobile || undefined },
     language,
