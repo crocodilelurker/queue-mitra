@@ -6,7 +6,7 @@ It talks to the Express + Socket.io backend in [../backend](../backend). The bac
 
 | Route | Screen | Who |
 | --- | --- | --- |
-| `/` | Home: describe symptoms, 4 big actions | Patient |
+| `/` | Home: describe symptoms, 3 big actions | Patient |
 | `/new` (alias `/register`) | New Ticket: 4-step registration | Patient |
 | `/slip/:publicId` | OPD slip: token, QR, print, read aloud | Patient |
 | `/my-turn/:publicId` | Live queue position, "3 ahead" alert, SMS, urgent help | Patient |
@@ -170,7 +170,7 @@ Brand, **Emergency** (always reachable), a **Text size** toggle, the language sw
 ### Home `/`
 1. Type or **speak** your symptoms (optionally attach a photo, which is only previewed on your device) and press **Check my symptoms**.
 2. A red-flag symptom opens the emergency guidance; otherwise you get a suggested department with advice and **Register for this department**.
-3. Four large actions: **Register for OPD**, **I have my slip** (enter a token like `MED-001`), **Find a place**, **Emergency care**.
+3. Three large actions: **Register for OPD**, **I have my slip** (enter a token like `MED-001`) and **Find a place**. Emergency has no card of its own: the red **Emergency** button in the header is on every screen.
 
 ### New Ticket `/new`
 The page heading is **New Ticket**. Four steps with a progress indicator, one question per screen. The round red ⚠ button beside the form opens the emergency guidance on every step.
@@ -237,7 +237,7 @@ A collapsible dock (Home, doctor and analytics screens): **Add 20 sample patient
 
 These come from the problem brief and are enforced in the UI:
 
-- **Emergency is on every screen:** the header button (or the round button on `/new`) opens guidance with one-tap **Call 112** and **Call 108**, the warning signs from the backend, a link to directions to Casualty, and a statement that no token is needed.
+- **Emergency is on every screen:** the header button (or the round button on `/new`; the Home page no longer has a separate "Emergency care" card) opens guidance with one-tap **Call 112** and **Call 108**, the warning signs from the backend, a link to directions to Casualty, and a statement that no token is needed.
 - **The app never says someone is safe.** A red-flag symptom shows the emergency guidance and offers no registration shortcut. A normal result is labelled "only a suggestion, not a diagnosis", and the patient can always choose another department or press Emergency.
 - **Only made-up, minimal data.** First name, age, gender and an optional mobile number. No Aadhaar or ABHA numbers.
 
@@ -310,6 +310,8 @@ What was built, in order. Each step was pushed to the `swastik` branch and revie
    - Third language **Tamil**, translated place names and directions, accessibility options, 18px text and 56px touch targets.
    - Service worker no longer caches `/socket.io`, cache version bumped to v2.
    - Added `socket.io-client` and `qrcode-generator`; removed the unused Home path cards and the old confirmation screen.
+
+8. **Emergency card removed from Home.** The Home page now has three action cards; the header Emergency button (and the round button on `/new`) remain the way to reach emergency guidance.
 
 > **Maintenance rule:** whenever anything in `frontend/` changes, update this README in the same pull request (structure, screens and a new line in the change history).
 

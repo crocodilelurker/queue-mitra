@@ -1,7 +1,7 @@
 import { Link } from '../router.jsx'
 
 /** Large primary action: icon, bold label and one line of help. Renders a link or a button. */
-export default function ActionCard({ icon, title, hint, to, onClick, tone }) {
+export default function ActionCard({ icon, title, hint, to, onClick }) {
   const body = (
     <>
       <span className="action__icon" aria-hidden="true">
@@ -13,7 +13,7 @@ export default function ActionCard({ icon, title, hint, to, onClick, tone }) {
       </span>
     </>
   )
-  const className = `action${tone ? ` action--${tone}` : ''}`
+  const className = 'action'
   return to ? (
     <Link to={to} className={className}>
       {body}

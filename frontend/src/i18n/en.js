@@ -18,8 +18,6 @@ export default {
   call108: "Call 108 (Ambulance)",
   call112: "Call 112 (Emergency)",
   cancel: "Cancel",
-  cardEmergency: "Emergency care",
-  cardEmergencyHint: "Casualty, ground floor. No token needed.",
   cardMap: "Find a place",
   cardMapHint: "Rooms, lab, pharmacy, toilets",
   cardRegister: "Register for OPD",

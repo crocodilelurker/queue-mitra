@@ -18,8 +18,6 @@ export default {
   call108: "108 पर कॉल करें (एम्बुलेंस)",
   call112: "112 पर कॉल करें (आपातकाल)",
   cancel: "रद्द करें",
-  cardEmergency: "आपातकालीन इलाज",
-  cardEmergencyHint: "कैजुअल्टी, भूतल। टोकन की ज़रूरत नहीं।",
   cardMap: "जगह खोजें",
   cardMapHint: "कमरे, लैब, फ़ार्मेसी, शौचालय",
   cardRegister: "ओपीडी पंजीकरण",

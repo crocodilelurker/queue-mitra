@@ -41,7 +41,6 @@ export default function Home() {
         <ActionCard to="/new" icon="📝" title={t.cardRegister} hint={t.cardRegisterHint} />
         <ActionCard onClick={() => setSlipOpen(true)} icon="🎟️" title={t.cardSlip} hint={t.cardSlipHint} />
         <ActionCard to="/map" icon="🗺️" title={t.cardMap} hint={t.cardMapHint} />
-        <ActionCard onClick={() => openEmergency()} icon="🚨" title={t.cardEmergency} hint={t.cardEmergencyHint} tone="danger" />
       </div>
 
       <nav className="staff-links" aria-label="Hospital staff">

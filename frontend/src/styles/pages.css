@@ -79,17 +79,6 @@
   font-size: var(--fs-sm);
   color: var(--ink-soft);
 }
-.action--danger {
-  background: var(--danger);
-  border-color: var(--danger-dark);
-  color: #fff;
-}
-.action--danger:hover {
-  background: var(--danger-dark);
-}
-.action--danger .action__text span {
-  color: #fff;
-}
 .staff-links {
   display: flex;
   flex-wrap: wrap;
