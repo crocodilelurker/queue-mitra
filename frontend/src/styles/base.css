@@ -14,17 +14,24 @@ body {
   color: var(--ink);
   font-family: var(--font);
   font-size: var(--fs-md);
-  line-height: 1.35;
+  line-height: 1.4;
   overflow-x: hidden;
 }
 
 h1,
 h2,
-p {
+h3,
+p,
+ul,
+ol,
+dl,
+dd {
   margin: 0;
 }
 
 button,
+input,
+select,
 textarea {
   font: inherit;
   color: inherit;
@@ -33,6 +40,10 @@ textarea {
 img {
   max-width: 100%;
   display: block;
+}
+
+a {
+  color: inherit;
 }
 
 :focus-visible {

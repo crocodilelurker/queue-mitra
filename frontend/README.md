@@ -1,13 +1,19 @@
 # Queue Mitra - Frontend
 
-A mobile-first, installable **Progressive Web App (PWA)** for Queue Mitra, a way for hospital patients to reach the right care without a long queue. It has two pages:
+A mobile-first, installable **Progressive Web App (PWA)** for Queue Mitra, a smart queue and indoor-navigation system for government hospitals (problem statement: [p2.pdf](../p2.pdf)). A patient registers in their own language, gets an OPD slip with a token, finds the room, and watches their turn move up live. Hospital staff get a doctor desk, a waiting-room TV board and an analytics dashboard.
 
-| Route | Page | Purpose |
+It talks to the Express + Socket.io backend in [../backend](../backend). The backend API is described in [../backend/README.md](../backend/README.md).
+
+| Route | Screen | Who |
 | --- | --- | --- |
-| `/` | Home | Describe a symptom (text, voice or photo) and pick a path: direct OPD, emergency, pharmacy, or get help when unsure. |
-| `/new` | New Ticket | A short step-by-step form: patient details, then either a known doctor/department or a problem description. |
-
-> **Frontend only.** Nothing in this app is sent to a server or stored. See [Limitations](#known-limitations).
+| `/` | Home: describe symptoms, 4 big actions | Patient |
+| `/new` (alias `/register`) | New Ticket: 4-step registration | Patient |
+| `/slip/:publicId` | OPD slip: token, QR, print, read aloud | Patient |
+| `/my-turn/:publicId` | Live queue position, "3 ahead" alert, SMS, urgent help | Patient |
+| `/map` | Hospital floor plan, directions, "Avoid stairs", "I'm lost" | Patient |
+| `/doctor` (alias `/staff`) | Doctor dashboard or staff desk (login) | Staff |
+| `/board` | Waiting-room TV board with spoken announcements | Public screen |
+| `/analytics` | Patient flow, overcrowding heatmap, emergency response time | Staff |
 
 ---
 
@@ -16,183 +22,272 @@ A mobile-first, installable **Progressive Web App (PWA)** for Queue Mitra, a way
 1. [Quick start](#quick-start)
 2. [Technologies](#technologies)
 3. [Folder structure](#folder-structure)
-4. [The `/new` New Ticket flow](#the-new-new-ticket-flow)
-5. [Home page](#home-page)
-6. [Design system](#design-system)
+4. [How it connects to the backend](#how-it-connects-to-the-backend)
+5. [The screens](#the-screens)
+6. [Safety rules built in](#safety-rules-built-in)
 7. [Languages](#languages)
-8. [Accessibility](#accessibility)
+8. [Accessibility and design](#accessibility-and-design)
 9. [PWA and offline behaviour](#pwa-and-offline-behaviour)
-10. [Change history](#change-history)
-11. [Known limitations](#known-limitations)
+10. [What was tested](#what-was-tested)
+11. [Backend fixes made along the way](#backend-fixes-made-along-the-way)
+12. [Change history](#change-history)
+13. [Known limitations](#known-limitations)
 
 ---
 
 ## Quick start
 
-**Prerequisites:** Node.js 18+ and npm.
+**Prerequisites:** Node.js 22+ (the backend requires it), npm and a local MongoDB.
+
+### 1. Start the backend
+
+```bash
+cd backend
+cp .env.example .env     # then set PORT=5001, see the note below
+npm install
+npm run seed             # City District Hospital, 7 departments, 8 doctors, staff PIN
+npm run dev
+```
+
+> **macOS note:** port 5000 is used by *AirPlay Receiver* (Control Center), so the backend cannot start there. Set `PORT=5001` in `backend/.env` (or turn AirPlay Receiver off in System Settings).
+
+### 2. Start the frontend
 
 ```bash
 cd frontend
+cp .env.example .env     # set VITE_API_PROXY to the backend address, e.g. http://localhost:5001
 npm install
-npm run dev        # development server (default http://localhost:5173)
+npm run dev              # http://localhost:5173
 ```
+
+The dev server proxies `/api` and `/socket.io` to the backend, so the browser only ever talks to one origin (no CORS setup and the login cookie works).
 
 | Command | What it does |
 | --- | --- |
-| `npm run dev` | Start the Vite dev server with hot reload. The service worker is **not** registered in dev. |
-| `npm run build` | Create a production build in `dist/`. |
-| `npm run preview` | Serve `dist/` at http://localhost:4173 (use this to test the PWA). |
+| `npm run dev` | Dev server with hot reload. The service worker is **not** registered in dev. |
+| `npm run build` | Production build in `dist/`. |
+| `npm run preview` | Serve `dist/` at http://localhost:4173 (same proxy). Use this to test the PWA. |
 
 There are no lint, type-check or unit-test scripts yet.
 
+### Demo logins (seeded, made-up data)
+
+| Role | Login |
+| --- | --- |
+| Staff desk | PIN `1234` |
+| Doctors | `anita@queuemitra.test` (General Medicine), `priya@queuemitra.test` (ENT), others in `backend/src/scripts/seed.js`. Password `doctor123` for all. |
+
+For a demo, open `/analytics` or the home page, press the floating **Demo** button and use *Add 20 sample patients*, *10x auto-simulate* and *Reset all*.
+
+### Environment variables (`frontend/.env`)
+
+| Variable | Purpose | Default |
+| --- | --- | --- |
+| `VITE_API_PROXY` | Backend address the dev/preview server proxies to | `http://localhost:5000` |
+| `VITE_API_URL` | Call a backend directly instead of through the proxy (needs CORS) | empty (same origin) |
+| `VITE_HOSPITAL_CODE` | Which hospital to show | `CDH` |
+
 ## Technologies
 
-- **React 18 + Vite 6.** No frontend existed before, so this stack was chosen.
-- **Plain CSS** with design tokens (no CSS framework).
+- **React 18 + Vite 6**, plain CSS with design tokens (no CSS framework).
+- **Socket.io client** for live queue updates, **qrcode-generator** for the slip's QR code (the only two runtime dependencies besides React and the font).
 - **Inter** font via `@fontsource-variable/inter`, bundled so it works offline.
-- **Hand-written** web app manifest and service worker (no PWA plugin).
-- **Browser Web Speech API** for voice input on the home page (where supported).
-- No router library: a tiny path switch in `src/App.jsx` is enough for two pages.
+- Hand-written web app manifest and service worker (no PWA plugin).
+- Browser **Web Speech API** for voice input and read-aloud, **Web Audio** for alert sounds (no audio files).
+- A tiny History-API router in `src/router.jsx` (no router library).
 
 ## Folder structure
 
 ```
 frontend/
-├── index.html                    # entry point + PWA / mobile meta tags
-├── vite.config.js
+├── index.html                      # entry + PWA / mobile meta tags
+├── vite.config.js                  # React plugin + /api and /socket.io proxy
+├── .env.example
 ├── public/
-│   ├── manifest.webmanifest      # PWA manifest
-│   ├── sw.js                     # service worker
-│   └── icons/                    # icon.svg, 192/512 PNG, maskable 512 PNG
+│   ├── manifest.webmanifest
+│   ├── sw.js                       # service worker
+│   └── icons/                      # icon.svg, 192/512 PNG, maskable 512 PNG
 └── src/
-    ├── main.jsx                  # bootstrap, global CSS, service worker registration (production only)
-    ├── App.jsx                   # path-based routing: "/new" -> NewPatient, anything else -> Home
-    ├── pages/
-    │   ├── Home.jsx              # "/"
-    │   └── NewPatient.jsx        # "/new" (shows the "New Ticket" heading); holds all flow state
+    ├── main.jsx                    # bootstrap, global CSS, service worker registration (production only)
+    ├── App.jsx                     # providers + route table
+    ├── router.jsx                  # navigate(), useLocation(), matchRoute(), <Link>
+    ├── config.js                   # hospital code, API base
+    ├── api/
+    │   ├── client.js               # fetch wrapper + every REST call, staff session token
+    │   ├── socket.js               # shared socket + useSocket() hook
+    │   └── departments.js          # cached department list (+ ordering)
+    ├── context/                    # Access.jsx (text size, contrast, read aloud, avoid stairs), Emergency.jsx
+    ├── i18n/                       # en.js, hi.js, ta.js, places.js (place names), provider
+    ├── hooks/                      # useAsync, useStaffSession, useUrgent, useSpeechRecognition,
+    │                               #   useInstallPrompt, useOnlineStatus
+    ├── utils/                      # speech.js (read aloud), sound.js (chime, siren), format.js
+    ├── pages/                      # Home, NewPatient, OpdSlip, MyTurn, NavigationMap,
+    │                               #   DoctorDashboard, WaitingBoard, AnalyticsDashboard, NotFound
     ├── components/
-    │   ├── Header.jsx, LanguageSwitch.jsx, OfflineBanner.jsx     # shared
-    │   ├── SymptomInput.jsx, PathCard.jsx, OptionButton.jsx      # home page
-    │   └── new/                  # everything for /new
-    │       ├── StepIndicator.jsx       # "Step 1 / 3" dots
-    │       ├── Field.jsx               # labelled input/textarea + accessible error
-    │       ├── PatientInfoStep.jsx     # step 1
-    │       ├── KnowledgeStep.jsx       # step 2
-    │       ├── DoctorDepartmentStep.jsx  # step 3, "Knowledge" branch
-    │       ├── ProblemStep.jsx         # step 3, "No Knowledge" branch
-    │       ├── Confirmation.jsx        # final screen
-    │       ├── EmergencyButton.jsx     # round emergency button
-    │       └── validation.js           # all validation rules in one place
-    ├── hooks/                    # useSpeechRecognition, useInstallPrompt, useOnlineStatus
-    ├── i18n/                     # en.js, hi.js, provider + useI18n hook
-    └── styles/                   # tokens.css (design tokens), base.css, components.css
+    │   ├── Header, Layout, LanguageSwitch, OfflineBanner, ActionCard, SymptomBox,
+    │   │   TriageResult, SlipLookup, SmsToast
+    │   ├── common/                 # Modal, EmergencyModal, ListenButton, Toggle, QrCode,
+    │   │                           #   DepartmentCard, Status (loading / error)
+    │   ├── new/                    # /new steps: StepIndicator, Field, PatientInfoStep, KnowledgeStep,
+    │   │                           #   DepartmentStep, DescribeStep, ReviewStep, EmergencyButton, validation.js
+    │   ├── map/                    # FloorMap (SVG), RouteSteps, placeIcons
+    │   └── staff/                  # StaffLogin, QueueSummary, UrgentBanner, CounterRegistration, DemoToolbar
+    └── styles/                     # tokens.css, base.css, components.css, pages.css
 ```
 
 ---
 
-## The `/new` New Ticket flow
+## How it connects to the backend
 
-The route is opened directly by URL (for example from a QR code that points to it). The page heading is **New Ticket**.
+- **REST:** every call lives in `src/api/client.js`. Errors become an `ApiError` with the HTTP status (`0` means the server could not be reached) and the screens show a friendly, translated message with a *Try again* button.
+- **Live updates:** `useSocket()` in `src/api/socket.js` joins rooms and re-joins automatically after a reconnect.
+- **Staff login:** the token is kept in `sessionStorage` (for the browser session only) and sent as `Authorization: Bearer`. After login or logout the socket reconnects so the server puts it in the staff room. Patients never log in.
+- **Hospital id:** the TV board room is named after the hospital's database id, not its code, so `/board` reads `GET /api/hospitals/CDH` first and joins `board:<id>`.
 
-```
-/new
- └─ Step 1  Patient details  ──(Continue, only if valid)──┐
-                                                          ▼
-                              Step 2  "Do you know which doctor or department you need?"
-                                      ┌──────────────┴──────────────┐
-                                 Knowledge                    No Knowledge
-                                      ▼                              ▼
-                      Step 3  Doctor's name +          Step 3  Describe your problem
-                              Department                       (max 500 characters)
-                                      └──────────────┬──────────────┘
-                                                     ▼
-                                       Confirmation screen
-                                       (Start over / Back to home)
-```
+**Endpoints each screen uses**
 
-### Step by step
-
-1. **Patient details.** First name, age and gender (Male / Female / Other). Continue stays blocked until all three are valid.
-2. **Knowledge question.** Two clear choices, **Knowledge** and **No Knowledge**. A Back button returns to step 1 with the values kept.
-3. **Branch form.**
-   - *Knowledge:* doctor's name and department, then **Submit**.
-   - *No Knowledge:* a multiline "Describe your problem" box with a placeholder and a live character counter, then **Submit**. The app gives no diagnosis or advice.
-4. **Confirmation.** Shows what was entered. It states that the information is kept only in this browser session and has **not** been sent to the hospital. **Start over** clears everything and returns to step 1; **Back to home** goes to `/`.
-
-### Validation rules
-
-All rules live in `src/components/new/validation.js` and return a message key that is translated for display.
-
-| Field | Rule |
+| Screen | Calls |
 | --- | --- |
-| First name | Required, up to 60 characters. |
-| Age | Required, a whole number from 0 to 120 (rejects `-5`, `12.5`, `abc`, `121`). |
-| Gender | Must be selected. |
-| Doctor's name, Department | Both required. They are plain text because the repo has no doctor/department data. |
-| Problem description | Required, up to 500 characters. |
+| Home | `POST /triage/suggest`, `GET /triage/warning-signs`, `GET /tickets/lookup/:token`, `GET /hospitals/:code/departments` |
+| `/new` | `GET /hospitals/:code/departments`, `POST /triage/suggest`, `POST /tickets` |
+| Slip | `GET /tickets/:id/slip` |
+| My Turn | `GET /tickets/:id`, `GET /hospitals/:code/departments/:dept/queue`, `GET /notifications/:id`, `PATCH /tickets/:id/preferences`, `POST /tickets/:id/urgent` |
+| Map | `GET /navigation/map`, `GET /navigation/checkpoints`, `POST /navigation/route`, `POST /navigation/from-checkpoint`, `POST /navigation/lost` |
+| Doctor / staff | `POST /auth/staff-pin`, `POST /auth/login`, `GET /auth/me`, `POST /auth/logout`, `GET /doctor/dashboard`, `POST /doctor/call-next`, `/complete`, `/no-show`, `/requeue`, `/transfer`, `PATCH /doctor/status`, `GET /doctor/urgent`, `POST /doctor/urgent/:id/seen`, `POST /tickets/counter` |
+| Board | `GET /board/:code`, `GET /hospitals/:code` |
+| Analytics | `GET /analytics/:code` (refreshed every 5 seconds) |
+| Demo toolbar | `POST /demo/seed-patients`, `/demo/auto-simulate/start`, `/stop`, `GET /demo/auto-simulate/status`, `POST /demo/reset` |
 
-When a submit fails, errors appear under the fields and focus moves to the first invalid one.
-
-### Emergency button
-
-A round red ⚠ button sits **beside the form card on every step** (including the confirmation) and stays in view while scrolling. It has an accessible label ("Emergency"). For now clicking it only runs `console.log('Emergency button clicked')`; it is a placeholder to be connected to a real action later.
-
-### How data is handled
-
-- Form values live in React state in `NewPatient.jsx` and are passed down to each step. Going Back keeps them.
-- Nothing is sent anywhere and nothing is written to local or session storage (only the chosen language is remembered).
-- Reloading the page or choosing **Start over** discards the data.
-
-### Routing note
-
-`src/App.jsx` reads `window.location.pathname` (a trailing slash is ignored): `/new` renders the form, anything else renders Home. Any host must serve `index.html` for unknown paths so `/new` works when opened directly; the Vite dev and preview servers already do. Connecting a QR code to `/new` is a separate step outside this app.
+**Socket events used:** `ticket:position`, `ticket:called`, `ticket:sms`, `ticket:updated`, `ticket:transferred`, `queue:updated`, `token:called`, `urgent:raised`, `urgent:seen`. Rooms joined: `ticket:join`, `department:join`, `board:join` (staff are placed in their hospital's staff room by the server).
 
 ---
 
-## Home page
+## The screens
 
-1. **Header:** Queue Mitra brand, an *Install app* button (only when the browser offers installation) and the language switch.
-2. **Symptom input:** a text box ("What is bothering you?"), a **Speak** button for voice input, and **Add photo / report** with a local preview and Remove button.
-3. **Two path cards**, following the project's whiteboard sketch:
-   - *I know what I need:* Direct OPD consultation, Emergency, Pharmacy.
-   - *Not sure:* Emergency, Get help.
+### Header (every screen)
+Brand, **Emergency** (always reachable), a **Text size** toggle, the language switch (English / हिन्दी / தமிழ்) and an *Install app* button when the browser offers it. On the registration screen the Emergency control is the round button beside the form instead.
 
-These buttons are not connected to anything yet.
+### Home `/`
+1. Type or **speak** your symptoms (optionally attach a photo, which is only previewed on your device) and press **Check my symptoms**.
+2. A red-flag symptom opens the emergency guidance; otherwise you get a suggested department with advice and **Register for this department**.
+3. Four large actions: **Register for OPD**, **I have my slip** (enter a token like `MED-001`), **Find a place**, **Emergency care**.
 
-## Design system
+### New Ticket `/new`
+The page heading is **New Ticket**. Four steps with a progress indicator, one question per screen. The round red ⚠ button beside the form opens the emergency guidance on every step.
 
-- **Look:** grey background, dark outlined rounded boxes and a red emergency colour, taken from the whiteboard sketch.
-- **Tokens** in `src/styles/tokens.css`: colours, the Inter font stack, fluid font sizes, spacing, radius, border and a 48px minimum touch target.
-- **Responsive:** mobile-first from 320px up to large screens (single column on phones, two columns for the home page cards from 48em, larger base text from 90em). Safe-area insets are respected.
-- **Motion:** only short hover/press transitions, and none when the user prefers reduced motion.
-- **Contrast:** the Emergency button uses a darker red (`#c92a2a`) so white text stays readable.
+```
+1 Patient details ─► 2 Do you know the department? ─┬─ Knowledge ───► 3 Pick a department card ─┐
+                                                    └─ No Knowledge ► 3 Describe the problem ───┤
+                                                         (suggestion, can be overridden)         ▼
+                                                                                  4 Review + comfort options ─► Get my token ─► /slip/:id
+```
+
+1. **Patient details:** first name, age, gender, optional mobile number and **"Someone is helping me"** (assisted mode: bigger text, questions read aloud, optional helper name).
+2. **Knowledge / No Knowledge.**
+3. **Knowledge:** 7 department picture cards from the backend, in plain words (for example "fever, cough, BP, sugar"). **No Knowledge:** describe by typing or voice; the backend suggests a department, and the patient can use it or choose another.
+4. **Review:** check the details, set comfort options (avoid stairs, large text, read aloud, high contrast), then **Get my token**.
+
+| Field | Validation |
+| --- | --- |
+| First name | Required, up to 50 characters (the backend limit). |
+| Age | Whole number 0 to 120. |
+| Gender | Must be selected. |
+| Mobile | Optional; 10 digits starting 6 to 9 (the backend format). |
+| Problem description | Required, up to 500 characters, with a live counter. |
+
+Opening `/new?dept=ENT` (the Home suggestion does this) skips straight from step 1 to the review. This is the page the hospital QR code is meant to open.
+
+### OPD slip `/slip/:publicId`
+Hospital header, a large token (for example **ENT-001**), patient, department, room, floor, doctor, people ahead and estimated wait, a **QR code** that opens the live screen, and a disclaimer in the patient's language. Buttons: **Track my turn live**, **Directions to the room**, **Print slip** (the print view shows only the slip) and **Listen**. The mobile number is masked and no Aadhaar or ABHA data is ever collected.
+
+### My Turn `/my-turn/:publicId`
+- "**N people ahead of you, about M minutes**" and who is being served now, updated live.
+- At **3 or fewer ahead** a "Your turn is close" banner appears; when the count drops to 3 a chime and vibration play.
+- Doctor status (in room, on break until, running late).
+- A simulated-SMS notification slides in when a message arrives, and all messages are kept in a **Messages** list.
+- When called, the screen turns green: "YOUR TURN! Please enter Room 6 now" with a **Guide me to the room** button.
+- **I need urgent help** (asks to confirm first) raises an alert for staff. The patient later sees "staff have seen your alert".
+- Transfers, completion and no-show are reflected live. Comfort options are saved to the ticket.
+
+### Map `/map`
+- SVG floor plan with Ground, First and Second floor tabs. The route drawn by the backend (Dijkstra) is overlaid, and the view zooms to fit it.
+- **Avoid stairs** (lifts and ramps only), **From / To** pickers, or tap a place on the map.
+- **Scan a wall poster:** pick the checkpoint you are standing next to and the route starts from there.
+- Step-by-step directions with landmarks, in the chosen language, with a **Listen** button.
+- **I'm lost:** shows the nearest help desk with a route, and a large bilingual **"Show to staff"** card (your language and English).
+- The slip, the emergency guidance and the My Turn "called" screen all link here with the destination already set.
+
+### Doctor dashboard and staff desk `/doctor`
+- **Doctor login** (email + password): status buttons (Available, On break 15 min, Running late 15 min), **Call next patient** (finishes the current one), current patient card with a consultation timer, **Complete, No-show, Requeue to end, Transfer** (to another department), queue summary with overcrowding colour, and the next 20 waiting.
+- **Staff PIN login:** read-only view of any department queue and **Counter registration** for walk-ins without a phone (issues a printable slip). Staff accounts have no department in the backend, so they cannot call patients.
+- **Urgent help banner:** a flashing banner and repeating siren appear live until each request is marked **Seen** (with a Mute button). The sound needs one earlier click on the page, which the login provides.
+
+### TV board `/board`
+Eight room cards in two wings with the room, doctor, huge **now serving** token and the next tokens, in English, Hindi and Tamil. When a patient is called the card flashes and the announcement is spoken, **alternating English, Hindi and Tamil**. Browsers only allow speech after a click, so the board asks you to tap once to turn sound on.
+
+### Analytics `/analytics`
+Registered today, waiting, in consultation, completed and no-show cards; the emergency response time against its 60-second target; registrations by hour; language mix and assisted-registration share; and a green / amber / red load card for every department.
+
+### Demo toolbar
+A collapsible dock (Home, doctor and analytics screens): **Add 20 sample patients**, **10x auto-simulate** / **Stop**, **Reset all** (asks to confirm).
+
+---
+
+## Safety rules built in
+
+These come from the problem brief and are enforced in the UI:
+
+- **Emergency is on every screen:** the header button (or the round button on `/new`) opens guidance with one-tap **Call 112** and **Call 108**, the warning signs from the backend, a link to directions to Casualty, and a statement that no token is needed.
+- **The app never says someone is safe.** A red-flag symptom shows the emergency guidance and offers no registration shortcut. A normal result is labelled "only a suggestion, not a diagnosis", and the patient can always choose another department or press Emergency.
+- **Only made-up, minimal data.** First name, age, gender and an optional mobile number. No Aadhaar or ABHA numbers.
 
 ## Languages
 
-English and Hindi, switched from the header and remembered in the browser. All text lives in `src/i18n/en.js` and `src/i18n/hi.js`; add a key to both when you add text. The whiteboard sketch lists a third language ("TX") that was never specified, so it is not included.
+English, Hindi and **Tamil** (the third language on the whiteboard, "TX", is Tamil in the backend). The language is chosen from the header and remembered. Patient screens, the TV board labels and the emergency guidance are translated; the backend's own text (triage advice, landmarks, SMS, disclaimers, department names) is shown in the chosen language. Directions and place names are generated on the client because the backend only returns instructions and names in English.
 
-## Accessibility
+The **doctor dashboard, counter registration, analytics and demo toolbar are English only** (staff tools).
 
-- Every input has an associated label; gender is a `fieldset` with radio buttons.
-- Errors use `role="alert"` and are linked to their field with `aria-describedby`; invalid fields get `aria-invalid`.
-- Visible focus outlines, keyboard-operable controls, and touch targets of at least 48px.
-- The step indicator and the Emergency button have text alternatives.
+## Accessibility and design
+
+- Body text 18px or more, buttons and inputs at least 56px tall, an icon **and** a label on every button, designed from 360px phones up to large screens, safe-area aware.
+- **Text size** toggle (scales everything), **high contrast** option, **read aloud** (slip, directions, emergency guidance, triage advice) and assisted mode that speaks each question.
+- Every input has a label; errors use `role="alert"` and `aria-describedby`; focus moves to the first invalid field; modals trap focus and close with Esc; status changes are announced with `aria-live`.
+- Look: grey background, dark outlined rounded boxes and a red emergency colour (from the whiteboard sketch), with design tokens in `src/styles/tokens.css`. The red is darkened so white text stays readable. Motion is limited to short hover and press transitions and is disabled when the user prefers reduced motion.
 
 ## PWA and offline behaviour
 
 - **Manifest** (`public/manifest.webmanifest`): name, theme and background colours, 192/512 icons and a maskable icon.
-- **Service worker** (`public/sw.js`, registered only in production builds):
-  - Page navigations are network-first and fall back to the cached app shell when offline.
-  - Same-origin static GET files use stale-while-revalidate.
-  - Non-GET requests, cross-origin requests and `/api/*` are never cached.
-- **Offline banner** appears when the browser goes offline.
+- **Service worker** (`public/sw.js`, production builds only): page navigations are network-first with the cached app shell as the offline fallback; same-origin static GET files use stale-while-revalidate. Non-GET requests, cross-origin requests, **`/api/*` and `/socket.io/*` are never cached**.
+- Offline, the app shell loads and shows an offline banner; screens that need the server show a friendly message with *Try again*. Registering offline is not supported (see limitations).
 
-**To test the PWA:**
+**Test it:** `npm run build && npm run preview`, open http://localhost:4173, then DevTools > Application: check *Manifest* and *Service Workers*, tick *Offline* and reload.
 
-1. `npm run build && npm run preview`, then open http://localhost:4173 in Chrome.
-2. DevTools > Application: check **Manifest** (no errors, icons load) and **Service Workers** (activated).
-3. Tick **Offline** under Service Workers and reload: the app shell should still load with the offline banner.
-4. Use the *Install app* button or the address-bar install icon.
+## What was tested
+
+Everything below was run against the real backend (a throwaway MongoDB) using the real app in headless Chrome:
+
+- **Registration:** both branches, all validation, Back keeps values, preset department, token and slip created, data stored correctly in the backend.
+- **Live queue:** position counts down without reload, the "3 ahead" banner and SMS toast, called screen, doctor delay, transfer, completion, no-show, urgent help from patient to staff and back.
+- **Map:** automatic route from a slip, avoid-stairs route uses only the lift, Hindi and Tamil directions, wall-poster start, "I'm lost" card, casualty route.
+- **Staff:** logins, every doctor action, counter registration, urgent banner, board flash and alternating spoken announcements, analytics numbers, demo toolbar.
+- **Layout:** no horizontal overflow on all screens at 360, 768 and 1440px, also with large text and high contrast; touch targets at least 56px; print view of the slip.
+- **PWA:** service worker, cache contents, manifest, offline loading and recovery.
+
+Not tested: real phones, a screen reader, real Hindi or Tamil speech voices (voice availability depends on the device), the camera and microphone, and installing the app.
+
+## Backend fixes made along the way
+
+The backend could not start or had broken features, so these small fixes are included in the same pull request:
+
+| File | Problem | Fix |
+| --- | --- | --- |
+| `backend/src/routes/analytics.js` | Crashed on startup: `/:hospitalCode?` is not valid in Express 5. | `{/:hospitalCode}` |
+| `backend/src/routes/navigation.js` | Crashed on startup: `Router` was never imported. | Added the import. |
+| `backend/src/controllers/doctorController.js` | `ApiError` used without an import. | Added the import. |
+| `backend/src/controllers/hospitalController.js` | `GET /api/hospitals/:code` returned the **staff PIN** to anyone. | PIN removed from the response. |
+| `backend/src/services/queueService.js` | **Requeue and Transfer always failed** ("Hospital not found"): `findHospital()` takes a code but was given an id. | Look the hospital up by id. |
+
+Other things noticed but **not** changed: the hospital map hint texts and instructions are English only; the `CP_WATER_COOLER_1` checkpoint points at Room 6; `qrPayload` on the slip points at `queuemitra.in` (the frontend builds its own QR link instead); from reading the code, the "3 people ahead" SMS looks like it can be sent again on later queue changes while a patient stays at position 3 (not tested).
 
 ---
 
@@ -201,20 +296,34 @@ English and Hindi, switched from the header and remembered in the browser. All t
 What was built, in order. Each step was pushed to the `swastik` branch and reviewed through a pull request.
 
 1. **Home page PWA** (PR #2). Created the `frontend/` app with React + Vite: responsive home page styled after the whiteboard sketch, English/Hindi switch, voice and photo input, web manifest with placeholder icons, service worker with offline fallback, install button and offline banner.
-2. **`/new` route and dynamic form** (PR #3). Added path-based routing without a router dependency and the 3-step form (patient details, Knowledge / No Knowledge, doctor+department or problem description, confirmation) with validation, accessible errors and Hindi text. Frontend only.
-3. **Inter font** (PR #3). Replaced the earlier hand-drawn font with Inter across the whole site and reduced font sizes slightly because Inter is wider.
-4. **Emergency button and title** (PR #3). Renamed the form heading to **New Ticket** and added an emergency button on every step. First version was a fixed bar at the bottom that opened a dialog.
-5. **Round emergency button** (PR #3). Changed the button to a round ⚠ button beside the form card, sticky while scrolling. Clicking it now only logs to the console, and the dialog and its text were removed.
-6. **README rewrite** (this document). Reorganised into a sequential guide with the flow, validation rules and this history.
+2. **`/new` route and dynamic form** (PR #3). Path-based routing without a router dependency and the first 3-step form with validation, accessible errors and Hindi text. Frontend only.
+3. **Inter font** (PR #3). Replaced the earlier hand-drawn font with Inter across the whole site.
+4. **Emergency button and title** (PR #3). Renamed the form heading to **New Ticket** and added an emergency button on every step.
+5. **Round emergency button** (PR #3). A round ⚠ button beside the form card, sticky while scrolling, that only logged to the console.
+6. **README rewrite** (PR #5). Reorganised this document into a sequential guide.
+7. **Frontend built on the backend** (this pull request).
+   - Studied the backend completely (routes, services, models, sockets, seed data) and tested it; fixed the five backend problems listed above.
+   - Real router with all eight routes, shared header, and an API client plus socket hook.
+   - `/new` now registers a real ticket: 4 steps with department cards, symptom description and voice, triage suggestion, assisted mode and comfort options. The old "Doctor's name" field was dropped because the backend queues patients per department, not per doctor.
+   - New screens: OPD slip, live My Turn, hospital map and directions, doctor dashboard and staff desk, TV board, analytics, demo toolbar.
+   - The round emergency button now opens the shared emergency guidance (it previously only logged to the console).
+   - Third language **Tamil**, translated place names and directions, accessibility options, 18px text and 56px touch targets.
+   - Service worker no longer caches `/socket.io`, cache version bumped to v2.
+   - Added `socket.io-client` and `qrcode-generator`; removed the unused Home path cards and the old confirmation screen.
 
-> **Maintenance rule:** whenever anything in `frontend/` changes, update this README in the same pull request (structure, flow, rules and a new line in the change history).
+> **Maintenance rule:** whenever anything in `frontend/` changes, update this README in the same pull request (structure, screens and a new line in the change history).
 
 ## Known limitations
 
-- **UI only:** the `/new` form does not submit anywhere, and the home page buttons (OPD, Emergency, Pharmacy, Get help) and department suggestion are not connected to a backend. The emergency button only logs to the console.
-- **Photo and voice:** the photo is only previewed locally; voice input uses the browser's speech API.
-- **Hindi font:** Inter has no Devanagari glyphs, so Hindi text uses the system fallback font.
-- **Voice support:** needs a browser with the Web Speech API (for example Chrome or Safari); disabled elsewhere.
-- **No data lists:** there is no doctor or department data in the repo, so those fields are free text.
+- **Staff tools are English only** (doctor dashboard, counter registration, analytics, demo toolbar).
+- **No offline registration:** the backend's `/tickets/sync` endpoint exists, but the app does not queue tickets while offline, because that would store patient details in the browser.
+- **No camera QR scanning:** wall posters are picked from a list, and a slip is found by typing its token. The slip's QR code can be scanned by any phone camera, which opens the live screen.
+- **Slip images:** there is no "Save as image"; use **Print slip** (the browser can save a PDF).
+- **No doctor choice:** tickets are per department; the doctor is assigned when called.
+- **Staff accounts cannot call patients** (the backend gives them no department); doctors can.
+- **Symptom photos** are only previewed on the device and are not sent anywhere.
+- **Read aloud and voice input** depend on the browser (the Web Speech API) and on installed Hindi and Tamil voices; the buttons are disabled or hidden where unsupported.
+- **Autoplay rules:** the staff siren and the TV board speech need one click on the page first.
+- **Hindi and Tamil text** use the system font because Inter has no Devanagari or Tamil glyphs.
 - **Icons** are generated placeholders (red cross on grey); replace them in `public/icons/` with final branding.
-- **Not tested** on real devices or with a screen reader; no automated test suite is included.
+- **No automated test suite** is included in the repository, and nothing was tested on real devices or with a screen reader.

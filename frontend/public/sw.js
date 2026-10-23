@@ -1,8 +1,9 @@
 // Queue Mitra service worker.
 // - Navigations: network-first, falling back to the cached app shell when offline.
 // - Same-origin static assets (GET): stale-while-revalidate.
-// - Never touches non-GET requests, cross-origin requests or /api/* (dynamic / sensitive data).
-const CACHE = 'queue-mitra-v1'
+// - Never touches non-GET requests, cross-origin requests, /api/* (dynamic / sensitive data) or
+//   /socket.io/* (live updates must never be served from a cache).
+const CACHE = 'queue-mitra-v2'
 const SHELL = ['/', '/manifest.webmanifest', '/icons/icon.svg', '/icons/icon-192.png', '/icons/icon-512.png']
 
 self.addEventListener('install', (event) => {
@@ -21,7 +22,7 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   const { request } = event
   const url = new URL(request.url)
-  if (request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/')) return
+  if (request.method !== 'GET' || url.origin !== self.location.origin || url.pathname.startsWith('/api/') || url.pathname.startsWith('/socket.io/')) return
 
   if (request.mode === 'navigate') {
     event.respondWith(

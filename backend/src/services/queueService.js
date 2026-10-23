@@ -1,5 +1,6 @@
 import Counter from "../models/Counter.js";
 import Department from "../models/Department.js";
+import Hospital from "../models/Hospital.js";
 import Ticket from "../models/Ticket.js";
 import User, { DOCTOR_STATES } from "../models/User.js";
 import ApiError from "../utils/ApiError.js";
@@ -441,7 +442,7 @@ export async function requeueTicket(doctor, ticketId) {
   });
   if (!ticket) throw ApiError.notFound("Active ticket not found");
 
-  const hospital = await findHospital(ticket.hospital);
+  const hospital = await Hospital.findById(ticket.hospital); // findHospital() takes a code, not an id
   const department = await Department.findById(ticket.department);
   const date = ticket.serviceDate || serviceDate();
 
@@ -473,7 +474,7 @@ export async function transferTicket(doctor, ticketId, targetDepartmentCode) {
   });
   if (!ticket) throw ApiError.notFound("Ticket not found");
 
-  const hospital = await findHospital(ticket.hospital);
+  const hospital = await Hospital.findById(ticket.hospital); // findHospital() takes a code, not an id
   const newDept = await findDepartment(hospital, targetDepartmentCode);
   const oldDeptId = ticket.department;
 

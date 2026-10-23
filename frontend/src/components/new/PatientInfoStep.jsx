@@ -1,9 +1,18 @@
 import { useRef, useState } from 'react'
 import { useI18n } from '../../i18n/index.jsx'
 import Field from './Field.jsx'
-import { focusFirstInvalid, MAX_NAME_LENGTH, validateAge, validateAll, validateFirstName, validateGender } from './validation.js'
+import Toggle from '../common/Toggle.jsx'
+import {
+  focusFirstInvalid,
+  MAX_NAME_LENGTH,
+  validateAge,
+  validateAll,
+  validateFirstName,
+  validateGender,
+  validateMobile,
+} from './validation.js'
 
-const RULES = { firstName: validateFirstName, age: validateAge, gender: validateGender }
+const RULES = { firstName: validateFirstName, age: validateAge, gender: validateGender, mobile: validateMobile }
 const GENDERS = [
   ['male', 'genderMale'],
   ['female', 'genderFemale'],
@@ -73,8 +82,22 @@ export default function PatientInfoStep({ patient, onChange, onContinue }) {
           </p>
         )}
       </fieldset>
+      <Field
+        label={t.mobile}
+        hint={t.mobileHint}
+        value={patient.mobile}
+        onChange={set('mobile')}
+        error={errors.mobile && t[errors.mobile]}
+        inputMode="tel"
+        autoComplete="tel-national"
+        maxLength={10}
+      />
+      <Toggle icon="🤝" label={t.assisted} hint={t.assistedHint} checked={patient.assisted} onChange={(on) => onChange({ assisted: on })} />
+      {patient.assisted && (
+        <Field label={t.helperName} value={patient.helperName} onChange={set('helperName')} maxLength={50} autoComplete="off" />
+      )}
       <button type="submit" className="btn btn--primary">
-        {t.continue}
+        <span aria-hidden="true">➜</span> {t.continue}
       </button>
     </form>
   )

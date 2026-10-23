@@ -1,4 +1,5 @@
 import * as queueService from "../services/queueService.js";
+import ApiError from "../utils/ApiError.js";
 
 export async function getDashboard(req, res) {
   res.json(await queueService.getDoctorDashboard(req.user));
