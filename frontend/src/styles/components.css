@@ -1,0 +1,227 @@
+/* Layout */
+.page {
+  width: min(100%, 72rem);
+  margin-inline: auto;
+  padding: max(var(--sp-2), env(safe-area-inset-top)) max(var(--sp-2), env(safe-area-inset-right))
+    max(var(--sp-3), env(safe-area-inset-bottom)) max(var(--sp-2), env(safe-area-inset-left));
+}
+
+.main {
+  display: grid;
+  gap: var(--sp-3);
+  max-width: 48rem;
+  margin: var(--sp-4) auto 0;
+}
+
+.hero {
+  font-size: var(--fs-xl);
+  font-weight: 400;
+  line-height: 1.1;
+  text-align: center;
+}
+
+/* Hand-drawn style box (reference: rounded, dark outline, slight tilt of the stroke) */
+.box {
+  background: var(--surface);
+  border: var(--border);
+  border-radius: var(--radius);
+}
+.box--lg {
+  padding: var(--sp-2) var(--sp-3);
+  font-size: var(--fs-xl);
+  line-height: 1;
+}
+
+/* Header */
+.header {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-2);
+}
+.header__brand {
+  font-size: clamp(1.4rem, 1.1rem + 1.5vw, 2rem);
+}
+.header__actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-1);
+}
+
+/* Buttons */
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  min-height: var(--tap);
+  padding: 0.4rem var(--sp-2);
+  background: var(--surface);
+  border: var(--border);
+  border-radius: var(--radius);
+  cursor: pointer;
+  transition: transform 0.12s ease, background-color 0.12s ease;
+}
+.btn:hover:not(:disabled) {
+  background: #fff;
+  transform: translateY(-1px);
+}
+.btn:active:not(:disabled) {
+  transform: translateY(1px);
+}
+.btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.btn[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--bg);
+}
+.btn--sm {
+  font-size: var(--fs-sm);
+}
+
+.lang-switch {
+  display: inline-flex;
+  border: var(--border);
+  border-radius: var(--radius);
+  overflow: hidden;
+}
+.lang-switch__btn {
+  min-height: var(--tap);
+  min-width: 4.5rem;
+  padding: 0 var(--sp-2);
+  background: var(--surface);
+  border: 0;
+  cursor: pointer;
+  transition: background-color 0.12s ease;
+}
+.lang-switch__btn + .lang-switch__btn {
+  border-left: var(--border);
+}
+.lang-switch__btn:hover {
+  background: #fff;
+}
+.lang-switch__btn[aria-pressed='true'] {
+  background: var(--ink);
+  color: var(--bg);
+}
+
+/* Symptom input */
+.symptom {
+  display: grid;
+  gap: var(--sp-1);
+}
+.symptom__label {
+  font-size: var(--fs-md);
+}
+.symptom__field {
+  padding: var(--sp-1) var(--sp-2);
+}
+.symptom__field textarea {
+  width: 100%;
+  resize: vertical;
+  border: 0;
+  background: transparent;
+  outline: none;
+  font-size: var(--fs-md);
+}
+.symptom__field:focus-within {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+.symptom__preview {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-1);
+}
+.symptom__preview img {
+  width: 64px;
+  height: 64px;
+  object-fit: cover;
+  border: var(--border);
+  border-radius: 10px;
+}
+.symptom__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+}
+.symptom__actions .btn {
+  flex: 1 1 10rem;
+}
+
+/* Paths */
+.paths {
+  display: grid;
+  gap: var(--sp-2);
+}
+.path {
+  display: grid;
+  gap: var(--sp-1);
+  padding: var(--sp-2);
+}
+.path__title {
+  font-size: var(--fs-md);
+  font-weight: 400;
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.path__hint {
+  font-size: var(--fs-sm);
+  color: var(--ink-soft);
+}
+
+.option {
+  min-height: var(--tap);
+  padding: 0.5rem var(--sp-2);
+  background: var(--bg);
+  border: var(--border);
+  border-radius: var(--radius);
+  text-align: start;
+  cursor: pointer;
+  transition: transform 0.12s ease, background-color 0.12s ease;
+}
+.option:hover {
+  background: #fff;
+  transform: translateX(3px);
+}
+.option--danger {
+  background: var(--danger-bg);
+  border-color: var(--danger);
+  border-radius: 999px;
+  text-align: center;
+}
+.option--danger:hover {
+  background: var(--danger);
+  color: #fff;
+}
+
+/* Offline banner */
+.offline {
+  padding: 0.4rem var(--sp-2);
+  background: var(--ink);
+  color: var(--bg);
+  font-size: var(--fs-sm);
+  text-align: center;
+}
+
+/* Tablet and up */
+@media (min-width: 48em) {
+  .paths {
+    grid-template-columns: 1fr 1fr;
+    align-items: start;
+  }
+  .main {
+    max-width: 56rem;
+  }
+}
+
+/* Large screens */
+@media (min-width: 90em) {
+  html {
+    font-size: 112.5%;
+  }
+}
