@@ -1,5 +1,6 @@
 import { api } from '../api/client.js'
 import { useDepartments } from '../api/departments.js'
+import EmergencyTicketNotice from '../components/common/EmergencyTicketNotice.jsx'
 import ListenButton from '../components/common/ListenButton.jsx'
 import QrCode from '../components/common/QrCode.jsx'
 import { ErrorNote, Loading } from '../components/common/Status.jsx'
@@ -48,10 +49,12 @@ export default function OpdSlip({ publicId }) {
         ]
       : []),
     ...(slip.helperName ? [[t.helpedBy, slip.helperName]] : []),
+    ...(slip.complaint ? [[t.problemReported, slip.complaint]] : []),
   ]
 
   return (
     <Layout>
+      {slip.isEmergency && <EmergencyTicketNotice />}
       <article className="box slip" aria-label={t.slipHeader}>
         <header className="slip__head">
           <p className="slip__hospital">{slip.hospital.name}</p>

@@ -16,12 +16,14 @@ export default function UrgentBanner({ flags, onSeen }) {
   if (!active) return null
   return (
     <div className="urgent-banner" role="alert">
-      <strong className="urgent-banner__title">🚨 URGENT HELP NEEDED</strong>
+      <strong className="urgent-banner__title">🚨 {flags.some((f) => f.isEmergency) ? 'EMERGENCY' : 'URGENT HELP NEEDED'}</strong>
       <ul>
         {flags.map((f) => (
           <li key={f.id}>
             <span>
+              {f.isEmergency && <b>EMERGENCY TICKET · </b>}
               <b>{f.tokenNumber}</b> · {f.firstName} · {f.department}
+              {f.complaint && <> · “{f.complaint}”</>}
             </span>
             <button
               type="button"

@@ -54,6 +54,12 @@ const ticketSchema = new mongoose.Schema(
     helperName: { type: String, trim: true },
     accessibility: { type: accessibilitySchema, default: () => ({}) },
 
+    // Emergency ticket: the patient said it is an emergency. It goes to the front of the queue and
+    // staff are alerted at once. The app never judges urgency; only staff assess the patient.
+    isEmergency: { type: Boolean, default: false },
+    // What the patient told us (disease or problem, if they knew it). Optional.
+    complaint: { type: String, trim: true, maxlength: 200 },
+
     status: { type: String, enum: TICKET_STATUSES, default: "waiting" },
     doctor: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
     room: { type: String, default: null },

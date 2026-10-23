@@ -16,7 +16,7 @@ export default function Home() {
   const [result, setResult] = useState(null) // { type: 'suggestion', data } | { type: 'emergency', detail }
 
   return (
-    <Layout>
+    <Layout emergencyTo="/new?emergency=1">
       <h1 className="hero">{t.tagline}</h1>
 
       <SymptomBox

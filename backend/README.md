@@ -152,7 +152,7 @@ backend/src/
 | `GET` | `/api/hospitals/:code` | Single hospital details (e.g. `/api/hospitals/CDH`) |
 | `GET` | `/api/hospitals/:code/departments` | List of departments with multilingual names & picture card info |
 | `GET` | `/api/hospitals/:code/departments/:deptCode/queue` | Live department queue snapshot |
-| `POST` | `/api/tickets` | Patient registration: `{ hospitalCode, departmentCode, firstName, age, gender, mobile?, language?, isAssisted?, accessibility? }` |
+| `POST` | `/api/tickets` | Patient registration: `{ hospitalCode, departmentCode, firstName, age, gender, mobile?, language?, isAssisted?, accessibility?, emergency?, complaint? }`. With `emergency: true` the ticket is placed in front of every waiting normal ticket (behind earlier emergencies) and an urgent alert is raised for staff at once. `complaint` is optional text up to 200 characters (what the patient says the problem is). |
 | `POST` | `/api/tickets/counter` | Walk-in counter registration by hospital staff (generates slip directly) |
 | `GET` | `/api/tickets/:publicId` | Patient "My Turn" status, people ahead, estimated wait time |
 | `GET` | `/api/tickets/:publicId/slip` | Full printable/downloadable OPD slip data (QR URL, room, floor, disclaimer) |

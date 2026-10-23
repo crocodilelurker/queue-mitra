@@ -12,6 +12,7 @@ import RouteSteps, { useStepText } from '../components/map/RouteSteps.jsx'
 import { useAccess } from '../context/Access.jsx'
 import { useAsync } from '../hooks/useAsync.js'
 import { useI18n } from '../i18n/index.jsx'
+import { useLocation } from '../router.jsx'
 
 const DEFAULT_START = 'main_entrance_0'
 const FLOORS = [0, 1, 2]
@@ -20,7 +21,8 @@ export default function NavigationMap() {
   const { t, f, lang, pick, placeName, checkpointName } = useI18n()
   const { prefs, setPref } = useAccess()
   useDepartments()
-  const query = useMemo(() => new URLSearchParams(window.location.search), [])
+  const { search } = useLocation()
+  const query = useMemo(() => new URLSearchParams(search), [search])
   const stepText = useStepText()
 
   const { data: map, error: mapError, loading, reload } = useAsync(() => api.map(), [])
@@ -38,7 +40,7 @@ export default function NavigationMap() {
   const [lostFloor, setLostFloor] = useState(0)
   const [lost, setLost] = useState(null)
   const [lostError, setLostError] = useState(null)
-  const startedRef = useRef(false)
+  const handledSearch = useRef(null)
 
   const places = map?.places ?? []
   const destinations = useMemo(() => places.filter((p) => p.category !== 'vertical_transport'), [places])
@@ -65,17 +67,21 @@ export default function NavigationMap() {
     [from, to, avoid, lang]
   )
 
-  // Open with a destination already chosen (from a slip, the emergency modal or a link).
+  // Open with a destination already chosen (from a slip, the emergency modal or a link), and follow the
+  // address if it changes while this page is open (for example "Directions to Casualty" from the modal).
   useEffect(() => {
-    if (!map || startedRef.current) return
-    startedRef.current = true
+    if (!map || handledSearch.current === search) return
+    handledSearch.current = search
     const target = query.get('to') || findRoomPlace(map.places, query.get('room'), query.get('dept'))?.id
-    if (target) {
-      setTo(target)
-      compute({ start: from, end: target })
-    }
+    if (!target) return
+    const start = query.get('from') || from
+    const avoidStairs = query.get('avoidStairs') === '1' ? true : avoid
+    setTo(target)
+    setFrom(start)
+    setAvoid(avoidStairs)
+    compute({ start, end: target, avoidStairs })
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map])
+  }, [map, search])
 
   // Directions are fetched in the chosen language, so refresh them when the language changes.
   const firstLang = useRef(lang)

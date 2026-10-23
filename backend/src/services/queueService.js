@@ -87,6 +87,8 @@ function staffTicket(ticket) {
     status: ticket.status,
     patient: ticket.patient,
     language: ticket.language,
+    isEmergency: Boolean(ticket.isEmergency),
+    complaint: ticket.complaint ?? null,
     room: ticket.room,
     calledAt: ticket.calledAt,
     completedAt: ticket.completedAt,
@@ -223,30 +225,49 @@ export async function createTicket({
   isAssisted = false,
   helperName,
   accessibility = {},
+  isEmergency = false,
+  complaint,
 }) {
   const hospital = await findHospital(hospitalCode);
   const department = await findDepartment(hospital, departmentCode);
 
   const date = serviceDate();
-  const sequence = await Counter.next(`${hospital.code}:${department.code}:${date}`);
+  // The token number always comes from the counter (MED-021); the queue order is `sequence`.
+  const counterSeq = await Counter.next(`${hospital.code}:${department.code}:${date}`);
 
-  const ticket = await Ticket.create({
-    tokenNumber: `${department.code}-${String(sequence).padStart(3, "0")}`,
-    sequence,
-    serviceDate: date,
-    hospital: hospital._id,
-    department: department._id,
-    patient,
-    language: language || "en",
-    isAssisted: Boolean(isAssisted),
-    helperName: helperName || undefined,
-    accessibility: {
-      avoidStairs: Boolean(accessibility?.avoidStairs),
-      largeText: Boolean(accessibility?.largeText),
-      readAloud: Boolean(accessibility?.readAloud),
-      highContrast: Boolean(accessibility?.highContrast),
-    },
-  });
+  let ticket;
+  for (let attempt = 0; attempt < 4; attempt += 1) {
+    // Emergency tickets take a place in front of everyone still waiting.
+    const sequence = isEmergency ? await frontOfQueueSequence(department._id, date, counterSeq) : counterSeq;
+    try {
+      ticket = await Ticket.create({
+        tokenNumber: `${department.code}-${String(counterSeq).padStart(3, "0")}`,
+        sequence,
+        serviceDate: date,
+        hospital: hospital._id,
+        department: department._id,
+        patient,
+        language: language || "en",
+        isAssisted: Boolean(isAssisted),
+        helperName: helperName || undefined,
+        isEmergency: Boolean(isEmergency),
+        complaint: complaint || undefined,
+        accessibility: {
+          avoidStairs: Boolean(accessibility?.avoidStairs),
+          largeText: Boolean(accessibility?.largeText),
+          readAloud: Boolean(accessibility?.readAloud),
+          highContrast: Boolean(accessibility?.highContrast),
+        },
+      });
+      break;
+    } catch (err) {
+      // Two emergencies at the same instant can pick the same place: pick again.
+      if (!(err.code === 11000 && isEmergency && attempt < 3)) throw err;
+    }
+  }
+
+  // An emergency ticket also alerts staff immediately (siren on the doctor and staff screens).
+  if (isEmergency) await raiseUrgent(ticket.publicId);
 
   const status = await getTicketStatus(ticket.publicId);
 
@@ -266,6 +287,22 @@ export async function createTicket({
   return status;
 }
 
+// A queue position in front of every waiting NORMAL ticket but behind earlier emergencies, so emergency
+// tickets are served first-come-first-served among themselves. Positions can be fractions, so this
+// never collides with a position that is already taken (including served tickets).
+async function frontOfQueueSequence(departmentId, date, fallback) {
+  const firstNormal = await Ticket.findOne({ department: departmentId, serviceDate: date, status: "waiting", isEmergency: { $ne: true } })
+    .sort({ sequence: 1 })
+    .select("sequence")
+    .lean();
+  if (!firstNormal) return fallback; // nobody normal is waiting: the next counter position is already behind any earlier emergency
+  const before = await Ticket.findOne({ department: departmentId, serviceDate: date, sequence: { $lt: firstNormal.sequence } })
+    .sort({ sequence: -1 })
+    .select("sequence")
+    .lean();
+  return before ? (before.sequence + firstNormal.sequence) / 2 : firstNormal.sequence - 1;
+}
+
 // What the patient sees: token, first name and department only, plus queue position.
 export async function getTicketStatus(publicId) {
   const ticket = await Ticket.findOne({ publicId })
@@ -281,6 +318,7 @@ export async function getTicketStatus(publicId) {
     status: ticket.status,
     firstName: ticket.patient.firstName,
     language: ticket.language,
+    isEmergency: Boolean(ticket.isEmergency),
     hospital: { code: ticket.hospital.code, name: ticket.hospital.name },
     department: {
       code: ticket.department.code,
@@ -592,6 +630,8 @@ export async function raiseUrgent(publicId) {
     tokenNumber: ticket.tokenNumber,
     firstName: ticket.patient.firstName,
     department: ticket.department.name,
+    isEmergency: Boolean(ticket.isEmergency),
+    complaint: ticket.complaint ?? null,
     raisedAt: ticket.urgent.raisedAt,
   });
 
@@ -711,6 +751,8 @@ export async function getTicketSlip(publicId) {
     },
     isAssisted: Boolean(ticket.isAssisted),
     helperName: ticket.helperName || null,
+    isEmergency: Boolean(ticket.isEmergency),
+    complaint: ticket.complaint || null,
     accessibility: ticket.accessibility || {},
     language: ticket.language || "en",
     status: ticket.status,

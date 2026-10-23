@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react'
 import { api } from '../api/client.js'
 import { useSocket } from '../api/socket.js'
 
-const fromTicket = (t) => ({ id: t.id, tokenNumber: t.tokenNumber, firstName: t.patient.firstName, department: t.department.name, raisedAt: t.urgent.raisedAt })
+const fromTicket = (t) => ({ id: t.id, tokenNumber: t.tokenNumber, firstName: t.patient.firstName, department: t.department.name, raisedAt: t.urgent.raisedAt, isEmergency: t.isEmergency, complaint: t.complaint })
 
 /** Unseen "I need urgent help" flags for this hospital: loaded once, then kept live over the socket. */
 export function useUrgent(enabled) {

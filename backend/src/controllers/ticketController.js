@@ -4,13 +4,15 @@ import ApiError from "../utils/ApiError.js";
 
 // POST /api/tickets: the registration form behind the QR code at the hospital gate.
 export async function createTicket(req, res) {
-  const { hospitalCode, departmentCode, firstName, age, gender, mobile, language, isAssisted, helperName, accessibility } = req.body ?? {};
+  const { hospitalCode, departmentCode, firstName, age, gender, mobile, language, isAssisted, helperName, accessibility, emergency, complaint } = req.body ?? {};
 
   if (!hospitalCode) throw ApiError.badRequest("hospitalCode is required");
   if (!departmentCode) throw ApiError.badRequest("departmentCode is required");
   if (!firstName?.trim()) throw ApiError.badRequest("firstName is required");
   if (!Number.isInteger(Number(age))) throw ApiError.badRequest("age must be a whole number");
   if (!GENDERS.includes(gender)) throw ApiError.badRequest(`gender must be one of: ${GENDERS.join(", ")}`);
+  if (complaint !== undefined && typeof complaint !== "string") throw ApiError.badRequest("complaint must be text");
+  if (complaint && complaint.length > 200) throw ApiError.badRequest("complaint must be 200 characters or fewer");
 
   const ticket = await queueService.createTicket({
     hospitalCode,
@@ -20,6 +22,8 @@ export async function createTicket(req, res) {
     isAssisted,
     helperName,
     accessibility,
+    isEmergency: emergency === true,
+    complaint: complaint?.trim() || undefined,
   });
 
   res.status(201).json(ticket);

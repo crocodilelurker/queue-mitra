@@ -97,6 +97,7 @@ function DoctorView({ user }) {
               {current.patient.firstName}, {current.patient.age} · {current.patient.gender} · <ConsultTimer since={current.calledAt} />
               {current.urgent?.raised && !current.urgent.seenAt && ' · 🚨 urgent'}
             </p>
+            {current.isEmergency && <p><span className="badge badge--bad">EMERGENCY</span> {current.complaint && <>Patient says: “{current.complaint}”</>}</p>}
             <div className="form__actions">
               <button type="button" className="btn btn--sm" disabled={busy} onClick={() => act(() => api.complete(current.id))}>
                 <span aria-hidden="true">✔</span> Complete
@@ -128,7 +129,9 @@ function DoctorView({ user }) {
             {waiting.map((p) => (
               <li key={p.id}>
                 <b>{p.tokenNumber}</b> {p.patient.firstName}, {p.patient.age}
-                {p.urgent?.raised && !p.urgent.seenAt && <span className="badge badge--bad"> urgent</span>}
+                {p.isEmergency && <span className="badge badge--bad"> EMERGENCY</span>}
+                {!p.isEmergency && p.urgent?.raised && !p.urgent.seenAt && <span className="badge badge--bad"> urgent</span>}
+                {p.complaint && <span className="field__hint"> · “{p.complaint}”</span>}
                 <span className="field__hint"> · waiting {minutesSince(p.createdAt)} min</span>
               </li>
             ))}
