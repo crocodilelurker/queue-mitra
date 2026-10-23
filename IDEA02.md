@@ -153,12 +153,14 @@ The department suggestion from voice and photos is a strong differentiator, but 
 
 ## 9. Current status
 
-- Branch: `backend-setup` (not pushed yet)
-- `backend/`: Node + Express 5 (ES modules)
-  - `src/app.js`: Express app, JSON body parsing, mounts routes
-  - `src/server.js`: starts the server on `PORT` (default `5000`)
-  - `src/routes/health.js`: `GET /api/health` returns `{ status: "ok", ... }`
-  - Run it: `cd backend && npm install && npm run dev`
+- Branch: `backend-setup`
+- `backend/`: Node + Express 5, MongoDB (Mongoose), Socket.io. See `backend/README.md` for every route and live-update event.
+  - **Hospitals**: everything (departments, doctors, tickets) belongs to a hospital; its short code goes in the gate QR poster
+  - **Ticket-matching engine**: per-day token numbers, atomic "Call next", estimated wait, live position updates to each patient
+  - **Auth**: JWT login/logout for doctors, plus a simple open doctor sign-up (to be locked down)
+  - **Urgent flags**: alert that hospital's staff only; the app never decides who is urgent
+  - Run it: `cd backend && cp .env.example .env && npm install && npm run seed && npm run dev`
+- Frontend: being built separately
 - `p2.pdf`: the original problem statement
 
 ## 10. Open questions for the team
