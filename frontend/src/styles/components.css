@@ -20,7 +20,7 @@
   text-align: center;
 }
 
-/* Hand-drawn style box (reference: rounded, dark outline, slight tilt of the stroke) */
+/* Sketch-style box (reference: rounded, dark outline) */
 .box {
   background: var(--surface);
   border: var(--border);
@@ -223,5 +223,243 @@
 @media (min-width: 90em) {
   html {
     font-size: 112.5%;
+  }
+}
+
+/* /new ticket form */
+.main--form {
+  max-width: 42rem;
+  margin-top: var(--sp-3);
+}
+.hero--sm {
+  font-size: clamp(1.7rem, 1.3rem + 2vw, 2.4rem);
+}
+.form-card {
+  padding: var(--sp-3) var(--sp-2);
+}
+.form {
+  display: grid;
+  gap: var(--sp-2);
+}
+.form__title {
+  font-size: var(--fs-md);
+  font-weight: 400;
+}
+.form__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+}
+.form__actions .btn {
+  flex: 1 1 8rem;
+}
+.btn--primary {
+  background: var(--ink);
+  color: #fff;
+  min-height: 52px;
+}
+.btn--primary:hover:not(:disabled) {
+  background: #000;
+}
+a.btn {
+  color: inherit;
+  text-decoration: none;
+}
+
+.steps {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+}
+.steps__dot {
+  width: 0.8rem;
+  height: 0.8rem;
+  border: var(--border);
+  border-radius: 50%;
+  transition: background-color 0.2s ease;
+}
+.steps__dot--on {
+  background: var(--ink);
+}
+.steps__text {
+  margin-inline-start: 0.4rem;
+  font-size: var(--fs-sm);
+  color: var(--ink-soft);
+}
+
+.field {
+  display: grid;
+  gap: 0.35rem;
+}
+.field__label {
+  font-size: var(--fs-md);
+  padding: 0;
+}
+.field__control {
+  width: 100%;
+  min-height: var(--tap);
+  padding: 0.5rem var(--sp-2);
+  background: var(--bg);
+  border: var(--border);
+  border-radius: var(--radius);
+  font-size: var(--fs-md);
+}
+textarea.field__control {
+  resize: vertical;
+}
+.field__control--error {
+  border-color: var(--danger);
+  background: #fff5f5;
+}
+.field__hint {
+  font-size: var(--fs-sm);
+  color: var(--ink-soft);
+  text-align: end;
+}
+.field__error {
+  font-size: var(--fs-sm);
+  color: #b02525;
+}
+
+.choice {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  display: grid;
+  gap: 0.35rem;
+}
+.choice__row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-1);
+}
+.choice__item {
+  flex: 1 1 6rem;
+  position: relative;
+  display: flex;
+}
+.choice__item input {
+  position: absolute;
+  opacity: 0;
+  inset: 0;
+  cursor: pointer;
+}
+.choice__item span {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tap);
+  padding: 0 var(--sp-2);
+  background: var(--bg);
+  border: var(--border);
+  border-radius: var(--radius);
+  transition: background-color 0.12s ease;
+}
+.choice__item:hover span {
+  background: #fff;
+}
+.choice__item input:checked + span {
+  background: var(--ink);
+  color: #fff;
+}
+.choice__item input:focus-visible + span {
+  outline: 3px solid var(--focus);
+  outline-offset: 2px;
+}
+
+.knowledge {
+  display: grid;
+  gap: var(--sp-1);
+}
+.knowledge__btn {
+  display: grid;
+  gap: 0.2rem;
+  min-height: 72px;
+  padding: var(--sp-2);
+  background: var(--bg);
+  border: var(--border);
+  border-radius: var(--radius);
+  text-align: start;
+  cursor: pointer;
+  transition: transform 0.12s ease, background-color 0.12s ease;
+}
+.knowledge__btn:hover {
+  background: #fff;
+  transform: translateY(-1px);
+}
+.knowledge__btn strong {
+  font-weight: 400;
+  font-size: var(--fs-md);
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+.knowledge__btn span {
+  font-size: var(--fs-sm);
+  color: var(--ink-soft);
+}
+
+.summary {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+}
+.summary__row {
+  display: grid;
+  gap: 0.1rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px dashed var(--ink-soft);
+}
+.summary dt {
+  font-size: var(--fs-sm);
+  color: var(--ink-soft);
+}
+.summary dd {
+  margin: 0;
+  overflow-wrap: anywhere;
+  white-space: pre-wrap;
+}
+
+/* Round emergency button beside the /new form (sticky so it stays in reach while scrolling) */
+.form-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-1);
+}
+.form-layout .form-card {
+  flex: 1;
+  min-width: 0;
+}
+.emergency-btn {
+  position: sticky;
+  top: var(--sp-2);
+  flex: none;
+  width: 3.5rem;
+  height: 3.5rem;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  background: #c92a2a;
+  color: #fff;
+  border: 2px solid #9c1f1f;
+  border-radius: 50%;
+  font-size: 1.5rem;
+  line-height: 1;
+  cursor: pointer;
+  transition: transform 0.12s ease, background-color 0.12s ease;
+}
+.emergency-btn:hover {
+  background: #a61e1e;
+  transform: scale(1.06);
+}
+.emergency-btn:active {
+  transform: scale(0.96);
+}
+@media (min-width: 48em) {
+  .emergency-btn {
+    width: 4.5rem;
+    height: 4.5rem;
+    font-size: 2rem;
   }
 }
