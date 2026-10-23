@@ -1,0 +1,56 @@
+import crypto from "node:crypto";
+import mongoose from "mongoose";
+
+export const TICKET_STATUSES = ["waiting", "called", "completed", "no_show", "cancelled"];
+export const GENDERS = ["male", "female", "other"];
+
+const patientSchema = new mongoose.Schema(
+  {
+    // Only made-up / minimal data: no Aadhaar, ABHA or address.
+    firstName: { type: String, required: true, trim: true, maxlength: 50 },
+    age: { type: Number, required: true, min: 0, max: 120 },
+    gender: { type: String, enum: GENDERS, required: true },
+    mobile: { type: String, trim: true, match: /^[6-9]\d{9}$/ },
+  },
+  { _id: false }
+);
+
+const urgentFlagSchema = new mongoose.Schema(
+  {
+    raised: { type: Boolean, default: false },
+    raisedAt: Date,
+    seenAt: Date,
+    seenBy: { type: mongoose.Schema.Types.ObjectId, ref: "User" },
+  },
+  { _id: false }
+);
+
+const ticketSchema = new mongoose.Schema(
+  {
+    // Unguessable id used in the patient's QR code / status link
+    publicId: { type: String, unique: true, default: () => crypto.randomUUID() },
+    tokenNumber: { type: String, required: true }, // e.g. MED-042
+    sequence: { type: Number, required: true },
+    serviceDate: { type: String, required: true }, // YYYY-MM-DD, local hospital date
+
+    department: { type: mongoose.Schema.Types.ObjectId, ref: "Department", required: true },
+    patient: { type: patientSchema, required: true },
+    language: { type: String, default: "en" },
+
+    status: { type: String, enum: TICKET_STATUSES, default: "waiting" },
+    doctor: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
+    room: { type: String, default: null },
+
+    calledAt: Date,
+    completedAt: Date,
+
+    urgent: { type: urgentFlagSchema, default: () => ({}) },
+  },
+  { timestamps: true }
+);
+
+// The matching engine's main lookup: lowest-numbered waiting ticket in a department today.
+ticketSchema.index({ department: 1, serviceDate: 1, status: 1, sequence: 1 });
+ticketSchema.index({ department: 1, serviceDate: 1, sequence: 1 }, { unique: true });
+
+export default mongoose.model("Ticket", ticketSchema);
