@@ -1,7 +1,6 @@
 // Validators return an i18n key for the error message, or '' when valid.
 export const MAX_AGE = 120
-export const MAX_PROBLEM_LENGTH = 500
-export const MAX_NAME_LENGTH = 60
+export const MAX_NAME_LENGTH = 50 // the backend rejects longer first names
 
 export function validateFirstName(value) {
   const v = value.trim()
@@ -21,15 +20,11 @@ export function validateGender(value) {
   return value ? '' : 'errGenderRequired'
 }
 
-export function validateRequired(value) {
-  return value.trim() ? '' : 'errRequired'
-}
-
-export function validateProblem(value) {
+// Optional: an Indian mobile number (10 digits starting 6-9), the format the backend accepts.
+export function validateMobile(value) {
   const v = value.trim()
-  if (!v) return 'errProblemRequired'
-  if (v.length > MAX_PROBLEM_LENGTH) return 'errProblemLong'
-  return ''
+  if (!v) return ''
+  return /^[6-9]\d{9}$/.test(v) ? '' : 'errMobileInvalid'
 }
 
 /** Runs `{ field: validator }` over `values`; returns only the fields that failed. */

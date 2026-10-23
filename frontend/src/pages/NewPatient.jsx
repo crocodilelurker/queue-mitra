@@ -1,66 +1,91 @@
-import { useState } from 'react'
-import { useI18n } from '../i18n/index.jsx'
-import Header from '../components/Header.jsx'
-import OfflineBanner from '../components/OfflineBanner.jsx'
-import StepIndicator from '../components/new/StepIndicator.jsx'
-import PatientInfoStep from '../components/new/PatientInfoStep.jsx'
-import KnowledgeStep from '../components/new/KnowledgeStep.jsx'
-import DoctorDepartmentStep from '../components/new/DoctorDepartmentStep.jsx'
-import ProblemStep from '../components/new/ProblemStep.jsx'
-import Confirmation from '../components/new/Confirmation.jsx'
+import { useEffect, useState } from 'react'
+import Layout from '../components/Layout.jsx'
+import DepartmentStep from '../components/new/DepartmentStep.jsx'
+import DescribeStep from '../components/new/DescribeStep.jsx'
 import EmergencyButton from '../components/new/EmergencyButton.jsx'
+import KnowledgeStep from '../components/new/KnowledgeStep.jsx'
+import PatientInfoStep from '../components/new/PatientInfoStep.jsx'
+import ReviewStep from '../components/new/ReviewStep.jsx'
+import StepIndicator from '../components/new/StepIndicator.jsx'
+import { useAccess } from '../context/Access.jsx'
+import { useI18n } from '../i18n/index.jsx'
+import { speak } from '../utils/speech.js'
 
-const EMPTY_PATIENT = { firstName: '', age: '', gender: '' }
-const EMPTY_DOCTOR = { doctorName: '', department: '' }
+const EMPTY_PATIENT = { firstName: '', age: '', gender: '', mobile: '', assisted: false, helperName: '' }
+const STEP_NUMBER = { info: 1, know: 2, dept: 3, describe: 3, review: 4 }
 
-// Frontend-only prototype: all values live in component state (memory) and are dropped on start over / reload.
-// Nothing is persisted or sent anywhere.
+// /new (also /register): registration for a new OPD ticket. Patient details stay in memory until the
+// token is created; the only thing sent to the backend is POST /api/tickets on the last step.
 export default function NewPatient() {
-  const { t } = useI18n()
-  const [step, setStep] = useState('info') // info | choice | knowledge | noKnowledge | done
-  const [patient, setPatient] = useState(EMPTY_PATIENT)
-  const [doctor, setDoctor] = useState(EMPTY_DOCTOR)
-  const [problem, setProblem] = useState('')
-  const [path, setPath] = useState('knowledge') // branch chosen on the knowledge step
+  const { t, lang } = useI18n()
+  const { prefs, setPref } = useAccess()
+  const preset = new URLSearchParams(window.location.search).get('dept')?.toUpperCase() || null
 
-  const startOver = () => {
-    setPatient(EMPTY_PATIENT)
-    setDoctor(EMPTY_DOCTOR)
-    setProblem('')
-    setStep('info')
+  const [step, setStep] = useState('info') // info | know | dept | describe | review
+  const [patient, setPatient] = useState(EMPTY_PATIENT)
+  const [dept, setDept] = useState(preset)
+  const [route, setRoute] = useState(preset ? 'preset' : null) // how the department was chosen
+
+  const titles = { info: t.infoTitle, know: t.knowQuestion, dept: t.chooseDept, describe: t.describeTitle, review: t.reviewTitle }
+
+  // Assisted mode (or the read-aloud preference) speaks each question aloud.
+  useEffect(() => {
+    if (patient.assisted || prefs.readAloud) speak(titles[step], lang)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [step, lang])
+
+  const update = (patch) => {
+    if (patch.assisted === true) {
+      // "Someone is helping me" -> bigger text and spoken questions.
+      setPref('largeText', true)
+      setPref('readAloud', true)
+    }
+    setPatient((prev) => ({ ...prev, ...patch }))
   }
-  const choose = (next) => {
-    setPath(next)
-    setStep(next)
+
+  const pickDept = (code, via) => {
+    setDept(code)
+    setRoute(via)
+    setStep('review')
   }
-  const indicator = { info: 1, choice: 2, knowledge: 3, noKnowledge: 3, done: 3 }[step]
+
+  const backFromReview = () => setStep(route === 'describe' ? 'describe' : route === 'dept' ? 'dept' : preset && route === 'preset' ? 'info' : 'know')
 
   return (
-    <>
-      <OfflineBanner />
-      <div className="page">
-        <Header />
-        <main className="main main--form">
-          <h1 className="hero hero--sm">{t.newTitle}</h1>
-          <StepIndicator current={indicator} />
-          <div className="form-layout">
-          <div className="box form-card">
-            {step === 'info' && (
-              <PatientInfoStep patient={patient} onChange={(p) => setPatient((prev) => ({ ...prev, ...p }))} onContinue={() => setStep('choice')} />
-            )}
-            {step === 'choice' && <KnowledgeStep onChoose={choose} onBack={() => setStep('info')} />}
-            {step === 'knowledge' && (
-              <DoctorDepartmentStep values={doctor} onChange={(d) => setDoctor((prev) => ({ ...prev, ...d }))} onSubmit={() => setStep('done')} onBack={() => setStep('choice')} />
-            )}
-            {step === 'noKnowledge' && (
-              <ProblemStep value={problem} onChange={setProblem} onSubmit={() => setStep('done')} onBack={() => setStep('choice')} />
-            )}
-            {step === 'done' && <Confirmation patient={patient} path={path} doctor={doctor} problem={problem} onStartOver={startOver} />}
-          </div>
-          <EmergencyButton />
-          </div>
-        </main>
+    <Layout hideEmergency className="main--form">
+      <h1 className="hero hero--sm">{t.newTitle}</h1>
+      <StepIndicator current={STEP_NUMBER[step]} total={4} />
+      <div className="form-layout">
+        <div className="box form-card">
+          <h2 className="form__title">{titles[step]}</h2>
+          {step === 'info' && (
+            <PatientInfoStep patient={patient} onChange={update} onContinue={() => setStep(dept ? 'review' : 'know')} />
+          )}
+          {step === 'know' && <KnowledgeStep onBack={() => setStep('info')} onChoose={(c) => setStep(c === 'knowledge' ? 'dept' : 'describe')} />}
+          {step === 'dept' && (
+            <DepartmentStep
+              value={dept}
+              onSelect={(code) => {
+                setDept(code)
+                setRoute('dept')
+              }}
+              onContinue={() => setStep('review')}
+              onDescribe={() => setStep('describe')}
+              onBack={() => setStep('know')}
+            />
+          )}
+          {step === 'describe' && (
+            <DescribeStep
+              patient={patient}
+              onAccept={(code) => pickDept(code, 'describe')}
+              onChooseOther={() => setStep('dept')}
+              onBack={() => setStep('know')}
+            />
+          )}
+          {step === 'review' && <ReviewStep patient={patient} deptCode={dept} onBack={backFromReview} />}
+        </div>
+        <EmergencyButton />
       </div>
-    </>
+    </Layout>
   )
 }

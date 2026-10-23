@@ -1,8 +1,12 @@
 import { createContext, useContext, useEffect, useMemo, useState } from 'react'
+import { lookupDepartment } from '../api/departments.js'
+import { fmt } from '../utils/format.js'
 import en from './en.js'
 import hi from './hi.js'
+import ta from './ta.js'
+import { checkpointNameFor, placeNameFor } from './places.js'
 
-const LANGS = { en, hi }
+const LANGS = { en, hi, ta }
 const KEY = 'qm-lang'
 const I18nContext = createContext(null)
 
@@ -28,7 +32,34 @@ export function I18nProvider({ children }) {
     }
   }, [lang])
 
-  const value = useMemo(() => ({ lang, setLang, t: LANGS[lang], langs: LANGS }), [lang])
+  const value = useMemo(() => {
+    const t = LANGS[lang]
+    // Accepts a department object ({ code, name, translations }) or just its code.
+    const dept = (d) => (typeof d === 'string' ? lookupDepartment(d) || { code: d, name: d } : d)
+    const deptName = (d) => {
+      const full = dept(d)
+      const known = full.translations ? full : lookupDepartment(full.code) || full
+      return lang === 'en' ? full.name : known.translations?.[lang]?.name || full.name
+    }
+    const deptDesc = (d) => {
+      const full = dept(d)
+      return lang === 'en' ? full.description || '' : full.translations?.[lang]?.description || full.description || ''
+    }
+    return {
+      lang,
+      setLang,
+      t,
+      langs: LANGS,
+      f: (key, vars) => fmt(t[key], vars),
+      deptName,
+      deptDesc,
+      placeName: (place) => placeNameFor(place, lang, deptName, t.room),
+      checkpointName: (cp) => checkpointNameFor(cp, lang),
+      // Picks the current language from a { en, hi, ta } object returned by the backend.
+      pick: (obj) => (obj ? obj[lang] || obj.en || '' : ''),
+    }
+  }, [lang])
+
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
 }
 
