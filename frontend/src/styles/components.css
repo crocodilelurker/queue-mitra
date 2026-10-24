@@ -409,6 +409,12 @@ textarea.field__control,
   color: var(--danger-dark);
   font-weight: 600;
 }
+.emergency-note--ticket {
+  justify-items: stretch;
+}
+.emergency-note--ticket .form__title {
+  color: var(--danger-dark);
+}
 .badge {
   display: inline-block;
   padding: 0.25rem 0.75rem;

@@ -40,6 +40,11 @@ export default function EmergencyModal({ open, detail, onClose }) {
         <a className="btn btn--call" href="tel:108">
           <span aria-hidden="true">🚑</span> {t.call108}
         </a>
+        {!detail?.inTicketFlow && (
+          <Link className="btn btn--primary" to="/new?emergency=1" onClick={onClose}>
+            <span aria-hidden="true">🎟️</span> {t.getEmergencyTicketNow}
+          </Link>
+        )}
         <Link className="btn" to="/map?to=emergency_casualty_0" onClick={onClose}>
           <span aria-hidden="true">🧭</span> {t.goCasualty}
         </Link>

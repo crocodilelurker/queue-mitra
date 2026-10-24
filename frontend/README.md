@@ -6,8 +6,8 @@ It talks to the Express + Socket.io backend in [../backend](../backend). The bac
 
 | Route | Screen | Who |
 | --- | --- | --- |
-| `/` | Home: describe symptoms, 4 big actions | Patient |
-| `/new` (alias `/register`) | New Ticket: 4-step registration | Patient |
+| `/` | Home: describe symptoms, 3 big actions | Patient |
+| `/new` (alias `/register`) | New Ticket: 4-step registration, or the 2-step **emergency ticket** (`/new?emergency=1`) | Patient |
 | `/slip/:publicId` | OPD slip: token, QR, print, read aloud | Patient |
 | `/my-turn/:publicId` | Live queue position, "3 ahead" alert, SMS, urgent help | Patient |
 | `/map` | Hospital floor plan, directions, "Avoid stairs", "I'm lost" | Patient |
@@ -126,10 +126,11 @@ frontend/
     ├── components/
     │   ├── Header, Layout, LanguageSwitch, OfflineBanner, ActionCard, SymptomBox,
     │   │   TriageResult, SlipLookup, SmsToast
-    │   ├── common/                 # Modal, EmergencyModal, ListenButton, Toggle, QrCode,
+    │   ├── common/                 # Modal, EmergencyModal, EmergencyTicketNotice, ListenButton, Toggle, QrCode,
     │   │                           #   DepartmentCard, Status (loading / error)
     │   ├── new/                    # /new steps: StepIndicator, Field, PatientInfoStep, KnowledgeStep,
-    │   │                           #   DepartmentStep, DescribeStep, ReviewStep, EmergencyButton, validation.js
+    │   │                           #   DepartmentStep, DescribeStep, ReviewStep, EmergencyButton, EmergencyBanner,
+    │   │                           #   EmergencyTicketStep, validation.js
     │   ├── map/                    # FloorMap (SVG), RouteSteps, placeIcons
     │   └── staff/                  # StaffLogin, QueueSummary, UrgentBanner, CounterRegistration, DemoToolbar
     └── styles/                     # tokens.css, base.css, components.css, pages.css
@@ -149,7 +150,7 @@ frontend/
 | Screen | Calls |
 | --- | --- |
 | Home | `POST /triage/suggest`, `GET /triage/warning-signs`, `GET /tickets/lookup/:token`, `GET /hospitals/:code/departments` |
-| `/new` | `GET /hospitals/:code/departments`, `POST /triage/suggest`, `POST /tickets` |
+| `/new` | `GET /hospitals/:code/departments`, `POST /triage/suggest`, `POST /tickets` (emergency tickets send `emergency: true` and an optional `complaint`) |
 | Slip | `GET /tickets/:id/slip` |
 | My Turn | `GET /tickets/:id`, `GET /hospitals/:code/departments/:dept/queue`, `GET /notifications/:id`, `PATCH /tickets/:id/preferences`, `POST /tickets/:id/urgent` |
 | Map | `GET /navigation/map`, `GET /navigation/checkpoints`, `POST /navigation/route`, `POST /navigation/from-checkpoint`, `POST /navigation/lost` |
@@ -165,15 +166,15 @@ frontend/
 ## The screens
 
 ### Header (every screen)
-Brand, **Emergency** (always reachable), a **Text size** toggle, the language switch (English / हिन्दी / தமிழ்) and an *Install app* button when the browser offers it. On the registration screen the Emergency control is the round button beside the form instead.
+Brand, **Emergency** (always reachable), a **Text size** toggle, the language switch (English / हिन्दी / தமிழ்) and an *Install app* button when the browser offers it. On **Home** the Emergency button goes straight to the emergency ticket (see below); on other screens it opens the emergency guidance. On the registration screen the Emergency control is the round button beside the form instead.
 
 ### Home `/`
 1. Type or **speak** your symptoms (optionally attach a photo, which is only previewed on your device) and press **Check my symptoms**.
-2. A red-flag symptom opens the emergency guidance; otherwise you get a suggested department with advice and **Register for this department**.
-3. Four large actions: **Register for OPD**, **I have my slip** (enter a token like `MED-001`), **Find a place**, **Emergency care**.
+2. A red-flag symptom opens the emergency guidance (with a **Get an emergency ticket** button); otherwise you get a suggested department with advice and **Register for this department**.
+3. Three large actions: **Register for OPD**, **I have my slip** (enter a token like `MED-001`) and **Find a place**. Emergency has no card of its own: the red **Emergency** button in the header takes the patient to the emergency ticket.
 
 ### New Ticket `/new`
-The page heading is **New Ticket**. Four steps with a progress indicator, one question per screen. The round red ⚠ button beside the form opens the emergency guidance on every step.
+The page heading is **New Ticket**. Four steps with a progress indicator, one question per screen. The round red ⚠ button beside the form switches the form into the **emergency ticket** flow on every step (details already typed are kept).
 
 ```
 1 Patient details ─► 2 Do you know the department? ─┬─ Knowledge ───► 3 Pick a department card ─┐
@@ -197,6 +198,21 @@ The page heading is **New Ticket**. Four steps with a progress indicator, one qu
 
 Opening `/new?dept=ENT` (the Home suggestion does this) skips straight from step 1 to the review. This is the page the hospital QR code is meant to open.
 
+#### Emergency ticket (`/new?emergency=1`)
+
+Started by the Emergency button on Home, the round button on `/new`, or **Get an emergency ticket** in the emergency guidance. It is two steps, with a red banner (one-tap **Call 108** / **Call 112** and a way back to a normal ticket) on both:
+
+```
+1 Patient details (same form, same validation) ─► 2 "Do you know the problem?" (optional) ─► ticket at once ─► /slip/:id
+```
+
+- Step 2 is a single optional box (200 characters, voice supported): *disease or problem, if you know it*. Leaving it empty is fine and gives the ticket just as fast.
+- There is no department or review step. If a problem is typed, the department is the one suggested for it; otherwise (or if the suggestion fails) it is **General Medicine**, because the backend has no separate Casualty queue. A red-flag text never blocks or slows the ticket.
+- The ticket goes to the **front of the department queue** (behind earlier emergencies, ahead of everyone else), so it shows **0 people ahead** and is the next one a doctor calls. Staff are alerted straight away (siren banner, marked **EMERGENCY**, with the problem text).
+- The slip and live screens show a red **EMERGENCY TICKET** notice: go to Emergency (Casualty), Ground Floor, with directions and a Call 108 button.
+- A normal ticket (no emergency button pressed) still goes through all four steps.
+- The patient declares the emergency; the app does not judge it, and only staff assess the patient. Because it skips the queue, a hospital may want a counter check or a limit on repeated use (see limitations).
+
 ### OPD slip `/slip/:publicId`
 Hospital header, a large token (for example **ENT-001**), patient, department, room, floor, doctor, people ahead and estimated wait, a **QR code** that opens the live screen, and a disclaimer in the patient's language. Buttons: **Track my turn live**, **Directions to the room**, **Print slip** (the print view shows only the slip) and **Listen**. The mobile number is masked and no Aadhaar or ABHA data is ever collected.
 
@@ -218,6 +234,7 @@ Hospital header, a large token (for example **ENT-001**), patient, department, r
 - The slip, the emergency guidance and the My Turn "called" screen all link here with the destination already set.
 
 ### Doctor dashboard and staff desk `/doctor`
+- Emergency tickets show a red **EMERGENCY** badge and the patient's own words, sit at the top of the waiting list and are called first.
 - **Doctor login** (email + password): status buttons (Available, On break 15 min, Running late 15 min), **Call next patient** (finishes the current one), current patient card with a consultation timer, **Complete, No-show, Requeue to end, Transfer** (to another department), queue summary with overcrowding colour, and the next 20 waiting.
 - **Staff PIN login:** read-only view of any department queue and **Counter registration** for walk-ins without a phone (issues a printable slip). Staff accounts have no department in the backend, so they cannot call patients.
 - **Urgent help banner:** a flashing banner and repeating siren appear live until each request is marked **Seen** (with a Mute button). The sound needs one earlier click on the page, which the login provides.
@@ -237,8 +254,8 @@ A collapsible dock (Home, doctor and analytics screens): **Add 20 sample patient
 
 These come from the problem brief and are enforced in the UI:
 
-- **Emergency is on every screen:** the header button (or the round button on `/new`) opens guidance with one-tap **Call 112** and **Call 108**, the warning signs from the backend, a link to directions to Casualty, and a statement that no token is needed.
-- **The app never says someone is safe.** A red-flag symptom shows the emergency guidance and offers no registration shortcut. A normal result is labelled "only a suggestion, not a diagnosis", and the patient can always choose another department or press Emergency.
+- **Emergency is on every screen:** the header button (on Home it starts the emergency ticket; elsewhere it opens guidance) or the round button on `/new` opens guidance with one-tap **Call 112** and **Call 108**, the warning signs from the backend, a link to directions to Casualty, and a statement that no token is needed.
+- **The app never says someone is safe.** A red-flag symptom shows the emergency guidance and never offers a normal-queue suggestion; the only ticket it offers is the immediate emergency ticket. A normal result is labelled "only a suggestion, not a diagnosis", and the patient can always choose another department or press Emergency.
 - **Only made-up, minimal data.** First name, age, gender and an optional mobile number. No Aadhaar or ABHA numbers.
 
 ## Languages
@@ -311,6 +328,10 @@ What was built, in order. Each step was pushed to the `swastik` branch and revie
    - Service worker no longer caches `/socket.io`, cache version bumped to v2.
    - Added `socket.io-client` and `qrcode-generator`; removed the unused Home path cards and the old confirmation screen.
 
+8. **Emergency card removed from Home.** The Home page now has three action cards; the header Emergency button (and the round button on `/new`) remain the way to reach emergency guidance.
+
+9. **Emergency ticket.** The Home Emergency button, the round button on `/new` and the guidance modal start a 2-step emergency flow (details, then an optional "problem if known") that issues a ticket immediately, at the front of the queue, with staff alerted. A normal ticket still needs all four steps. The map now also follows address changes while it is open (so "Directions to Casualty" works from the map itself). Backend: tickets can be flagged `emergency` and carry an optional `complaint`.
+
 > **Maintenance rule:** whenever anything in `frontend/` changes, update this README in the same pull request (structure, screens and a new line in the change history).
 
 ## Known limitations
@@ -324,6 +345,7 @@ What was built, in order. Each step was pushed to the `swastik` branch and revie
 - **Symptom photos** are only previewed on the device and are not sent anywhere.
 - **Read aloud and voice input** depend on the browser (the Web Speech API) and on installed Hindi and Tamil voices; the buttons are disabled or hidden where unsupported.
 - **Autoplay rules:** the staff siren and the TV board speech need one click on the page first.
+- **Emergency tickets are self-declared:** anyone can press Emergency and go to the front of their queue. There is no check or limit on this yet, and the emergency ticket joins General Medicine unless a problem is typed (there is no Casualty queue in the backend).
 - **Hindi and Tamil text** use the system font because Inter has no Devanagari or Tamil glyphs.
 - **Icons** are generated placeholders (red cross on grey); replace them in `public/icons/` with final branding.
 - **No automated test suite** is included in the repository, and nothing was tested on real devices or with a screen reader.

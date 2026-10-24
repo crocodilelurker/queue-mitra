@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../api/client.js'
 import { useDepartments } from '../api/departments.js'
 import { useSocket } from '../api/socket.js'
+import EmergencyTicketNotice from '../components/common/EmergencyTicketNotice.jsx'
 import Modal from '../components/common/Modal.jsx'
 import { ErrorNote, Loading } from '../components/common/Status.jsx'
 import Toggle from '../components/common/Toggle.jsx'
@@ -158,6 +159,8 @@ export default function MyTurn({ publicId }) {
           {updatedAt && ` · ${f('updatedAt', { time: formatTime(updatedAt, lang) })}`}
         </p>
       </div>
+
+      {ticket.isEmergency && (status === 'waiting' || status === 'called') && <EmergencyTicketNotice />}
 
       {status === 'called' && (
         <section className="turn-card turn-card--called" role="alert">
