@@ -76,7 +76,7 @@ export default function OpdSlip({ publicId }) {
           <p className="slip__token" aria-label={`${t.token} ${slip.tokenNumber}`}>
             {slip.tokenNumber}
           </p>
-          <span className="slip__token-dept">{dept} · Room {slip.room}</span>
+          <span className="slip__token-dept">{dept} · {slip.room}</span>
         </div>
 
         <dl className="summary-list">

@@ -9,14 +9,14 @@
 
   --ink: #0f172a;
   --ink-soft: #475569;
-  --ink-muted: #94a3b8;
+  --ink-muted: #5b6b80; /* 5.4:1 on white (AA); the old #94a3b8 was 2.5:1 */
 
-  --primary: #0284c7;
-  --primary-hover: #0369a1;
+  --primary: #0369a1; /* 5.9:1 on white, so it is safe for text as well as for buttons with white labels */
+  --primary-hover: #075985;
   --primary-light: #e0f2fe;
   --primary-glow: rgba(2, 132, 199, 0.2);
 
-  --teal: #0d9488;
+  --teal: #0f766e;
   --teal-light: #ccfbf1;
   --indigo: #4f46e5;
   --indigo-light: #e0e7ff;
@@ -26,7 +26,7 @@
   --danger-bg: #fef2f2;
   --danger-border: #fecaca;
 
-  --ok: #16a34a;
+  --ok: #15803d;
   --ok-bg: #f0fdf4;
   --ok-border: #bbf7d0;
 
@@ -74,6 +74,20 @@
   --shadow-glow: 0 0 20px rgba(2, 132, 199, 0.25);
 
   --tap: 56px;
+
+  /* Motion: short, purposeful, and only on transform / opacity so it stays smooth.
+     Every animation is switched off for users who prefer reduced motion (see motion.css). */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 150ms;
+  --dur-med: 260ms;
+  --dur-slow: 420ms;
+
+  /* Brand gradients and focus ring */
+  --grad-primary: linear-gradient(135deg, #0278b8 0%, #0369a1 50%, #075985 100%); /* white text stays above 4.5:1 along the whole gradient */
+  --grad-emergency: linear-gradient(135deg, #dc2626 0%, #c81e1e 50%, #b91c1c 100%);
+  --grad-ok: linear-gradient(135deg, #15803d 0%, #166534 100%);
+  --ring: 0 0 0 4px rgba(2, 132, 199, 0.28);
 }
 
 /* "Large text" preference */

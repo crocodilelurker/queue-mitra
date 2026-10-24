@@ -20,7 +20,7 @@ export default function DepartmentCard({ department, selected, onSelect }) {
         <strong className="dept-card__title">{deptName(department)}</strong>
         <span className="dept-card__desc">{deptDesc(department)}</span>
         <span className="dept-card__meta">
-          {department.rooms?.[0] ? `Room ${department.rooms[0]} • Floor ${department.floor}` : `Floor ${department.floor}`}
+          {department.rooms?.[0] ? `${department.rooms[0]} • Floor ${department.floor}` : `Floor ${department.floor}`}
         </span>
       </div>
       <div className="dept-card__check" aria-hidden="true">

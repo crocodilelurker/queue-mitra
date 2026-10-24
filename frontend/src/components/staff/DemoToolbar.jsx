@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react'
 import { api } from '../../api/client.js'
+import { Icon } from '../common/Icons.jsx'
 
 /** Floating demo dock: add sample patients, run the queue at 10x speed, reset. Collapsed by default. */
 export default function DemoToolbar() {
@@ -32,15 +33,15 @@ export default function DemoToolbar() {
       {open && (
         <div className="demo__panel box">
           <button type="button" className="btn btn--sm" disabled={busy} onClick={() => run('Seeded patients', api.seedPatients)}>
-            <span aria-hidden="true">👥</span> Add sample patients
+            <Icon name="users" size={16} /> Add sample patients
           </button>
           {running ? (
             <button type="button" className="btn btn--sm" disabled={busy} onClick={() => run('Stopped', api.stopSimulation)}>
-              <span aria-hidden="true">⏹️</span> Stop simulation
+              <Icon name="stop" size={16} /> Stop simulation
             </button>
           ) : (
             <button type="button" className="btn btn--sm" disabled={busy} onClick={() => run('Started', api.startSimulation)}>
-              <span aria-hidden="true">⏩</span> 10x auto-simulate
+              <Icon name="play" size={16} /> 10x auto-simulate
             </button>
           )}
           <button
@@ -49,13 +50,13 @@ export default function DemoToolbar() {
             disabled={busy}
             onClick={() => window.confirm('Delete all tickets and reset the queues?') && run('Reset done', api.resetDemo)}
           >
-            <span aria-hidden="true">🔄</span> Reset all
+            <Icon name="refresh" size={16} /> Reset all
           </button>
           {message && <p className="field__hint" role="status">{message}</p>}
         </div>
       )}
       <button type="button" className="btn btn--sm demo__toggle" aria-expanded={open} onClick={() => setOpen((o) => !o)}>
-        <span aria-hidden="true">🎬</span> Demo
+        <Icon name="sparkles" size={16} /> Demo
       </button>
     </aside>
   )

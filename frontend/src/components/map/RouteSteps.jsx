@@ -4,8 +4,9 @@ import { useI18n } from '../../i18n/index.jsx'
 export function useStepText() {
   const { t, f, lang, placeName } = useI18n()
   return (step, prev, places) => {
-    const place = places.find((p) => p.id === step.placeId)
-    const name = place ? placeName(place) : step.name
+    // When start and destination are the same place the backend sends { place } instead of { placeId, name, floor }.
+    const place = places.find((p) => p.id === (step.placeId ?? step.place?.id))
+    const name = place ? placeName(place) : step.name ?? step.place?.name
     if (!prev) return f('startAt', { name })
     if (step.floor !== prev.floor) {
       const dir = step.floor > prev.floor ? t.up : t.down
@@ -28,7 +29,7 @@ export default function RouteSteps({ steps, places }) {
           <div>
             <p className="steps-list__text">{stepText(step, steps[i - 1], places)}</p>
             <p className="field__hint">
-              {f('floorN', { n: step.floor })} · {step.landmark}
+              {f('floorN', { n: step.floor ?? step.place?.floor ?? 0 })} · {step.landmark}
             </p>
           </div>
         </li>

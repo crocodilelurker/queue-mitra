@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { api } from '../../api/client.js'
 import Field from '../new/Field.jsx'
+import { Icon } from '../common/Icons.jsx'
 
 /** Quick staff PIN login, or doctor email + password. */
 export default function StaffLogin({ onSignIn }) {
@@ -34,7 +35,7 @@ export default function StaffLogin({ onSignIn }) {
         <h2 className="form__title">Quick staff login</h2>
         <Field label="Staff PIN" type="password" inputMode="numeric" autoComplete="off" value={pin} onChange={(e) => setPin(e.target.value)} maxLength={12} />
         <button type="submit" className="btn btn--primary" disabled={busy || !pin.trim()}>
-          <span aria-hidden="true">🔑</span> Log in with PIN
+          <Icon name="key" size={18} /> Log in with PIN
         </button>
       </form>
       <form className="box panel form" onSubmit={(e) => attempt(() => api.login(email.trim(), password), e)} noValidate>
@@ -42,7 +43,7 @@ export default function StaffLogin({ onSignIn }) {
         <Field label="Email" type="email" autoComplete="username" value={email} onChange={(e) => setEmail(e.target.value)} />
         <Field label="Password" type="password" autoComplete="current-password" value={password} onChange={(e) => setPassword(e.target.value)} />
         <button type="submit" className="btn btn--primary" disabled={busy || !email.trim() || !password}>
-          <span aria-hidden="true">🩺</span> Log in as doctor
+          <Icon name="stethoscope" size={18} /> Log in as doctor
         </button>
       </form>
     </div>

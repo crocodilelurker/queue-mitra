@@ -29,7 +29,7 @@ function DoctorLine({ doctor }) {
       <div className="doc__indicator" />
       <div className="doc__details">
         <strong>{doctor.name}</strong>
-        <span>Room {doctor.room} · {status}</span>
+        <span>{doctor.room} · {status}</span>
       </div>
     </li>
   )

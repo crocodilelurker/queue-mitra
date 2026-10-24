@@ -4,6 +4,7 @@ import { useSocket } from '../api/socket.js'
 import { useAsync } from '../hooks/useAsync.js'
 import { Link } from '../router.jsx'
 import { canSpeak, speak } from '../utils/speech.js'
+import { Icon } from '../components/common/Icons.jsx'
 
 // Wings as laid out on the first floor (see the hospital map): left wing rooms 1-4, right wing rooms 5-8.
 const LEFT = ['MED', 'CHD', 'WOM']
@@ -115,7 +116,7 @@ export default function WaitingBoard() {
 
       {!soundOn && canSpeak && (
         <button type="button" className="btn board__sound" onClick={() => setSoundOn(true)}>
-          <span aria-hidden="true">🔊</span> Tap to turn on spoken announcements
+          <Icon name="volume" size={20} /> Tap to turn on spoken announcements
         </button>
       )}
       {error && !data && <p className="board__error">Cannot reach the server. Retrying…</p>}

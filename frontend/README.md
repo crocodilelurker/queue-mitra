@@ -133,7 +133,7 @@ frontend/
     │   │                           #   EmergencyTicketStep, validation.js
     │   ├── map/                    # FloorMap (SVG), RouteSteps, placeIcons
     │   └── staff/                  # StaffLogin, QueueSummary, UrgentBanner, CounterRegistration, DemoToolbar
-    └── styles/                     # tokens.css, base.css, components.css, pages.css
+    └── styles/                     # tokens.css, base.css, components.css, pages.css, motion.css (animations)
 ```
 
 ---
@@ -275,6 +275,9 @@ These come from the problem brief and are enforced in the UI:
 - **Text size** toggle (scales everything), **high contrast** option, **read aloud** (slip, directions, emergency guidance, triage advice) and assisted mode that speaks each question.
 - Every input has a label; errors use `role="alert"` and `aria-describedby`; focus moves to the first invalid field; modals trap focus and close with Esc; status changes are announced with `aria-live`.
 - Look: a clean clinical design (slate, sapphire and teal palette, soft shadows, rounded cards, vector icons from `Icons.jsx`) with all colours, type sizes and spacing in `src/styles/tokens.css`. Emergency stays red, with white text on a dark enough red to be readable. Motion is limited to short hover and press transitions and is disabled when the user prefers reduced motion.
+- **Colour and contrast:** all text meets WCAG AA (4.5:1 or better). The accent blue is `#0369a1` (5.9:1 on white), muted text is `#5b6b80`, green is `#15803d` and teal `#0f766e`, and the gradients behind white button labels stay above 4.5:1 end to end. Emergency stays red.
+- **Motion** (`src/styles/motion.css`): pages fade in on every navigation, cards and rows in a group arrive one after another, modals pop in, the SMS toast and urgent banner slide down, the called-patient panel pulses, pressed controls dip slightly, loading shows a spinner, and on the map the route flows toward the destination while the start and destination pulse. Everything uses short durations and only opacity, transform (plus the route dash and the urgent glow), and **all of it is switched off when the user prefers reduced motion**.
+- **One icon set:** every icon is a vector from `Icons.jsx` (the map now uses them too, with department icons on OPD rooms); no emoji remain in the interface.
 - **Rules from the brief are enforced in the tokens and component styles:** `--fs-md` is 18px (body text), `--tap` is 56px and is the minimum height of every button, pill, input, toggle and tab, and nothing may scroll sideways at 360px. These were re-checked after the redesign (see below); keep them when changing styles.
 
 ## PWA and offline behaviour
@@ -294,6 +297,7 @@ Everything below was run against the real backend (a throwaway MongoDB) using th
 - **Emergency ticket:** every entry point, the two-step flow with and without a problem, department from the typed problem, red-flag text, front-of-queue priority (and first-come-first-served among emergencies), the staff alert and badges, the doctor calling it first, the normal flow unchanged, and switching between the two without losing details.
 - **Map:** automatic route from a slip, avoid-stairs route uses only the lift, Hindi and Telugu directions, wall-poster start, "I'm lost" card (bilingual, also in Telugu), casualty route.
 - **Staff:** logins, every doctor action, counter registration, urgent banner, board flash and alternating spoken announcements, analytics numbers, demo toolbar.
+- **Design checks:** text contrast audit on the main screens; keyboard Tab order with a visible focus indicator on every control; animations present with motion allowed and absent with reduced motion; only opacity / transform / dash / glow are animated.
 - **Layout:** no horizontal overflow on all screens at 360, 768 and 1440px, also with large text and high contrast; touch targets at least 56px; print view of the slip.
 - **PWA:** service worker, cache contents, manifest, offline loading and recovery.
 
@@ -348,6 +352,15 @@ What was built, in order. Each step was pushed to the `swastik` branch and revie
     - Telugu: read aloud now uses a Telugu voice setting (it used the English one) and times use the Telugu locale; the TV board footer and the analytics language names no longer mention Tamil; the slip disclaimer and the "I'm lost" card text have Telugu fallbacks because the backend has none.
     - The demo button no longer says "20" (the backend now adds 21 sample patients).
     - README brought up to date (Telugu, redesign, in-memory MongoDB, test coverage, limitations).
+
+13. **Visual refinement** (this pull request; presentation only, no behaviour changed). A design pass over every screen:
+    - **Phone header** is two compact rows (brand and Emergency, then tools) instead of four, and scrolls away on phones (it stayed sticky and covered a third of the screen); wide screens keep the sticky bar.
+    - **Components that had lost their styling** now have it: the urgent siren banner (a red alert with a glow), the map's directions (now a numbered timeline), the "Show to staff" card, the demo dock (floating again), the SMS toast, analytics and queue figures, the staff login layout, page titles, loading spinner, QR code frame, notices and live indicators.
+    - **Map:** redrawn with a blueprint-style plate, vector icons (department icons on OPD rooms), a glowing animated route, and labels on readable pills with shortened names, so they no longer collide.
+    - **Contrast:** muted text, links, green, teal and the button gradients were raised to AA.
+    - **Motion system** added (`motion.css`, reduced-motion safe).
+    - **Text fixes:** "Room Room 6" is now "Room 6" on the slip, department cards, doctor screen and OPD counters; the `/new` steps show one heading instead of two; the "Show to staff" card no longer repeats the destination in English; the directions list no longer renders a blank step when you are already at the help desk.
+    - `src/components/common/Icons.jsx` gained 21 icons; `FloorMap.jsx` and `placeIcons.js` were rewritten to draw them.
 
 > **Maintenance rule:** whenever anything in `frontend/` changes, update this README in the same pull request (structure, screens and a new line in the change history).
 

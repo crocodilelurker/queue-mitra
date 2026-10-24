@@ -1,9 +1,9 @@
 import { useI18n } from '../../i18n/index.jsx'
-import { placeIcon } from './placeIcons.js'
+import { Icon } from '../common/Icons.jsx'
+import { placeIconName } from './placeIcons.js'
 
 const W = 860
 const H = 820
-const COLORS = { start: '#2f9e44', end: '#c92a2a', route: '#1971c2' }
 
 function viewBoxFor(routeNodes) {
   if (routeNodes.length === 0) return `0 0 ${W} ${H}`
@@ -23,7 +23,23 @@ function viewBoxFor(routeNodes) {
   return `${minX} ${minY} ${w} ${h}`
 }
 
-/** SVG floor plan: corridors, places and (optionally) the route drawn over them. */
+// Width of a label pill for `text` (the font is about 11px per character at this size).
+const pillWidth = (text) => Math.max(56, text.length * 11.5 + 24)
+
+/** A rounded label that stays readable on top of corridors and neighbouring icons. */
+function Pill({ x, y, text, tone = 'label' }) {
+  const w = pillWidth(text)
+  return (
+    <g className={`floormap__pill floormap__pill--${tone}`}>
+      <rect x={x - w / 2} y={y - 16} width={w} height={32} rx={16} />
+      <text x={x} y={y + 7} textAnchor="middle">
+        {text}
+      </text>
+    </g>
+  )
+}
+
+/** SVG floor plan: corridors, places and (optionally) the route drawn over them. Styled in pages.css. */
 export default function FloorMap({ places, edges, floor, route, startId, endId, onPick }) {
   const { t, placeName } = useI18n()
   const byId = Object.fromEntries(places.map((p) => [p.id, p]))
@@ -34,30 +50,52 @@ export default function FloorMap({ places, edges, floor, route, startId, endId, 
   const routePairs = route
     ? route.pathNodes.slice(1).map((p, i) => [route.pathNodes[i], p]).filter(([a, b]) => a.floor === floor && b.floor === floor)
     : []
-  const short = (place) => placeName(place).split(' (')[0]
+  // Long names such as "Help Desk / May I Help You" are shortened to their first part on the map itself.
+  const short = (place) => placeName(place).split(' (')[0].split(' / ')[0]
 
   return (
     <svg className="floormap" viewBox={viewBoxFor(routeNodes)} role="img" aria-label={t.mapAria}>
-      <rect x="-20" y="-20" width={W + 40} height={H + 40} rx="24" fill="var(--surface)" />
+      <defs>
+        <pattern id="floormap-grid" width="40" height="40" patternUnits="userSpaceOnUse">
+          <path className="floormap__grid-line" d="M 40 0 L 0 0 0 40" />
+        </pattern>
+      </defs>
+      <rect className="floormap__plate" x="-20" y="-20" width={W + 40} height={H + 40} rx="28" />
+      <rect x="-20" y="-20" width={W + 40} height={H + 40} rx="28" fill="url(#floormap-grid)" />
+
       {floorEdges.map((e) => (
-        <line key={`${e.from}-${e.to}`} x1={byId[e.from].x} y1={byId[e.from].y} x2={byId[e.to].x} y2={byId[e.to].y} stroke="var(--ink-soft)" strokeOpacity="0.35" strokeWidth="8" strokeLinecap="round" />
+        <line key={`${e.from}-${e.to}`} className="floormap__edge" x1={byId[e.from].x} y1={byId[e.from].y} x2={byId[e.to].x} y2={byId[e.to].y} />
       ))}
       {routePairs.map(([a, b]) => (
-        <line key={`r-${a.id}-${b.id}`} x1={a.x} y1={a.y} x2={b.x} y2={b.y} stroke={COLORS.route} strokeWidth="14" strokeLinecap="round" />
+        <g key={`r-${a.id}-${b.id}`}>
+          <line className="floormap__route-glow" x1={a.x} y1={a.y} x2={b.x} y2={b.y} />
+          <line className="floormap__route" x1={a.x} y1={a.y} x2={b.x} y2={b.y} strokeWidth="14" />
+          <line className="floormap__flow" x1={a.x} y1={a.y} x2={b.x} y2={b.y} />
+        </g>
       ))}
+
       {onFloor.map((p) => {
         const isStart = p.id === startId
         const isEnd = p.id === endId
-        const ring = isStart ? COLORS.start : isEnd ? COLORS.end : routeIds.has(p.id) ? COLORS.route : 'var(--ink)'
+        const state = isStart ? 'is-start' : isEnd ? 'is-end' : routeIds.has(p.id) ? 'on-route' : ''
+        const r = isStart || isEnd ? 34 : 28
         return (
-          <g key={p.id} className="floormap__node" tabIndex={0} role="button" aria-label={placeName(p)} onClick={() => onPick?.(p)} onKeyDown={(e) => e.key === 'Enter' && onPick?.(p)}>
-            <circle cx={p.x} cy={p.y} r={isStart || isEnd ? 34 : 28} fill="var(--bg)" stroke={ring} strokeWidth={isStart || isEnd ? 8 : 5} />
-            <text x={p.x} y={p.y + 11} textAnchor="middle" fontSize="30">
-              {placeIcon(p)}
-            </text>
+          <g
+            key={p.id}
+            className={`floormap__node ${state}`.trim()}
+            tabIndex={0}
+            role="button"
+            aria-label={placeName(p)}
+            onClick={() => onPick?.(p)}
+            onKeyDown={(e) => e.key === 'Enter' && onPick?.(p)}
+          >
+            {(isStart || isEnd) && <circle className="floormap__halo" cx={p.x} cy={p.y} r={r + 8} />}
+            <circle className="floormap__ring" cx={p.x} cy={p.y} r={r} />
+            <Icon name={placeIconName(p)} size={isStart || isEnd ? 34 : 28} x={p.x - (isStart || isEnd ? 17 : 14)} y={p.y - (isStart || isEnd ? 17 : 14)} />
           </g>
         )
       })}
+
       {/* Labels are drawn last so no icon can cover them. Stairs are only named when they are on the route. */}
       <g pointerEvents="none">
         {onFloor.map((p) => {
@@ -67,21 +105,9 @@ export default function FloorMap({ places, edges, floor, route, startId, endId, 
           const showLabel = route ? onRoute : !p.id.startsWith('stairs_')
           return (
             <g key={p.id}>
-              {showLabel && (
-                <text x={p.x} y={p.y + 64} textAnchor="middle" fontSize="24" fontWeight="600" fill="var(--ink)" stroke="var(--surface)" strokeWidth="6" paintOrder="stroke">
-                  {short(p)}
-                </text>
-              )}
-              {isStart && (
-                <text x={p.x} y={p.y - 46} textAnchor="middle" fontSize="22" fontWeight="700" fill={COLORS.start} stroke="var(--surface)" strokeWidth="5" paintOrder="stroke">
-                  ▶ {t.start}
-                </text>
-              )}
-              {isEnd && (
-                <text x={p.x} y={p.y - 46} textAnchor="middle" fontSize="22" fontWeight="700" fill={COLORS.end} stroke="var(--surface)" strokeWidth="5" paintOrder="stroke">
-                  ⚑ {t.destination}
-                </text>
-              )}
+              {showLabel && <Pill x={p.x} y={p.y + (isStart || isEnd ? 66 : 60)} text={short(p)} />}
+              {isStart && <Pill x={p.x} y={p.y - 54} text={t.start} tone="start" />}
+              {isEnd && <Pill x={p.x} y={p.y - 54} text={t.destination} tone="end" />}
             </g>
           )
         })}

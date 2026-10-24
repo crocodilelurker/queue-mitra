@@ -68,7 +68,7 @@ function DoctorView({ user }) {
             </span>
             <div>
               <h2 className="panel__title">{user.name}</h2>
-              <span className="field__hint">Room {user.room} · {queue.department.name}</span>
+              <span className="field__hint">{user.room} · {queue.department.name}</span>
             </div>
           </div>
           <span className={`status-pill status-pill--${me?.state || 'available'}`}>
