@@ -59,6 +59,7 @@ async function request(method, path, body) {
 const get = (path) => request('GET', path)
 const post = (path, body = {}) => request('POST', path, body)
 const patch = (path, body = {}) => request('PATCH', path, body)
+const del = (path) => request('DELETE', path)
 const enc = encodeURIComponent
 const H = HOSPITAL_CODE
 
@@ -141,5 +142,18 @@ export const api = {
     return get(`/billing/summary${q ? `?${q}` : ''}`)
   },
   collectPayment: (billId, payload) => post(`/billing/${enc(billId)}/pay`, payload),
+  // super-admin management
+  createDoctor: (payload) => post('/admin/doctors', payload),
+  updateDoctor: (id, payload) => patch(`/admin/doctors/${enc(id)}`, payload),
+  deleteDoctor: (id) => del(`/admin/doctors/${enc(id)}`),
+  adminStaff: async () => {
+    const res = await get('/admin/staff')
+    return Array.isArray(res) ? res : res?.staff || []
+  },
+  createStaff: (payload) => post('/admin/staff', payload),
+  updateStaff: (id, payload) => patch(`/admin/staff/${enc(id)}`, payload),
+  deleteStaff: (id) => del(`/admin/staff/${enc(id)}`),
+  deletePatient: (patientId) => del(`/patients/${enc(patientId)}`),
+  purgeMockData: () => post('/admin/purge-mock-data'),
 }
 

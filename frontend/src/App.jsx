@@ -7,6 +7,7 @@ import AdminDashboard from './pages/admin/AdminDashboard.jsx'
 import PatientManager from './pages/admin/PatientManager.jsx'
 import DoctorAppointmentManager from './pages/admin/DoctorAppointmentManager.jsx'
 import BillingManager from './pages/admin/BillingManager.jsx'
+import SuperAdminManager from './pages/admin/SuperAdminManager.jsx'
 import AdvancedReports from './pages/admin/AdvancedReports.jsx'
 import FollowUpManager from './pages/admin/FollowUpManager.jsx'
 import AnalyticsDashboard from './pages/AnalyticsDashboard.jsx'
@@ -44,6 +45,8 @@ const ROUTES = [
   { path: '/admin/follow-ups', component: FollowUpManager },
   { path: '/admin/reports', component: AdvancedReports },
   { path: '/admin/settings', component: AdvancedReports },
+  { path: '/admin/super', component: SuperAdminManager },
+  { path: '/super-admin', component: SuperAdminManager },
 ]
 
 export default function App() {

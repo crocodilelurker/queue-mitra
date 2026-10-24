@@ -133,7 +133,7 @@ const doctors = [
   { name: "Dr. Kavita Joshi", email: "kavita@queuemitra.test", dept: "SKN", room: "Room 8", specialty: "Dermatology", consultationFee: 25 },
 ];
 
-export async function seedData({ reset = false } = {}) {
+export async function seedData({ reset = false, seedMock = false } = {}) {
   const Patient = (await import("../models/Patient.js")).default;
   const Appointment = (await import("../models/Appointment.js")).default;
   const Bill = (await import("../models/Bill.js")).default;
@@ -203,33 +203,47 @@ export async function seedData({ reset = false } = {}) {
   }
   console.log(`Admin user: ${admin.name} (${admin.email})`);
 
-  // Seed sample patients
-  const samplePatients = [
-    { patientId: "CDH-P-1001", firstName: "Ramesh", lastName: "Kumar", gender: "male", age: 52, mobile: "9876543211", bloodGroup: "O+", city: "Jammu", emergencyContact: { name: "Suman Kumar", relation: "Wife", phone: "9876543212" } },
-    { patientId: "CDH-P-1002", firstName: "Priya", lastName: "Sharma", gender: "female", age: 29, mobile: "9876543213", bloodGroup: "B+", city: "Jammu", emergencyContact: { name: "Rohit Sharma", relation: "Husband", phone: "9876543214" } },
-    { patientId: "CDH-P-1003", firstName: "Aarav", lastName: "Verma", gender: "male", age: 7, mobile: "9876543215", bloodGroup: "A+", city: "Samba", emergencyContact: { name: "Rajesh Verma", relation: "Father", phone: "9876543216" } },
-    { patientId: "CDH-P-1004", firstName: "Lakshmi", lastName: "Devi", gender: "female", age: 68, mobile: "9876543217", bloodGroup: "AB+", city: "Kathua", emergencyContact: { name: "Vikas Sharma", relation: "Son", phone: "9876543218" } },
-    { patientId: "CDH-P-1005", firstName: "Sunil", lastName: "Gupta", gender: "male", age: 45, mobile: "9876543219", bloodGroup: "O-", city: "Jammu", emergencyContact: { name: "Pooja Gupta", relation: "Wife", phone: "9876543220" } },
-    { patientId: "CDH-P-1006", firstName: "Fatima", lastName: "Begum", gender: "female", age: 34, mobile: "9876543221", bloodGroup: "B-", city: "Udhampur", emergencyContact: { name: "Farooq Ahmed", relation: "Husband", phone: "9876543222" } },
-    { patientId: "CDH-P-1007", firstName: "Harish", lastName: "Chander", gender: "male", age: 61, mobile: "9876543223", bloodGroup: "A-", city: "Jammu", emergencyContact: { name: "Amit Chander", relation: "Son", phone: "9876543224" } },
-    { patientId: "CDH-P-1008", firstName: "Ananya", lastName: "Singh", gender: "female", age: 24, mobile: "9876543225", bloodGroup: "O+", city: "Jammu", emergencyContact: { name: "Vikram Singh", relation: "Brother", phone: "9876543226" } },
-  ];
-
-  const seededPatients = [];
-  for (const p of samplePatients) {
-    const existing = await Patient.findOne({ patientId: p.patientId });
-    if (!existing) {
-      const created = await Patient.create({
-        ...p,
-        hospital: cdh._id,
-        address: { city: p.city, state: "Jammu and Kashmir", pincode: "180001" },
-      });
-      seededPatients.push(created);
-    } else {
-      seededPatients.push(existing);
-    }
+  let superAdmin = await User.findOne({ email: "superadmin@queuemitra.test" });
+  if (!superAdmin) {
+    superAdmin = await User.create({
+      name: "Super Administrator",
+      email: "superadmin@queuemitra.test",
+      password: SAMPLE_PASSWORD,
+      role: "superadmin",
+      hospital: cdh._id,
+    });
   }
-  console.log(`Patients seeded in registry: ${seededPatients.length}`);
+  console.log(`Super Admin user: ${superAdmin.name} (${superAdmin.email})`);
+
+  // Mock patient registry and bookings are disabled by default (no mock data by default).
+  // Only created when explicitly requested via --with-mock or seedMock: true
+  if (seedMock) {
+    const samplePatients = [
+      { patientId: "CDH-P-1001", firstName: "Ramesh", lastName: "Kumar", gender: "male", age: 52, mobile: "9876543211", bloodGroup: "O+", city: "Jammu", emergencyContact: { name: "Suman Kumar", relation: "Wife", phone: "9876543212" } },
+      { patientId: "CDH-P-1002", firstName: "Priya", lastName: "Sharma", gender: "female", age: 29, mobile: "9876543213", bloodGroup: "B+", city: "Jammu", emergencyContact: { name: "Rohit Sharma", relation: "Husband", phone: "9876543214" } },
+      { patientId: "CDH-P-1003", firstName: "Aarav", lastName: "Verma", gender: "male", age: 7, mobile: "9876543215", bloodGroup: "A+", city: "Samba", emergencyContact: { name: "Rajesh Verma", relation: "Father", phone: "9876543216" } },
+      { patientId: "CDH-P-1004", firstName: "Lakshmi", lastName: "Devi", gender: "female", age: 68, mobile: "9876543217", bloodGroup: "AB+", city: "Kathua", emergencyContact: { name: "Vikas Sharma", relation: "Son", phone: "9876543218" } },
+      { patientId: "CDH-P-1005", firstName: "Sunil", lastName: "Gupta", gender: "male", age: 45, mobile: "9876543219", bloodGroup: "O-", city: "Jammu", emergencyContact: { name: "Pooja Gupta", relation: "Wife", phone: "9876543220" } },
+      { patientId: "CDH-P-1006", firstName: "Fatima", lastName: "Begum", gender: "female", age: 34, mobile: "9876543221", bloodGroup: "B-", city: "Udhampur", emergencyContact: { name: "Farooq Ahmed", relation: "Husband", phone: "9876543222" } },
+      { patientId: "CDH-P-1007", firstName: "Harish", lastName: "Chander", gender: "male", age: 61, mobile: "9876543223", bloodGroup: "A-", city: "Jammu", emergencyContact: { name: "Amit Chander", relation: "Son", phone: "9876543224" } },
+      { patientId: "CDH-P-1008", firstName: "Ananya", lastName: "Singh", gender: "female", age: 24, mobile: "9876543225", bloodGroup: "O+", city: "Jammu", emergencyContact: { name: "Vikram Singh", relation: "Brother", phone: "9876543226" } },
+    ];
+
+    const seededPatients = [];
+    for (const p of samplePatients) {
+      const existing = await Patient.findOne({ patientId: p.patientId });
+      if (!existing) {
+        const created = await Patient.create({
+          ...p,
+          hospital: cdh._id,
+          address: { city: p.city, state: "Jammu and Kashmir", pincode: "180001" },
+        });
+        seededPatients.push(created);
+      } else {
+        seededPatients.push(existing);
+      }
+    }
+    console.log(`Patients seeded in registry: ${seededPatients.length}`);
 
   // Seed sample appointments for today
   const today = new Date().toISOString().slice(0, 10);
@@ -306,6 +320,7 @@ export async function seedData({ reset = false } = {}) {
     });
   }
   console.log(`Bills seeded: ${sampleBills.length}`);
+  } // end if (seedMock)
 
   // Create default staff kiosk account
   const staffEmail = `staff-${cdh.code.toLowerCase()}@queuemitra.test`;
@@ -325,7 +340,8 @@ export async function seedData({ reset = false } = {}) {
 async function seed() {
   await connectDB();
   const reset = process.argv.includes("--reset");
-  await seedData({ reset });
+  const seedMock = process.argv.includes("--with-mock");
+  await seedData({ reset, seedMock });
   await disconnectDB();
 }
 

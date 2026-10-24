@@ -120,3 +120,14 @@ export async function updatePatient(patientId, updateData) {
   if (!patient) throw ApiError.notFound(`Patient ${patientId} not found`);
   return patient;
 }
+
+export async function deletePatient(patientId) {
+  const patient = await Patient.findOneAndDelete({ patientId });
+  if (!patient) throw ApiError.notFound(`Patient ${patientId} not found`);
+  await Promise.all([
+    Appointment.deleteMany({ patientId }),
+    Bill.deleteMany({ patientId }),
+    Ticket.deleteMany({ "patient.mobile": patient.mobile }),
+  ]);
+  return { success: true, message: `Patient ${patientId} deleted successfully` };
+}

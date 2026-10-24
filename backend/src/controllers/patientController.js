@@ -1,4 +1,4 @@
-import { registerPatient, listPatients, getPatientProfile, updatePatient } from "../services/patientService.js";
+import { registerPatient, listPatients, getPatientProfile, updatePatient, deletePatient } from "../services/patientService.js";
 
 export async function handleRegisterPatient(req, res, next) {
   try {
@@ -34,6 +34,16 @@ export async function handleUpdatePatient(req, res, next) {
     const { patientId } = req.params;
     const patient = await updatePatient(patientId, req.body ?? {});
     res.json({ success: true, patient });
+  } catch (err) {
+    next(err);
+  }
+}
+
+export async function handleDeletePatient(req, res, next) {
+  try {
+    const { patientId } = req.params;
+    const result = await deletePatient(patientId);
+    res.json(result);
   } catch (err) {
     next(err);
   }

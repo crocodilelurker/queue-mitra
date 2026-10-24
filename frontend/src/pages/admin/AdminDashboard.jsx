@@ -61,14 +61,14 @@ export default function AdminDashboard() {
 
   const { metrics, liveQueueTracker, dailySchedule, doctors, financialSummary } = data || {}
 
-  // Compute stats matching reference image
-  const totalPatientsToday = metrics?.totalRegisteredPatients ?? 7
-  const appointmentsToday = metrics?.activeAppointmentsToday ?? 7
-  const patientsWaiting = metrics?.currentlyWaitingQueue ?? 3
-  const completedConsultations = metrics?.completedConsultationsToday ?? 2
-  const doctorsAvailable = metrics?.availableDoctorsCount ?? 4
-  const pendingInvoicesCount = financialSummary?.pendingBillsCount ?? 2
-  const pendingDueAmount = financialSummary?.pendingAmount ?? 800
+  // Real live metrics from active database
+  const totalPatientsToday = metrics?.totalRegisteredPatients ?? 0
+  const appointmentsToday = metrics?.activeAppointmentsToday ?? 0
+  const patientsWaiting = metrics?.currentlyWaitingQueue ?? 0
+  const completedConsultations = metrics?.completedConsultationsToday ?? 0
+  const doctorsAvailable = metrics?.availableDoctorsCount ?? 0
+  const pendingInvoicesCount = financialSummary?.pendingBillsCount ?? 0
+  const pendingDueAmount = financialSummary?.pendingAmount ?? 0
 
   return (
     <AdminLayout>
@@ -237,7 +237,7 @@ export default function AdminDashboard() {
           <div style={{ display: 'flex', flexDirection: 'column' }}>
             {liveQueueTracker && liveQueueTracker.length > 0 ? (
               liveQueueTracker.slice(0, 6).map((dept, idx) => {
-                const tokenCode = dept.nowServingToken !== 'None' ? dept.nowServingToken : `${dept.code}-00${idx + 1}`
+                const tokenCode = dept.nowServingToken !== 'None' ? dept.nowServingToken : '—'
                 const isCoral = idx % 2 === 1
                 return (
                   <div key={dept.code} className="queue-item-row">
@@ -250,8 +250,10 @@ export default function AdminDashboard() {
                       </div>
                       <div className="queue-doctor-sub">
                         {dept.doctorName}
-                        {dept.totalWaiting > 0 && (
+                        {dept.totalWaiting > 0 ? (
                           <span className="wait-time-tag"> • waiting {dept.estimatedWaitMinutes || 15} min</span>
+                        ) : (
+                          <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}> • Queue clear</span>
                         )}
                       </div>
                     </div>

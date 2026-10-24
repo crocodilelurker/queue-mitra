@@ -1,7 +1,7 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
-export const ROLES = ["doctor", "staff", "admin", "user"];
+export const ROLES = ["doctor", "staff", "admin", "superadmin", "user"];
 export const DOCTOR_STATES = ["available", "on_break", "running_late", "offline"];
 
 const doctorStatusSchema = new mongoose.Schema(

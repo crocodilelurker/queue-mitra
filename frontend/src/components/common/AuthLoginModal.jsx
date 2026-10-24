@@ -109,6 +109,42 @@ export default function AuthLoginModal() {
 
         {activeTab === 'quick' ? (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
+            {/* Super Admin One-Click */}
+            <button
+              type="button"
+              disabled={authLoading}
+              onClick={async () => {
+                try {
+                  await loginWithCredentials('superadmin@queuemitra.test', 'doctor123')
+                } catch {
+                  await loginAsAdmin()
+                }
+              }}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                justifyContent: 'space-between',
+                padding: '0.85rem 1rem',
+                border: '1.5px solid #d97706',
+                borderRadius: 'var(--radius-sm)',
+                background: '#fffbeb',
+                cursor: 'pointer',
+                textAlign: 'left',
+              }}
+            >
+              <div>
+                <strong style={{ fontSize: '0.95rem', color: '#92400e', display: 'block' }}>
+                  Super Administrator
+                </strong>
+                <span style={{ fontSize: '0.78rem', color: '#b45309' }}>
+                  Master control: manage staff, doctors, patients, and database
+                </span>
+              </div>
+              <span className="badge" style={{ background: '#d97706', color: '#ffffff', fontSize: '0.75rem', fontWeight: 700 }}>
+                SUPER ADMIN
+              </span>
+            </button>
+
             {/* Admin One-Click */}
             <button
               type="button"

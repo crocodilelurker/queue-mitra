@@ -15,7 +15,7 @@ export default function AdminSidebar() {
     { label: 'Billing', to: '/admin/billing', icon: 'currency-inr' },
     { label: 'Follow-ups', to: '/admin/follow-ups', icon: 'clock' },
     { label: 'Reports', to: '/admin/reports', icon: 'chart' },
-    { label: 'Settings', to: '/admin/settings', icon: 'sparkles' },
+    { label: 'Super Admin', to: '/admin/super', icon: 'sparkles' },
   ]
 
   return (

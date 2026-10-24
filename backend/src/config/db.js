@@ -16,9 +16,9 @@ export async function connectDB(uri = env.mongodbUri) {
       await mongoose.connect(memoryUri);
       console.log(`In-memory MongoDB connected: ${memoryUri}`);
 
-      // Auto-seed in-memory instance
+      // Auto-seed in-memory instance foundation (hospital, departments, doctors, admin) - NO mock data by default
       const { seedData } = await import("../scripts/seed.js");
-      await seedData({ reset: true });
+      await seedData({ reset: true, seedMock: false });
     } else {
       throw err;
     }
