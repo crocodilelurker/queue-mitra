@@ -75,6 +75,103 @@
   }
 }
 
+@keyframes aurora-drift {
+  to {
+    transform: translate3d(-2.5vmax, 2vmax, 0) rotate(2.5deg);
+  }
+}
+
+@keyframes float-glow {
+  to {
+    transform: translate3d(-1.5rem, 1.25rem, 0) scale(1.08);
+  }
+}
+
+@keyframes shake {
+  0%,
+  100% {
+    transform: none;
+  }
+  20% {
+    transform: translateX(-6px);
+  }
+  40% {
+    transform: translateX(6px);
+  }
+  60% {
+    transform: translateX(-4px);
+  }
+  80% {
+    transform: translateX(3px);
+  }
+}
+
+@keyframes stamp {
+  from {
+    opacity: 0;
+    transform: scale(1.14) rotate(-2deg);
+  }
+  55% {
+    opacity: 1;
+    transform: scale(0.98) rotate(0.4deg);
+  }
+}
+
+@keyframes ring-out {
+  from {
+    transform: scale(0.6);
+    opacity: 0.55;
+  }
+  to {
+    transform: scale(2.1);
+    opacity: 0;
+  }
+}
+
+@keyframes bell-ring {
+  0%,
+  100% {
+    transform: rotate(0);
+  }
+  15% {
+    transform: rotate(14deg);
+  }
+  30% {
+    transform: rotate(-12deg);
+  }
+  45% {
+    transform: rotate(8deg);
+  }
+  60% {
+    transform: rotate(-5deg);
+  }
+}
+
+@keyframes bar-sheen {
+  to {
+    transform: translateX(320%);
+  }
+}
+
+@keyframes reveal-up {
+  from {
+    opacity: 0;
+    transform: translateY(30px) scale(0.985);
+  }
+}
+
+@keyframes vt-out {
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes vt-in {
+  from {
+    opacity: 0;
+  }
+}
+
 @media (prefers-reduced-motion: no-preference) {
   /* Each route renders a fresh page (App.jsx keys it by path), so this plays on every navigation. */
   .page {
@@ -176,6 +273,75 @@
   .floormap__node .floormap__ring,
   .floormap__node svg {
     transition: stroke-width var(--dur-fast) ease, stroke var(--dur-fast) ease;
+  }
+
+  /* ---- Theme animations ---- */
+  /* A slow drift in the aurora behind everything, and a floating glow in the Home hero */
+  body::before {
+    animation: aurora-drift 42s ease-in-out infinite alternate;
+    will-change: transform;
+  }
+  .home-hero::before {
+    animation: float-glow 9s ease-in-out infinite alternate;
+  }
+
+  /* Page-to-page cross-fade (View Transitions; browsers without support simply skip it) */
+  ::view-transition-old(root) {
+    animation: vt-out 160ms ease-in both;
+  }
+  ::view-transition-new(root) {
+    animation: vt-in 260ms var(--ease-out) both;
+  }
+
+  /* Form feedback: a wrong field shakes once and its message slides in */
+  .field__control--error,
+  .symptom-input-wrap--error {
+    animation: shake 0.42s var(--ease-out);
+  }
+  .field__error {
+    animation: slide-down var(--dur-med) var(--ease-out);
+  }
+
+  /* Confirmation: the token is stamped onto the slip; the progress bar catches the light */
+  .slip__token-box {
+    animation: stamp 0.75s var(--ease-out) 0.15s backwards;
+  }
+  .steps-bar-fill::after {
+    content: '';
+    position: absolute;
+    inset: 0;
+    width: 30%;
+    background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.55), transparent);
+    animation: bar-sheen 2.6s ease-in-out infinite;
+  }
+
+  /* "Your turn": rings spread from the bell; the near-turn alert rings its bell a few times */
+  .turn-card--called::after {
+    content: '';
+    position: absolute;
+    z-index: -1;
+    top: 2.6rem;
+    left: 50%;
+    width: 5rem;
+    height: 5rem;
+    margin-left: -2.5rem;
+    border: 2px solid rgba(255, 255, 255, 0.6);
+    border-radius: 50%;
+    animation: ring-out 2.2s ease-out infinite;
+  }
+  .turn-alert-banner svg {
+    transform-origin: 50% 0;
+    animation: bell-ring 1.2s ease-in-out 0.4s 3;
+  }
+
+  /* Scroll reveal: lower sections rise into place as they enter the viewport (supported browsers only;
+     others keep the load animation above). */
+  @supports (animation-timeline: view()) {
+    .main > *:nth-child(n + 4) {
+      animation: reveal-up linear both;
+      animation-timeline: view();
+      animation-range: entry 0% entry 38%;
+    }
   }
 }
 

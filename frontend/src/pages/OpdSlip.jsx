@@ -59,7 +59,7 @@ export default function OpdSlip({ publicId }) {
       <article className="slip card" aria-label={t.slipHeader}>
         <header className="slip__head">
           <div className="slip__crest">
-            <Icon name="cross" size={18} color="#0284c7" />
+            <Icon name="cross" size={18} color="#0f766e" />
             <span className="slip__hospital">{slip.hospital.name}</span>
           </div>
           <p className="slip__meta">

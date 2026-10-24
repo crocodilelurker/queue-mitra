@@ -352,7 +352,7 @@ dialog.modal::backdrop {
 }
 
 .tool-pill:hover:not(:disabled) {
-  border-color: #cbd5e1;
+  border-color: var(--border-strong);
   color: var(--ink);
 }
 
@@ -448,7 +448,7 @@ dialog.modal::backdrop {
 .action:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
-  border-color: #cbd5e1;
+  border-color: var(--border-strong);
 }
 
 .action__icon-badge {
@@ -462,13 +462,13 @@ dialog.modal::backdrop {
 }
 
 .action__icon-badge--blue {
-  background: linear-gradient(135deg, #e0f2fe 0%, #bae6fd 100%);
-  color: #0284c7;
+  background: linear-gradient(135deg, var(--primary-light) 0%, var(--primary-border) 100%);
+  color: var(--primary);
 }
 
 .action__icon-badge--teal {
-  background: linear-gradient(135deg, #ccfbf1 0%, #99f6e4 100%);
-  color: #0d9488;
+  background: linear-gradient(135deg, var(--teal-light) 0%, #a5f3fc 100%);
+  color: var(--teal);
 }
 
 .action__icon-badge--indigo {
@@ -626,8 +626,8 @@ dialog.modal::backdrop {
 }
 
 .dept-icon-badge--med {
-  background: #e0f2fe;
-  color: #0284c7;
+  background: var(--primary-light);
+  color: var(--primary);
 }
 
 .dept-icon-badge--chd {
@@ -646,8 +646,8 @@ dialog.modal::backdrop {
 }
 
 .dept-icon-badge--ent {
-  background: #ccfbf1;
-  color: #0d9488;
+  background: var(--teal-light);
+  color: var(--teal);
 }
 
 .dept-icon-badge--eye {
@@ -749,7 +749,7 @@ dialog.modal::backdrop {
   display: flex;
   flex-direction: column;
   gap: 0.85rem;
-  border-color: #cbd5e1;
+  border-color: var(--border-strong);
   background: var(--surface);
   width: 100%;
   box-sizing: border-box;
@@ -799,8 +799,8 @@ dialog.modal::backdrop {
 }
 
 .triage-card__dept-badge--med {
-  background: #e0f2fe;
-  color: #0284c7;
+  background: var(--primary-light);
+  color: var(--primary);
 }
 
 .triage-card__dept-badge--chd {
@@ -819,8 +819,8 @@ dialog.modal::backdrop {
 }
 
 .triage-card__dept-badge--ent {
-  background: #ccfbf1;
-  color: #0d9488;
+  background: var(--teal-light);
+  color: var(--teal);
 }
 
 .triage-card__dept-badge--eye {
@@ -947,7 +947,7 @@ dialog.modal::backdrop {
 }
 
 .dept-card:hover {
-  border-color: #cbd5e1;
+  border-color: var(--border-strong);
   box-shadow: var(--shadow-sm);
   transform: translateY(-1px);
 }
@@ -969,8 +969,8 @@ dialog.modal::backdrop {
 }
 
 .dept-card__icon-box--med {
-  background: #e0f2fe;
-  color: #0284c7;
+  background: var(--primary-light);
+  color: var(--primary);
 }
 
 .dept-card__icon-box--chd {
@@ -989,8 +989,8 @@ dialog.modal::backdrop {
 }
 
 .dept-card__icon-box--ent {
-  background: #ccfbf1;
-  color: #0d9488;
+  background: var(--teal-light);
+  color: var(--teal);
 }
 
 .dept-card__icon-box--eye {
@@ -1056,7 +1056,7 @@ dialog.modal::backdrop {
   gap: 0.5rem;
   padding: 0.6rem 0.9rem;
   background: var(--primary-light);
-  border: 1px solid rgba(2, 132, 199, 0.2);
+  border: 1px solid rgba(15, 118, 110, 0.2);
   border-radius: var(--radius-sm);
   font-size: var(--fs-xs);
   font-weight: 600;
@@ -1092,7 +1092,7 @@ dialog.modal::backdrop {
 .knowledge-card:hover {
   transform: translateY(-2px);
   box-shadow: var(--shadow-md);
-  border-color: #cbd5e1;
+  border-color: var(--border-strong);
 }
 
 .knowledge-card__icon-box {
@@ -1111,7 +1111,7 @@ dialog.modal::backdrop {
 }
 
 .knowledge-card--no .knowledge-card__icon-box {
-  background: #e0f2fe;
+  background: var(--primary-light);
   color: var(--primary);
 }
 
@@ -1263,8 +1263,8 @@ dialog.modal::backdrop {
 .slip__token-box {
   text-align: center;
   padding: 1rem;
-  background: linear-gradient(135deg, rgba(2, 132, 199, 0.06) 0%, rgba(13, 148, 136, 0.06) 100%);
-  border: 1px solid rgba(2, 132, 199, 0.2);
+  background: linear-gradient(135deg, rgba(15, 118, 110, 0.06) 0%, rgba(14, 116, 144, 0.06) 100%);
+  border: 1px solid rgba(15, 118, 110, 0.2);
   border-radius: var(--radius-sm);
   display: flex;
   flex-direction: column;
@@ -1556,7 +1556,7 @@ dialog.modal::backdrop {
   width: 10px;
   height: 10px;
   border-radius: 50%;
-  background: #94a3b8;
+  background: #8fa7a3;
   flex-shrink: 0;
 }
 
@@ -1978,8 +1978,8 @@ dialog.modal::backdrop {
 /* ---------- TV Waiting Board ---------- */
 .board {
   min-height: 100vh;
-  background: #090d16;
-  color: #f1f5f9;
+  background: #05201f;
+  color: #e6f5f2;
   padding: 1.5rem;
   display: flex;
   flex-direction: column;
@@ -1991,7 +1991,7 @@ dialog.modal::backdrop {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-bottom: 1px solid #1e293b;
+  border-bottom: 1px solid #123f3c;
   padding-bottom: 1rem;
   width: 100%;
   box-sizing: border-box;
@@ -2005,7 +2005,7 @@ dialog.modal::backdrop {
 }
 
 .board__head p {
-  color: #94a3b8;
+  color: #8fb0ac;
   font-size: 1rem;
 }
 
@@ -2013,16 +2013,16 @@ dialog.modal::backdrop {
   font-family: monospace;
   font-size: 2.2rem;
   font-weight: 800;
-  color: #38bdf8;
+  color: #5eead4;
   display: flex;
   align-items: center;
   gap: 0.75rem;
 }
 
 .board__sound {
-  background: #1e293b;
-  color: #38bdf8;
-  border: 1px solid #334155;
+  background: #123f3c;
+  color: #5eead4;
+  border: 1px solid #1d514d;
   padding: 0.6rem 1.2rem;
   border-radius: var(--radius-sm);
   font-weight: 700;
@@ -2046,8 +2046,8 @@ dialog.modal::backdrop {
 }
 
 .board-room {
-  background: #111827;
-  border: 1px solid #1f2937;
+  background: #0a2f2d;
+  border: 1px solid #17504b;
   border-radius: var(--radius);
   padding: 1.25rem;
   display: flex;
@@ -2059,9 +2059,9 @@ dialog.modal::backdrop {
 }
 
 .board-room--flash {
-  border-color: #38bdf8;
-  background: #1e3a5f;
-  box-shadow: 0 0 30px rgba(56, 189, 248, 0.4);
+  border-color: #5eead4;
+  background: #0f4a45;
+  box-shadow: 0 0 30px rgba(94, 234, 212, 0.4);
 }
 
 .board-room__info h2 {
@@ -2072,22 +2072,22 @@ dialog.modal::backdrop {
 
 .board-room__alt {
   font-size: 0.85rem;
-  color: #94a3b8;
+  color: #8fb0ac;
 }
 
 .board-room__doctor {
   font-size: 0.85rem;
-  color: #cbd5e1;
+  color: #c9e4df;
 }
 
 .board-room__queue {
   display: flex;
   flex-direction: column;
   gap: 0.4rem;
-  background: #0a0e17;
+  background: #041a19;
   padding: 1rem;
   border-radius: var(--radius-sm);
-  border: 1px solid #1f2937;
+  border: 1px solid #17504b;
   text-align: center;
   width: 100%;
   box-sizing: border-box;
@@ -2098,13 +2098,13 @@ dialog.modal::backdrop {
   font-weight: 700;
   text-transform: uppercase;
   letter-spacing: 0.08em;
-  color: #64748b;
+  color: #7aa39e;
 }
 
 .board-room__token {
   font-size: 3rem;
   font-weight: 800;
-  color: #38bdf8;
+  color: #fbbf24;
   line-height: 1;
 }
 
@@ -2115,7 +2115,7 @@ dialog.modal::backdrop {
   gap: 0.6rem;
   margin-top: 0.4rem;
   font-size: 1rem;
-  color: #94a3b8;
+  color: #8fb0ac;
 }
 
 .board-room__next span {
@@ -2126,10 +2126,10 @@ dialog.modal::backdrop {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  border-top: 1px solid #1e293b;
+  border-top: 1px solid #123f3c;
   padding-top: 1rem;
   font-size: 0.85rem;
-  color: #64748b;
+  color: #7aa39e;
   width: 100%;
   box-sizing: border-box;
 }
@@ -2319,7 +2319,7 @@ dialog.modal::backdrop {
   border-radius: var(--radius);
 }
 .floormap__plate {
-  fill: #eef4fa;
+  fill: #eaf1ee;
 }
 .floormap__grid-line {
   fill: none;
@@ -2327,12 +2327,12 @@ dialog.modal::backdrop {
   stroke-width: 1;
 }
 .floormap__edge {
-  stroke: #d3dde8;
+  stroke: #d2dfda;
   stroke-width: 14;
   stroke-linecap: round;
 }
 .floormap__route-glow {
-  stroke: rgba(2, 132, 199, 0.26);
+  stroke: rgba(15, 118, 110, 0.26);
   stroke-width: 34;
   stroke-linecap: round;
 }
@@ -2348,12 +2348,12 @@ dialog.modal::backdrop {
 }
 .floormap__node {
   cursor: pointer;
-  color: #334155;
+  color: var(--ink-soft);
   outline: none;
 }
 .floormap__ring {
   fill: #fff;
-  stroke: #94a3b8;
+  stroke: #8fa7a3;
   stroke-width: 4;
   filter: drop-shadow(0 3px 6px rgba(15, 23, 42, 0.18));
 }
@@ -2391,7 +2391,7 @@ dialog.modal::backdrop {
 }
 .floormap__pill rect {
   fill: rgba(255, 255, 255, 0.96);
-  stroke: #cbd5e1;
+  stroke: var(--border-strong);
   stroke-width: 1.5;
 }
 .floormap__pill text {
@@ -2469,7 +2469,7 @@ dialog.modal::backdrop {
   padding: var(--sp-3) var(--sp-2);
   background: #fff;
   color: #000;
-  border: 4px solid #0f172a;
+  border: 4px solid var(--ink);
   border-radius: var(--radius);
   box-shadow: var(--shadow-lg);
   font-size: var(--fs-lg);
@@ -2492,7 +2492,7 @@ dialog.modal::backdrop {
 .staff-card__dest--en {
   font-size: var(--fs-lg);
   letter-spacing: 0;
-  color: #1e293b;
+  color: #14393d;
 }
 
 /* In English the second (English) copy of the destination line would repeat the first */
@@ -2513,7 +2513,7 @@ html[lang='en'] .staff-card__dest--en {
   font-size: var(--fs-sm);
 }
 .board-room__none {
-  color: #64748b;
+  color: var(--ink-muted);
 }
 .board__error {
   padding: var(--sp-2);

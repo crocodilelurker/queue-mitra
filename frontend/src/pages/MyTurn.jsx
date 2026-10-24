@@ -237,7 +237,7 @@ export default function MyTurn({ publicId }) {
 
       {status === 'completed' && (
         <section className="turn-card card text-center">
-          <Icon name="check" size={36} color="#16a34a" />
+          <Icon name="check" size={36} color="#157238" />
           <p className="mt-2 font-semibold">{t.finished}</p>
         </section>
       )}

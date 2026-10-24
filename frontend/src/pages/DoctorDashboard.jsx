@@ -64,7 +64,7 @@ function DoctorView({ user }) {
         <div className="doctor-status-card__header">
           <div className="doctor-status-card__profile">
             <span className="doctor-avatar">
-              <Icon name="doctor" size={24} color="#0284c7" />
+              <Icon name="doctor" size={24} color="#0f766e" />
             </span>
             <div>
               <h2 className="panel__title">{user.name}</h2>
@@ -237,7 +237,7 @@ export default function DoctorDashboard() {
       <UrgentBanner flags={urgent.flags} onSeen={urgent.markSeen} />
       <div className="staff-bar card">
         <div className="staff-bar__title-box">
-          <Icon name="doctor" size={24} color="#0284c7" />
+          <Icon name="doctor" size={24} color="#0f766e" />
           <h1 className="hero hero--sm">{user.role === 'doctor' ? 'Doctor Dashboard' : 'Staff Command Desk'}</h1>
         </div>
         <div className="form__actions">

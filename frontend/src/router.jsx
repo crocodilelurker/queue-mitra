@@ -1,9 +1,21 @@
 import { useEffect, useState } from 'react'
+import { flushSync } from 'react-dom'
+
+const prefersReducedMotion = () => window.matchMedia?.('(prefers-reduced-motion: reduce)').matches
 
 // Tiny History-API router: enough for this app's handful of pages, no dependency.
 export function navigate(to, { replace = false } = {}) {
-  window.history[replace ? 'replaceState' : 'pushState'](null, '', to)
-  window.dispatchEvent(new PopStateEvent('popstate'))
+  const go = () => {
+    window.history[replace ? 'replaceState' : 'pushState'](null, '', to)
+    window.dispatchEvent(new PopStateEvent('popstate'))
+  }
+  // Moving to a new page cross-fades where the browser supports View Transitions (see motion.css).
+  // Replacing the address in place, reduced-motion users and other browsers navigate immediately.
+  if (!replace && document.startViewTransition && !prefersReducedMotion()) {
+    document.startViewTransition(() => flushSync(go))
+    return
+  }
+  go()
 }
 
 export function useLocation() {
