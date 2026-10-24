@@ -191,6 +191,18 @@ export async function seedData({ reset = false } = {}) {
   }
   console.log(`Doctors: ${doctors.length} (password for all: ${SAMPLE_PASSWORD})`);
 
+  let admin = await User.findOne({ email: "admin@queuemitra.test" });
+  if (!admin) {
+    admin = await User.create({
+      name: "Asha Kulkarni",
+      email: "admin@queuemitra.test",
+      password: SAMPLE_PASSWORD,
+      role: "admin",
+      hospital: cdh._id,
+    });
+  }
+  console.log(`Admin user: ${admin.name} (${admin.email})`);
+
   // Seed sample patients
   const samplePatients = [
     { patientId: "CDH-P-1001", firstName: "Ramesh", lastName: "Kumar", gender: "male", age: 52, mobile: "9876543211", bloodGroup: "O+", city: "Jammu", emergencyContact: { name: "Suman Kumar", relation: "Wife", phone: "9876543212" } },
