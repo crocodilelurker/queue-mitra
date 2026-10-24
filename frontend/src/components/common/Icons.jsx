@@ -343,6 +343,81 @@ export function Icon({ name, size = 20, className = '', color = 'currentColor', 
         </svg>
       )
 
+    case 'calendar':
+      return (
+        <svg {...iconProps}>
+          <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+      )
+
+    case 'clipboard':
+    case 'records':
+      return (
+        <svg {...iconProps}>
+          <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+          <path d="M9 12h6" />
+          <path d="M9 16h6" />
+        </svg>
+      )
+
+    case 'bill':
+    case 'receipt':
+    case 'invoice':
+      return (
+        <svg {...iconProps}>
+          <path d="M14 2H6a2 2 0 0 0-2 2v16l3-1.5 3 1.5 3-1.5 3 1.5 3-1.5 3 1.5V8z" />
+          <path d="M14 2v6h6" />
+          <line x1="8" y1="13" x2="16" y2="13" />
+          <line x1="8" y1="17" x2="13" y2="17" />
+        </svg>
+      )
+
+    case 'currency-inr':
+    case 'inr':
+    case 'cash':
+      return (
+        <svg {...iconProps}>
+          <path d="M6 3h12" />
+          <path d="M6 8h12" />
+          <path d="m6 13 8.5 8" />
+          <path d="M6 13h3a4 4 0 0 0 0-8" />
+        </svg>
+      )
+
+    case 'filter':
+      return (
+        <svg {...iconProps}>
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+        </svg>
+      )
+
+    case 'plus':
+      return (
+        <svg {...iconProps}>
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      )
+
+    case 'refresh':
+      return (
+        <svg {...iconProps}>
+          <path d="M21.5 2v6h-6M2.5 22v-6h6M2 11.5a10 10 0 0 1 18.8-4.3M22 12.5a10 10 0 0 1-18.8 4.2" />
+        </svg>
+      )
+
+    case 'check-circle':
+      return (
+        <svg {...iconProps}>
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+          <polyline points="22 4 12 14.01 9 11.01" />
+        </svg>
+      )
+
     default:
       return (
         <svg {...iconProps}>

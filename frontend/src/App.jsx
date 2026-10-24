@@ -2,6 +2,11 @@ import { useEffect } from 'react'
 import { AccessProvider } from './context/Access.jsx'
 import { EmergencyProvider } from './context/Emergency.jsx'
 import { I18nProvider } from './i18n/index.jsx'
+import AdminDashboard from './pages/admin/AdminDashboard.jsx'
+import PatientManager from './pages/admin/PatientManager.jsx'
+import DoctorAppointmentManager from './pages/admin/DoctorAppointmentManager.jsx'
+import BillingManager from './pages/admin/BillingManager.jsx'
+import AdvancedReports from './pages/admin/AdvancedReports.jsx'
 import AnalyticsDashboard from './pages/AnalyticsDashboard.jsx'
 import DoctorDashboard from './pages/DoctorDashboard.jsx'
 import Home from './pages/Home.jsx'
@@ -25,6 +30,12 @@ const ROUTES = [
   { path: '/staff', component: DoctorDashboard },
   { path: '/board', component: WaitingBoard },
   { path: '/analytics', component: AnalyticsDashboard },
+  // Mediflow Hospital OPD Management Suite
+  { path: '/admin', component: AdminDashboard },
+  { path: '/admin/patients', component: PatientManager },
+  { path: '/admin/appointments', component: DoctorAppointmentManager },
+  { path: '/admin/billing', component: BillingManager },
+  { path: '/admin/reports', component: AdvancedReports },
 ]
 
 export default function App() {

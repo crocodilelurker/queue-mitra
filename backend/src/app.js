@@ -14,6 +14,11 @@ import navigationRouter from "./routes/navigation.js";
 import notificationsRouter from "./routes/notifications.js";
 import ticketsRouter from "./routes/tickets.js";
 import triageRouter from "./routes/triage.js";
+import voiceRouter from "./routes/voice.js";
+import patientsRouter from "./routes/patients.js";
+import appointmentsRouter from "./routes/appointments.js";
+import billingRouter from "./routes/billing.js";
+import adminRouter from "./routes/admin.js";
 
 const app = express();
 
@@ -28,10 +33,15 @@ app.use("/api/tickets", ticketsRouter);
 app.use("/api/doctor", doctorRouter);
 app.use("/api/navigation", navigationRouter);
 app.use("/api/triage", triageRouter);
+app.use("/api/voice", voiceRouter);
 app.use("/api/board", boardRouter);
 app.use("/api/demo", demoRouter);
 app.use("/api/notifications", notificationsRouter);
 app.use("/api/analytics", analyticsRouter);
+app.use("/api/patients", patientsRouter);
+app.use("/api/appointments", appointmentsRouter);
+app.use("/api/billing", billingRouter);
+app.use("/api/admin", adminRouter);
 
 app.use(notFound);
 app.use(errorHandler);

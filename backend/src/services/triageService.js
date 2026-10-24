@@ -112,7 +112,7 @@ export const EMERGENCY_WARNING_SIGNS = [
 ];
 
 // Department keyword mapping for non-emergency suggestion
-const DEPARTMENT_KEYWORDS = {
+export const DEPARTMENT_KEYWORDS = {
   MED: {
     code: "MED",
     name: "General Medicine",

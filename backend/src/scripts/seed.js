@@ -123,20 +123,30 @@ const departments = [
 ];
 
 const doctors = [
-  { name: "Dr. Anita Sharma", email: "anita@queuemitra.test", dept: "MED", room: "Room 1" },
-  { name: "Dr. Rakesh Verma", email: "rakesh@queuemitra.test", dept: "MED", room: "Room 2" },
-  { name: "Dr. Meena Iyer", email: "meena@queuemitra.test", dept: "CHD", room: "Room 3" },
-  { name: "Dr. Sunita Rao", email: "sunita@queuemitra.test", dept: "WOM", room: "Room 4" },
-  { name: "Dr. Imran Khan", email: "imran@queuemitra.test", dept: "ORT", room: "Room 5" },
-  { name: "Dr. Priya Nair", email: "priya@queuemitra.test", dept: "ENT", room: "Room 6" },
-  { name: "Dr. Arjun Mehta", email: "arjun@queuemitra.test", dept: "EYE", room: "Room 7" },
-  { name: "Dr. Kavita Joshi", email: "kavita@queuemitra.test", dept: "SKN", room: "Room 8" },
+  { name: "Dr. Anita Sharma", email: "anita@queuemitra.test", dept: "MED", room: "Room 1", specialty: "Internal Medicine", consultationFee: 20 },
+  { name: "Dr. Rakesh Verma", email: "rakesh@queuemitra.test", dept: "MED", room: "Room 2", specialty: "General Physician", consultationFee: 20 },
+  { name: "Dr. Meena Iyer", email: "meena@queuemitra.test", dept: "CHD", room: "Room 3", specialty: "Pediatrics & Child Care", consultationFee: 20 },
+  { name: "Dr. Sunita Rao", email: "sunita@queuemitra.test", dept: "WOM", room: "Room 4", specialty: "Obstetrics & Gynaecology", consultationFee: 30 },
+  { name: "Dr. Imran Khan", email: "imran@queuemitra.test", dept: "ORT", room: "Room 5", specialty: "Orthopedic Surgery", consultationFee: 30 },
+  { name: "Dr. Priya Nair", email: "priya@queuemitra.test", dept: "ENT", room: "Room 6", specialty: "ENT Specialist", consultationFee: 20 },
+  { name: "Dr. Arjun Mehta", email: "arjun@queuemitra.test", dept: "EYE", room: "Room 7", specialty: "Ophthalmology", consultationFee: 20 },
+  { name: "Dr. Kavita Joshi", email: "kavita@queuemitra.test", dept: "SKN", room: "Room 8", specialty: "Dermatology", consultationFee: 25 },
 ];
 
 export async function seedData({ reset = false } = {}) {
+  const Patient = (await import("../models/Patient.js")).default;
+  const Appointment = (await import("../models/Appointment.js")).default;
+  const Bill = (await import("../models/Bill.js")).default;
+
   if (reset) {
-    await Promise.all([Ticket.deleteMany({}), Counter.deleteMany({})]);
-    console.log("Cleared tickets and counters");
+    await Promise.all([
+      Ticket.deleteMany({}),
+      Counter.deleteMany({}),
+      Patient.deleteMany({}),
+      Appointment.deleteMany({}),
+      Bill.deleteMany({}),
+    ]);
+    console.log("Cleared tickets, counters, patients, appointments, and bills");
   }
 
   const cdh = await Hospital.findOneAndUpdate({ code: hospital.code }, hospital, {
@@ -155,21 +165,135 @@ export async function seedData({ reset = false } = {}) {
   }
   console.log(`Departments seeded: ${departments.length}`);
 
+  const docUsers = [];
   for (const doc of doctors) {
-    const existing = await User.findOne({ email: doc.email });
-    if (existing) continue;
-    await User.create({
-      name: doc.name,
-      email: doc.email,
-      password: SAMPLE_PASSWORD,
-      role: "doctor",
-      hospital: cdh._id,
-      department: byCode[doc.dept]._id,
-      room: doc.room,
-      status: { state: "available" },
-    });
+    let u = await User.findOne({ email: doc.email });
+    if (!u) {
+      u = await User.create({
+        name: doc.name,
+        email: doc.email,
+        password: SAMPLE_PASSWORD,
+        role: "doctor",
+        hospital: cdh._id,
+        department: byCode[doc.dept]._id,
+        room: doc.room,
+        specialty: doc.specialty,
+        consultationFee: doc.consultationFee,
+        status: { state: "available" },
+      });
+    } else {
+      u.specialty = doc.specialty;
+      u.consultationFee = doc.consultationFee;
+      u.status.state = "available";
+      await u.save();
+    }
+    docUsers.push(u);
   }
   console.log(`Doctors: ${doctors.length} (password for all: ${SAMPLE_PASSWORD})`);
+
+  // Seed sample patients
+  const samplePatients = [
+    { patientId: "CDH-P-1001", firstName: "Ramesh", lastName: "Kumar", gender: "male", age: 52, mobile: "9876543211", bloodGroup: "O+", city: "Jammu", emergencyContact: { name: "Suman Kumar", relation: "Wife", phone: "9876543212" } },
+    { patientId: "CDH-P-1002", firstName: "Priya", lastName: "Sharma", gender: "female", age: 29, mobile: "9876543213", bloodGroup: "B+", city: "Jammu", emergencyContact: { name: "Rohit Sharma", relation: "Husband", phone: "9876543214" } },
+    { patientId: "CDH-P-1003", firstName: "Aarav", lastName: "Verma", gender: "male", age: 7, mobile: "9876543215", bloodGroup: "A+", city: "Samba", emergencyContact: { name: "Rajesh Verma", relation: "Father", phone: "9876543216" } },
+    { patientId: "CDH-P-1004", firstName: "Lakshmi", lastName: "Devi", gender: "female", age: 68, mobile: "9876543217", bloodGroup: "AB+", city: "Kathua", emergencyContact: { name: "Vikas Sharma", relation: "Son", phone: "9876543218" } },
+    { patientId: "CDH-P-1005", firstName: "Sunil", lastName: "Gupta", gender: "male", age: 45, mobile: "9876543219", bloodGroup: "O-", city: "Jammu", emergencyContact: { name: "Pooja Gupta", relation: "Wife", phone: "9876543220" } },
+    { patientId: "CDH-P-1006", firstName: "Fatima", lastName: "Begum", gender: "female", age: 34, mobile: "9876543221", bloodGroup: "B-", city: "Udhampur", emergencyContact: { name: "Farooq Ahmed", relation: "Husband", phone: "9876543222" } },
+    { patientId: "CDH-P-1007", firstName: "Harish", lastName: "Chander", gender: "male", age: 61, mobile: "9876543223", bloodGroup: "A-", city: "Jammu", emergencyContact: { name: "Amit Chander", relation: "Son", phone: "9876543224" } },
+    { patientId: "CDH-P-1008", firstName: "Ananya", lastName: "Singh", gender: "female", age: 24, mobile: "9876543225", bloodGroup: "O+", city: "Jammu", emergencyContact: { name: "Vikram Singh", relation: "Brother", phone: "9876543226" } },
+  ];
+
+  const seededPatients = [];
+  for (const p of samplePatients) {
+    const existing = await Patient.findOne({ patientId: p.patientId });
+    if (!existing) {
+      const created = await Patient.create({
+        ...p,
+        hospital: cdh._id,
+        address: { city: p.city, state: "Jammu and Kashmir", pincode: "180001" },
+      });
+      seededPatients.push(created);
+    } else {
+      seededPatients.push(existing);
+    }
+  }
+  console.log(`Patients seeded in registry: ${seededPatients.length}`);
+
+  // Seed sample appointments for today
+  const today = new Date().toISOString().slice(0, 10);
+  const sampleAppointments = [
+    { appointmentId: "APT-2026-1001", patientIndex: 0, dept: "MED", docIndex: 0, slotTime: "09:00 AM", type: "walk_in", status: "completed", complaint: "High fever and persistent cough", diagnosis: "Acute upper respiratory tract infection", followUpDate: "2026-10-31" },
+    { appointmentId: "APT-2026-1002", patientIndex: 1, dept: "WOM", docIndex: 3, slotTime: "09:30 AM", type: "scheduled", status: "completed", complaint: "Routine second-trimester prenatal check", diagnosis: "Healthy pregnancy progression", followUpDate: "2026-11-20" },
+    { appointmentId: "APT-2026-1003", patientIndex: 2, dept: "CHD", docIndex: 2, slotTime: "10:00 AM", type: "walk_in", status: "in_queue", complaint: "Child fever, throat pain and weakness" },
+    { appointmentId: "APT-2026-1004", patientIndex: 3, dept: "EYE", docIndex: 6, slotTime: "10:30 AM", type: "scheduled", status: "in_queue", complaint: "Blurry vision and cataract examination" },
+    { appointmentId: "APT-2026-1005", patientIndex: 4, dept: "ORT", docIndex: 4, slotTime: "11:00 AM", type: "scheduled", status: "booked", complaint: "Chronic knee pain and difficulty walking" },
+    { appointmentId: "APT-2026-1006", patientIndex: 5, dept: "SKN", docIndex: 7, slotTime: "11:30 AM", type: "walk_in", status: "booked", complaint: "Skin rash and severe itching on arms" },
+  ];
+
+  for (const a of sampleAppointments) {
+    const existing = await Appointment.findOne({ appointmentId: a.appointmentId });
+    if (existing) continue;
+
+    const patient = seededPatients[a.patientIndex] || seededPatients[0];
+    const dept = byCode[a.dept];
+    const doc = docUsers[a.docIndex] || docUsers[0];
+
+    await Appointment.create({
+      appointmentId: a.appointmentId,
+      hospital: cdh._id,
+      patient: patient._id,
+      patientId: patient.patientId,
+      patientName: `${patient.firstName} ${patient.lastName}`.trim(),
+      patientMobile: patient.mobile,
+      patientGender: patient.gender,
+      patientAge: patient.age,
+      doctor: doc._id,
+      doctorName: doc.name,
+      department: dept._id,
+      departmentCode: dept.code,
+      appointmentDate: today,
+      slotTime: a.slotTime,
+      type: a.type,
+      status: a.status,
+      complaint: a.complaint,
+      diagnosis: a.diagnosis || "",
+      followUpDate: a.followUpDate,
+    });
+  }
+  console.log(`Appointments seeded: ${sampleAppointments.length}`);
+
+  // Seed sample bills
+  const sampleBills = [
+    { invoiceNumber: "INV-2026-1001", patientIndex: 0, dept: "MED", fee: 20, discountOrWaiver: 0, netAmount: 20, paymentStatus: "paid", paymentMode: "cash" },
+    { invoiceNumber: "INV-2026-1002", patientIndex: 1, dept: "WOM", fee: 30, discountOrWaiver: 0, netAmount: 30, paymentStatus: "paid", paymentMode: "upi" },
+    { invoiceNumber: "INV-2026-1003", patientIndex: 2, dept: "CHD", fee: 20, discountOrWaiver: 0, netAmount: 20, paymentStatus: "paid", paymentMode: "cash" },
+    { invoiceNumber: "INV-2026-1004", patientIndex: 3, dept: "EYE", fee: 20, discountOrWaiver: 20, netAmount: 0, paymentStatus: "waived", paymentMode: "exemption", waiverReason: "Senior Citizen" },
+    { invoiceNumber: "INV-2026-1005", patientIndex: 4, dept: "ORT", fee: 30, discountOrWaiver: 0, netAmount: 30, paymentStatus: "pending", paymentMode: "cash" },
+  ];
+
+  for (const b of sampleBills) {
+    const existing = await Bill.findOne({ invoiceNumber: b.invoiceNumber });
+    if (existing) continue;
+
+    const patient = seededPatients[b.patientIndex] || seededPatients[0];
+    await Bill.create({
+      invoiceNumber: b.invoiceNumber,
+      hospital: cdh._id,
+      patient: patient._id,
+      patientId: patient.patientId,
+      patientName: `${patient.firstName} ${patient.lastName}`.trim(),
+      patientMobile: patient.mobile,
+      departmentCode: b.dept,
+      serviceDate: today,
+      fee: b.fee,
+      discountOrWaiver: b.discountOrWaiver,
+      netAmount: b.netAmount,
+      paymentStatus: b.paymentStatus,
+      paymentMode: b.paymentMode,
+      waiverReason: b.waiverReason || "None",
+    });
+  }
+  console.log(`Bills seeded: ${sampleBills.length}`);
 
   // Create default staff kiosk account
   const staffEmail = `staff-${cdh.code.toLowerCase()}@queuemitra.test`;

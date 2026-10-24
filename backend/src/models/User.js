@@ -26,6 +26,8 @@ const userSchema = new mongoose.Schema(
     hospital: { type: mongoose.Schema.Types.ObjectId, ref: "Hospital" },
     department: { type: mongoose.Schema.Types.ObjectId, ref: "Department" },
     room: { type: String, trim: true },
+    specialty: { type: String, trim: true, default: "General Medicine" },
+    consultationFee: { type: Number, default: 20 },
     status: { type: doctorStatusSchema, default: () => ({}) },
 
     // Bumped on logout so every previously issued JWT stops working.

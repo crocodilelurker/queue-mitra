@@ -43,6 +43,11 @@ export default function Header({ hideEmergency = false, emergencyTo = null }) {
             ))}
 
           <div className="header__tools">
+            <Link to="/admin" className="pill-btn" title="Open Mediflow OPD Admin Desk">
+              <Icon name="hospital-building" size={15} />
+              <span className="pill-btn__label">Admin Desk</span>
+            </Link>
+
             <button
               type="button"
               className={`pill-btn ${prefs.largeText ? 'pill-btn--active' : ''}`}
