@@ -192,4 +192,6 @@ export default {
   emergencyTicketSlipTitle: "EMERGENCY TICKET",
   emergencyTicketSlipBody: "You are first in line and staff have been alerted. Please go to Emergency (Casualty) on the Ground Floor now.",
   problemReported: "Problem you told us",
+  slipDisclaimer: "This OPD token is valid for today only. In case of sudden chest pain, heavy bleeding, or emergency, proceed immediately to Ground Floor Casualty without a token.",
+  lostCardHelp: "Please show this screen to any doctor, nurse, or hospital staff member.",
 }

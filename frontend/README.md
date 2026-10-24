@@ -37,7 +37,7 @@ It talks to the Express + Socket.io backend in [../backend](../backend). The bac
 
 ## Quick start
 
-**Prerequisites:** Node.js 22+ (the backend requires it), npm and a local MongoDB.
+**Prerequisites:** Node.js 22+ (the backend requires it) and npm. MongoDB is optional: if none is running locally, the backend starts an **in-memory MongoDB** and seeds it automatically (the data is lost when it stops). To keep data between runs, run MongoDB yourself and use `npm run seed`.
 
 ### 1. Start the backend
 
@@ -45,7 +45,7 @@ It talks to the Express + Socket.io backend in [../backend](../backend). The bac
 cd backend
 cp .env.example .env     # then set PORT=5001, see the note below
 npm install
-npm run seed             # City District Hospital, 7 departments, 8 doctors, staff PIN
+npm run seed             # only with a real MongoDB: City District Hospital, 7 departments, 8 doctors, staff PIN
 npm run dev
 ```
 
@@ -77,7 +77,7 @@ There are no lint, type-check or unit-test scripts yet.
 | Staff desk | PIN `1234` |
 | Doctors | `anita@queuemitra.test` (General Medicine), `priya@queuemitra.test` (ENT), others in `backend/src/scripts/seed.js`. Password `doctor123` for all. |
 
-For a demo, open `/analytics` or the home page, press the floating **Demo** button and use *Add 20 sample patients*, *10x auto-simulate* and *Reset all*.
+For a demo, open `/analytics` or the home page, press the floating **Demo** button and use *Add sample patients* (21 patients across the departments), *10x auto-simulate* and *Reset all*.
 
 ### Environment variables (`frontend/.env`)
 
@@ -117,7 +117,7 @@ frontend/
     │   ├── socket.js               # shared socket + useSocket() hook
     │   └── departments.js          # cached department list (+ ordering)
     ├── context/                    # Access.jsx (text size, contrast, read aloud, avoid stairs), Emergency.jsx
-    ├── i18n/                       # en.js, hi.js, ta.js, places.js (place names), provider
+    ├── i18n/                       # en.js, hi.js, te.js (ta.js is an unused leftover), places.js (place names), provider
     ├── hooks/                      # useAsync, useStaffSession, useUrgent, useSpeechRecognition,
     │                               #   useInstallPrompt, useOnlineStatus
     ├── utils/                      # speech.js (read aloud), sound.js (chime, siren), format.js
@@ -133,7 +133,7 @@ frontend/
     │   │                           #   EmergencyTicketStep, validation.js
     │   ├── map/                    # FloorMap (SVG), RouteSteps, placeIcons
     │   └── staff/                  # StaffLogin, QueueSummary, UrgentBanner, CounterRegistration, DemoToolbar
-    └── styles/                     # tokens.css, base.css, components.css, pages.css
+    └── styles/                     # tokens.css, base.css, components.css, pages.css, theme.css (visual identity), motion.css (animations)
 ```
 
 ---
@@ -166,10 +166,12 @@ frontend/
 ## The screens
 
 ### Header (every screen)
-Brand, **Emergency** (always reachable), a **Text size** toggle, the language switch (English / हिन्दी / தமிழ்) and an *Install app* button when the browser offers it. On **Home** the Emergency button goes straight to the emergency ticket (see below); on other screens it opens the emergency guidance. On the registration screen the Emergency control is the round button beside the form instead.
+Brand, **Emergency** (always reachable), a **Text size** toggle, the language switch (हिन्दी / English / తెలుగు) and an *Install app* button when the browser offers it. On **Home** the Emergency button goes straight to the emergency ticket (see below); on other screens it opens the emergency guidance. On the registration screen the Emergency control is the round button beside the form instead.
 
 ### Home `/`
-1. Type or **speak** your symptoms (optionally attach a photo, which is only previewed on your device) and press **Check my symptoms**.
+Above the symptom box a **live hospital bar** shows that OPD is open, the average wait and how many OPDs are open; below the actions a **live department glance** shows each department's queue.
+
+1. Type or **speak** (or tap a **quick symptom** pill such as *Fever & Cough*) your symptoms (optionally attach a photo, which is only previewed on your device) and press **Check my symptoms**.
 2. A red-flag symptom opens the emergency guidance (with a **Get an emergency ticket** button); otherwise you get a suggested department with advice and **Register for this department**.
 3. Three large actions: **Register for OPD**, **I have my slip** (enter a token like `MED-001`) and **Find a place**. Emergency has no card of its own: the red **Emergency** button in the header takes the patient to the emergency ticket.
 
@@ -240,13 +242,13 @@ Hospital header, a large token (for example **ENT-001**), patient, department, r
 - **Urgent help banner:** a flashing banner and repeating siren appear live until each request is marked **Seen** (with a Mute button). The sound needs one earlier click on the page, which the login provides.
 
 ### TV board `/board`
-Eight room cards in two wings with the room, doctor, huge **now serving** token and the next tokens, in English, Hindi and Tamil. When a patient is called the card flashes and the announcement is spoken, **alternating English, Hindi and Tamil**. Browsers only allow speech after a click, so the board asks you to tap once to turn sound on.
+Eight room cards in two wings with the room, doctor, huge **now serving** token and the next tokens, in English, Hindi and Telugu. When a patient is called the card flashes and the announcement is spoken, **rotating through Hindi, English and Telugu**. Browsers only allow speech after a click, so the board asks you to tap once to turn sound on.
 
 ### Analytics `/analytics`
 Registered today, waiting, in consultation, completed and no-show cards; the emergency response time against its 60-second target; registrations by hour; language mix and assisted-registration share; and a green / amber / red load card for every department.
 
 ### Demo toolbar
-A collapsible dock (Home, doctor and analytics screens): **Add 20 sample patients**, **10x auto-simulate** / **Stop**, **Reset all** (asks to confirm).
+A collapsible dock (Home, doctor and analytics screens): **Add sample patients**, **10x auto-simulate** / **Stop**, **Reset all** (asks to confirm).
 
 ---
 
@@ -260,16 +262,24 @@ These come from the problem brief and are enforced in the UI:
 
 ## Languages
 
-English, Hindi and **Tamil** (the third language on the whiteboard, "TX", is Tamil in the backend). The language is chosen from the header and remembered. Patient screens, the TV board labels and the emergency guidance are translated; the backend's own text (triage advice, landmarks, SMS, disclaimers, department names) is shown in the chosen language. Directions and place names are generated on the client because the backend only returns instructions and names in English.
+**English, Hindi and Telugu.** (The app first shipped with Tamil as the third language; it was replaced by Telugu when the redesign landed, see the change history. `src/i18n/ta.js` is an unused leftover.) The language is chosen from the header and remembered; `src/i18n/en.js`, `hi.js` and `te.js` must keep identical keys.
 
-The **doctor dashboard, counter registration, analytics and demo toolbar are English only** (staff tools).
+- **Translated:** the patient screens, the emergency guidance and ticket flow, error messages, the TV board labels and spoken announcements (rotating Hindi, English and Telugu), place and checkpoint names, and department names.
+- **From the backend in the chosen language:** triage advice and emergency directive, warning signs, SMS messages and department names. Directions and place names are generated on the client because the backend only returns instructions and names in English.
+- **Telugu gaps in the backend:** the map's place **landmarks** have no Telugu, so each direction shows the English landmark under the Telugu step (the backend map data only has English, Hindi and Tamil). The slip's safety disclaimer and the "I'm lost" card text also have no Telugu in the backend, so the frontend supplies them (`slipDisclaimer` and `lostCardHelp` in the dictionaries).
+- **Still English:** a number of headings, hints and placeholders added by the UI redesign are hard-coded and do not change with the language (about 30, for example on Home, the New Ticket steps and the map). The **doctor dashboard, counter registration, analytics and demo toolbar** are English only (staff tools).
 
 ## Accessibility and design
 
 - Body text 18px or more, buttons and inputs at least 56px tall, an icon **and** a label on every button, designed from 360px phones up to large screens, safe-area aware.
 - **Text size** toggle (scales everything), **high contrast** option, **read aloud** (slip, directions, emergency guidance, triage advice) and assisted mode that speaks each question.
 - Every input has a label; errors use `role="alert"` and `aria-describedby`; focus moves to the first invalid field; modals trap focus and close with Esc; status changes are announced with `aria-live`.
-- Look: grey background, dark outlined rounded boxes and a red emergency colour (from the whiteboard sketch), with design tokens in `src/styles/tokens.css`. The red is darkened so white text stays readable. Motion is limited to short hover and press transitions and is disabled when the user prefers reduced motion.
+- **Visual identity, "Care Teal & Saffron":** deep clinical teal (`#0f766e`) for trust and health, a warm paper background (`#f6f8f6`) with a soft animated aurora so the interface feels human rather than cold, a **saffron accent** (`#f59e0b`) used sparingly for tokens and highlights, cool cyan (`#0e7490`) as the gradient partner, and **red reserved for emergencies**. Text is deep teal-ink (`#0b2b2e`). Shadows are tinted with the ink colour, corners are soft (18px cards, 26px hero), and type is Inter with tight tracking on headings and tabular numerals on tokens. Every value lives in `src/styles/tokens.css`; `theme.css` holds the premium finish (hero, glass header, tactile buttons, ticket-style slip, form feedback) and loads after the component and page styles.
+- **Signature elements:** a deep-teal Home hero with a saffron glow; a frosted-glass header; gradient buttons with a light sheen; the OPD slip as a ticket with the token in saffron on deep teal; a teal-to-saffron line on the symptom finder; a numbered directions timeline; and a TV board in deep teal-ink with glowing saffron tokens.
+- **Colour and contrast:** all text meets WCAG AA (4.5:1 or better, 3:1 for large text), including text on gradients, which was audited against every gradient stop. Muted text is `#52686b` (5.9:1 on white), the accent text colour `#92400e` (7.1:1), and white labels on the teal and red gradients stay at 4.8:1 or better.
+- **Motion** (`src/styles/motion.css`): pages **cross-fade** when you navigate (the browser's View Transitions, with a plain navigation as the fallback), pages and card groups arrive with a staggered rise, **lower sections reveal as they scroll into view** (scroll-driven animation where supported), cards lift and buttons catch the light on hover, buttons dip when pressed, modals pop in over a blurred backdrop, wrong form fields shake once and show an icon message, switches have a springy thumb, the progress bar catches the light, the token is **stamped** onto the slip, the "your turn" panel pulses with rings, the near-turn alert rings its bell three times, loading shows **skeleton placeholders**, and on the map the route flows toward the destination while the start and destination pulse. A slow aurora drifts behind everything. Durations are short and only opacity and transform are animated (plus the route dash and urgent glow), and **all of it is switched off when the user prefers reduced motion**.
+- **One icon set:** every icon is a vector from `Icons.jsx` (the map now uses them too, with department icons on OPD rooms); no emoji remain in the interface.
+- **Rules from the brief are enforced in the tokens and component styles:** `--fs-md` is 18px (body text), `--tap` is 56px and is the minimum height of every button, pill, input, toggle and tab, and nothing may scroll sideways at 360px. These were re-checked after the redesign (see below); keep them when changing styles.
 
 ## PWA and offline behaviour
 
@@ -285,12 +295,14 @@ Everything below was run against the real backend (a throwaway MongoDB) using th
 
 - **Registration:** both branches, all validation, Back keeps values, preset department, token and slip created, data stored correctly in the backend.
 - **Live queue:** position counts down without reload, the "3 ahead" banner and SMS toast, called screen, doctor delay, transfer, completion, no-show, urgent help from patient to staff and back.
-- **Map:** automatic route from a slip, avoid-stairs route uses only the lift, Hindi and Tamil directions, wall-poster start, "I'm lost" card, casualty route.
+- **Emergency ticket:** every entry point, the two-step flow with and without a problem, department from the typed problem, red-flag text, front-of-queue priority (and first-come-first-served among emergencies), the staff alert and badges, the doctor calling it first, the normal flow unchanged, and switching between the two without losing details.
+- **Map:** automatic route from a slip, avoid-stairs route uses only the lift, Hindi and Telugu directions, wall-poster start, "I'm lost" card (bilingual, also in Telugu), casualty route.
 - **Staff:** logins, every doctor action, counter registration, urgent banner, board flash and alternating spoken announcements, analytics numbers, demo toolbar.
+- **Design checks:** a text-contrast audit of 12 screens that tests text against every colour stop of any gradient behind it (it caught and fixed the invisible "YOUR TURN!" text and a faint "YOUR TOKEN" label); no leftover colours from the old blue palette; keyboard Tab order with a visible focus indicator on every control; animations present with motion allowed and absent with reduced motion, only cheap properties animated; page transitions (and Back, and the reduced-motion case); scroll reveal; skeleton loading; form shake; the slip stamp; card hover lift; modal backdrop blur.
 - **Layout:** no horizontal overflow on all screens at 360, 768 and 1440px, also with large text and high contrast; touch targets at least 56px; print view of the slip.
 - **PWA:** service worker, cache contents, manifest, offline loading and recovery.
 
-Not tested: real phones, a screen reader, real Hindi or Tamil speech voices (voice availability depends on the device), the camera and microphone, and installing the app.
+Not tested: real phones, a screen reader, real Hindi or Telugu speech voices (voice availability depends on the device), the camera and microphone, and installing the app.
 
 ## Backend fixes made along the way
 
@@ -324,7 +336,7 @@ What was built, in order. Each step was pushed to the `swastik` branch and revie
    - `/new` now registers a real ticket: 4 steps with department cards, symptom description and voice, triage suggestion, assisted mode and comfort options. The old "Doctor's name" field was dropped because the backend queues patients per department, not per doctor.
    - New screens: OPD slip, live My Turn, hospital map and directions, doctor dashboard and staff desk, TV board, analytics, demo toolbar.
    - The round emergency button now opens the shared emergency guidance (it previously only logged to the console).
-   - Third language **Tamil**, translated place names and directions, accessibility options, 18px text and 56px touch targets.
+   - Third language **Tamil** (replaced by Telugu in entry 11), translated place names and directions, accessibility options, 18px text and 56px touch targets.
    - Service worker no longer caches `/socket.io`, cache version bumped to v2.
    - Added `socket.io-client` and `qrcode-generator`; removed the unused Home path cards and the old confirmation screen.
 
@@ -332,6 +344,26 @@ What was built, in order. Each step was pushed to the `swastik` branch and revie
 
 9. **Emergency ticket.** The Home Emergency button, the round button on `/new` and the guidance modal start a 2-step emergency flow (details, then an optional "problem if known") that issues a ticket immediately, at the front of the queue, with staff alerted. A normal ticket still needs all four steps. The map now also follows address changes while it is open (so "Directions to Casualty" works from the map itself). Backend: tickets can be flagged `emergency` and carry an optional `complaint`.
 10. **Modern clinical UI redesign and alignment overhaul.** Overhauled the design tokens with a medical-grade palette (slate/sapphire/teal), crisp multi-layered shadows and rounded borders. Replaced all raw emojis across all components with vector SVG icons (`Icons.jsx`). Added `HospitalLiveBar`, `LiveDepartmentGlance`, and `QuickSymptomPills` to streamline triage without walls of text. Fixed flex/grid container alignments to eliminate overflow blowout on cards. Added in-memory MongoDB fallback with auto-seeding in backend for zero-config startup.
+
+11. **Hindi, English and Telugu** (PR #9). The third language changed from Tamil to Telugu: new `te.js`, Telugu place and checkpoint names, Telugu board announcements, Telugu text in the backend triage and SMS, and the language switcher became हिन्दी / English / తెలుగు.
+12. **Update after the redesign and Telugu merges** (this pull request). Re-tested everything on the new `main` and fixed what the redesign had broken:
+    - Brief rules restored: body text back to 18px, every button, pill, input, toggle and tab back to at least 56px (they had shrunk to 32 to 38px), and the header and staff links wrap so the Home page no longer scrolls sideways at 360px.
+    - `/new`: the round Emergency button is beside the form again (it had become a floating button that covered the "Other" gender option), and the step cards no longer sit inside a second card.
+    - The slip's print stylesheet was missing, so printing included the header and buttons; restored.
+    - Telugu: read aloud now uses a Telugu voice setting (it used the English one) and times use the Telugu locale; the TV board footer and the analytics language names no longer mention Tamil; the slip disclaimer and the "I'm lost" card text have Telugu fallbacks because the backend has none.
+    - The demo button no longer says "20" (the backend now adds 21 sample patients).
+    - README brought up to date (Telugu, redesign, in-memory MongoDB, test coverage, limitations).
+
+13. **Visual refinement** (this pull request; presentation only, no behaviour changed). A design pass over every screen:
+    - **Phone header** is two compact rows (brand and Emergency, then tools) instead of four, and scrolls away on phones (it stayed sticky and covered a third of the screen); wide screens keep the sticky bar.
+    - **Components that had lost their styling** now have it: the urgent siren banner (a red alert with a glow), the map's directions (now a numbered timeline), the "Show to staff" card, the demo dock (floating again), the SMS toast, analytics and queue figures, the staff login layout, page titles, loading spinner, QR code frame, notices and live indicators.
+    - **Map:** redrawn with a blueprint-style plate, vector icons (department icons on OPD rooms), a glowing animated route, and labels on readable pills with shortened names, so they no longer collide.
+    - **Contrast:** muted text, links, green, teal and the button gradients were raised to AA.
+    - **Motion system** added (`motion.css`, reduced-motion safe).
+    - **Text fixes:** "Room Room 6" is now "Room 6" on the slip, department cards, doctor screen and OPD counters; the `/new` steps show one heading instead of two; the "Show to staff" card no longer repeats the destination in English; the directions list no longer renders a blank step when you are already at the help desk.
+    - `src/components/common/Icons.jsx` gained 21 icons; `FloorMap.jsx` and `placeIcons.js` were rewritten to draw them.
+
+14. **Visual identity upgrade** (this pull request; presentation only, no behaviour changed). A new identity, **Care Teal & Saffron**, applied to every screen: new tokens and a remap of every hard-coded colour, a `theme.css` layer (aurora background, frosted header, deep-teal hero, tactile gradient buttons, lifted cards, ticket-style slip, saffron wait chip and tokens, semantic dashboard accents, deep-teal board), skeleton loading, empty and error states, springy switches and form feedback, and a larger motion system (page cross-fades, scroll reveal, stamp, rings, shimmer). Fixes found on the way: invisible "YOUR TURN!" text, a faint "YOUR TOKEN" label, three contrast failures, the Demo button losing its dark style, and the doctor token badge rendering as a text highlight. The only non-CSS edits are the skeleton markup in `Status.jsx`, four icon colours, and the page-transition wrapper in `router.jsx` `navigate()`.
 
 > **Maintenance rule:** whenever anything in `frontend/` changes, update this README in the same pull request (structure, screens and a new line in the change history).
 
@@ -344,9 +376,11 @@ What was built, in order. Each step was pushed to the `swastik` branch and revie
 - **No doctor choice:** tickets are per department; the doctor is assigned when called.
 - **Staff accounts cannot call patients** (the backend gives them no department); doctors can.
 - **Symptom photos** are only previewed on the device and are not sent anywhere.
-- **Read aloud and voice input** depend on the browser (the Web Speech API) and on installed Hindi and Tamil voices; the buttons are disabled or hidden where unsupported.
+- **Read aloud and voice input** depend on the browser (the Web Speech API) and on installed Hindi and Telugu voices; the buttons are disabled or hidden where unsupported.
 - **Autoplay rules:** the staff siren and the TV board speech need one click on the page first.
 - **Emergency tickets are self-declared:** anyone can press Emergency and go to the front of their queue. There is no check or limit on this yet, and the emergency ticket joins General Medicine unless a problem is typed (there is no Casualty queue in the backend).
-- **Hindi and Tamil text** use the system font because Inter has no Devanagari or Tamil glyphs.
+- **Hindi and Telugu text** use the system font because Inter has no Devanagari or Telugu glyphs.
+- **Telugu landmarks** in directions are English until the backend map data gets Telugu (see Languages).
+- **Hard-coded English** from the redesign (about 30 strings on the patient screens) does not translate yet.
 - **Icons** are generated placeholders (red cross on grey); replace them in `public/icons/` with final branding.
 - **No automated test suite** is included in the repository, and nothing was tested on real devices or with a screen reader.

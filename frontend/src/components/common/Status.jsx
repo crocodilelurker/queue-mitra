@@ -3,9 +3,14 @@ import { useI18n } from '../../i18n/index.jsx'
 export function Loading() {
   const { t } = useI18n()
   return (
-    <p className="status" role="status">
-      {t.loading}
-    </p>
+    <div className="loading-state">
+      <p className="status" role="status">
+        {t.loading}
+      </p>
+      <div className="skeleton skeleton--title" aria-hidden="true" />
+      <div className="skeleton skeleton--card" aria-hidden="true" />
+      <div className="skeleton skeleton--line" aria-hidden="true" />
+    </div>
   )
 }
 

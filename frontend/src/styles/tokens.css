@@ -1,50 +1,71 @@
 :root {
-  /* Modern Medical Palette */
-  --bg: #f8fafc;
-  --bg-gradient: radial-gradient(ellipse at 50% 0%, rgba(2, 132, 199, 0.08) 0%, transparent 60%), #f8fafc;
+  /* ==========================================================================
+     Visual identity: "Care Teal & Saffron"
+     Deep clinical teal says trust and health, a warm paper background keeps the interface human rather
+     than cold, and a saffron accent (used sparingly, for tokens and highlights) gives it a distinctly
+     Indian public-health character. Red is reserved for emergencies. Every text pair below meets WCAG AA.
+     ========================================================================== */
+
+  /* Surfaces */
+  --bg: #f6f8f6;
+  --bg-gradient: radial-gradient(1100px 520px at 12% -8%, rgba(15, 118, 110, 0.1), transparent 60%),
+    radial-gradient(900px 480px at 100% 0%, rgba(245, 158, 11, 0.09), transparent 55%), #f6f8f6;
   --surface: #ffffff;
-  --surface-subtle: #f1f5f9;
-  --surface-hover: #f8fafc;
+  --surface-subtle: #eef3f1;
+  --surface-hover: #f6f8f6;
   --paper: #ffffff;
 
-  --ink: #0f172a;
-  --ink-soft: #475569;
-  --ink-muted: #94a3b8;
+  /* Text (15:1, 8:1 and 5.9:1 on white) */
+  --ink: #0b2b2e;
+  --ink-soft: #3d5356;
+  --ink-muted: #52686b;
 
-  --primary: #0284c7;
-  --primary-hover: #0369a1;
-  --primary-light: #e0f2fe;
-  --primary-glow: rgba(2, 132, 199, 0.2);
+  /* Primary: care teal */
+  --primary: #0f766e;
+  --primary-hover: #115e59;
+  --primary-strong: #0b4f4a;
+  --primary-light: #e3f4f0;
+  --primary-tint: #f1faf8;
+  --primary-border: #b5ddd5;
+  --primary-glow: rgba(15, 118, 110, 0.22);
 
-  --teal: #0d9488;
-  --teal-light: #ccfbf1;
+  /* Secondary: cool cyan, the gradient partner of the primary */
+  --teal: #0e7490;
+  --teal-light: #cffafe;
   --indigo: #4f46e5;
   --indigo-light: #e0e7ff;
 
+  /* Accent: saffron. Text on it is the ink colour; small amber text uses --accent-ink. */
+  --accent: #f59e0b;
+  --accent-soft: #fef3c7;
+  --accent-ink: #92400e;
+
+  /* Semantic */
   --danger: #dc2626;
   --danger-dark: #b91c1c;
   --danger-bg: #fef2f2;
   --danger-border: #fecaca;
 
-  --ok: #16a34a;
+  --ok: #157238;
   --ok-bg: #f0fdf4;
   --ok-border: #bbf7d0;
 
-  --warn: #d97706;
+  --warn: #a3480a;
   --warn-bg: #fffbeb;
   --warn-border: #fde68a;
 
-  --focus: #0284c7;
-  --route: #0284c7;
+  --focus: #0f766e;
+  --route: #0e7490;
 
   --font: 'Inter Variable', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
 
   /* Typography scale */
-  --fs-xs: 0.8125rem;
-  --fs-sm: 0.9375rem;
-  --fs-md: 1.0625rem;
+  /* Brief: body text 18px or more, touch targets 56px or more, nothing scrolling sideways at 360px. */
+  --fs-xs: 0.9375rem;
+  --fs-sm: 1rem;
+  --fs-md: 1.125rem;
   --fs-lg: 1.25rem;
-  --fs-xl: clamp(1.75rem, 1.25rem + 2vw, 2.5rem);
+  --fs-xl: clamp(1.9rem, 1.3rem + 2.6vw, 3rem);
 
   /* Spacing */
   --sp-1: 0.5rem;
@@ -53,26 +74,43 @@
   --sp-4: 2.25rem;
   --sp-5: 3.5rem;
 
-  /* Corners & Borders */
-  --radius-xs: 6px;
-  --radius-sm: 10px;
-  --radius: 16px;
-  --radius-lg: 22px;
+  /* Corners & borders: softer and a little larger than before */
+  --radius-xs: 8px;
+  --radius-sm: 12px;
+  --radius: 18px;
+  --radius-lg: 26px;
   --radius-full: 9999px;
 
   --bw: 1px;
-  --border-color: #e2e8f0;
+  --border-color: #d9e3e0;
   --border: var(--bw) solid var(--border-color);
-  --border-subtle: 1px solid #edf2f7;
+  --border-subtle: 1px solid #e8efec;
+  --border-strong: #c3d1cd;
 
-  /* Shadows */
-  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
-  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
-  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.04);
-  --shadow-glow: 0 0 20px rgba(2, 132, 199, 0.25);
+  /* Shadows are tinted with the ink colour, so they sit naturally on the warm paper */
+  --shadow-sm: 0 1px 2px rgba(11, 43, 46, 0.06);
+  --shadow-md: 0 6px 16px -4px rgba(11, 43, 46, 0.1), 0 2px 6px -2px rgba(11, 43, 46, 0.06);
+  --shadow-lg: 0 16px 32px -8px rgba(11, 43, 46, 0.14), 0 4px 10px -4px rgba(11, 43, 46, 0.06);
+  --shadow-xl: 0 28px 56px -12px rgba(11, 43, 46, 0.22), 0 8px 18px -8px rgba(11, 43, 46, 0.1);
+  --shadow-glow: 0 0 0 1px rgba(15, 118, 110, 0.2), 0 8px 28px rgba(15, 118, 110, 0.25);
 
-  --tap: 52px;
+  --tap: 56px;
+
+  /* Motion: short, purposeful, and only on transform / opacity so it stays smooth.
+     Every animation is switched off for users who prefer reduced motion (see motion.css). */
+  --ease-out: cubic-bezier(0.16, 1, 0.3, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 150ms;
+  --dur-med: 260ms;
+  --dur-slow: 420ms;
+
+  /* Brand gradients and focus ring */
+  --grad-primary: linear-gradient(135deg, #0f766e 0%, #0e7490 100%); /* white text is 5.4:1 or better along the whole gradient */
+  --grad-emergency: linear-gradient(135deg, #dc2626 0%, #c81e1e 50%, #b91c1c 100%);
+  --grad-ok: linear-gradient(135deg, #157238 0%, #0f5c2e 100%);
+  --ring: 0 0 0 4px rgba(15, 118, 110, 0.28);
+  --grad-hero: linear-gradient(135deg, #0b4f4a 0%, #0f766e 55%, #0e7490 100%);
+  --grad-accent: linear-gradient(135deg, #fde68a 0%, #fbbf24 100%);
 }
 
 /* "Large text" preference */

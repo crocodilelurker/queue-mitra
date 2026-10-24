@@ -4,6 +4,7 @@ import { useDepartments } from '../../api/departments.js'
 import { Link } from '../../router.jsx'
 import Field from '../new/Field.jsx'
 import { MAX_AGE, validateAge, validateFirstName, validateGender } from '../new/validation.js'
+import { Icon } from '../common/Icons.jsx'
 
 /** Walk-in registration for patients without a smartphone (POST /api/tickets/counter). */
 export default function CounterRegistration() {
@@ -81,7 +82,7 @@ export default function CounterRegistration() {
         </div>
         {error && <p className="field__error" role="alert">{error}</p>}
         <button type="submit" className="btn btn--primary" disabled={busy}>
-          <span aria-hidden="true">🎟️</span> {busy ? 'Registering…' : 'Register and issue slip'}
+          <Icon name="ticket" size={18} /> {busy ? 'Registering…' : 'Register and issue slip'}
         </button>
       </form>
       {issued && (

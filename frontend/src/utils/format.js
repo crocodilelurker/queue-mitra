@@ -5,6 +5,6 @@ export function fmt(template = '', vars = {}) {
 
 export function formatTime(value, lang = 'en') {
   if (!value) return ''
-  const locale = { en: 'en-IN', hi: 'hi-IN', ta: 'ta-IN' }[lang] || 'en-IN'
+  const locale = { en: 'en-IN', hi: 'hi-IN', te: 'te-IN', ta: 'ta-IN' }[lang] || 'en-IN'
   return new Date(value).toLocaleTimeString(locale, { hour: 'numeric', minute: '2-digit' })
 }

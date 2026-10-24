@@ -87,7 +87,7 @@ export default function NewPatient() {
       <StepIndicator current={emergency ? Math.min(STEP_NUMBER[step], 2) : STEP_NUMBER[step]} total={emergency ? 2 : 4} />
       {emergency && <EmergencyBanner onCancel={endEmergency} />}
       <div className="form-layout">
-        <div className="box form-card">
+        <div className="form-card">
           <h2 className="form__title">{titles[step]}</h2>
           {step === 'info' && (
             <PatientInfoStep patient={patient} onChange={update} onContinue={() => setStep(emergency ? 'complaint' : dept ? 'review' : 'know')} />

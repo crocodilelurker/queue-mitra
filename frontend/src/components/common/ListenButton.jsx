@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import { useI18n } from '../../i18n/index.jsx'
 import { canSpeak, speak, stopSpeaking } from '../../utils/speech.js'
+import { Icon } from './Icons.jsx'
 
 /** Reads `text` aloud in the current language. Hidden when the browser cannot speak. */
 export default function ListenButton({ text, className = 'btn' }) {
@@ -22,7 +23,7 @@ export default function ListenButton({ text, className = 'btn' }) {
 
   return (
     <button type="button" className={className} aria-pressed={speaking} onClick={toggle}>
-      <span aria-hidden="true">{speaking ? '■' : '🔊'}</span> {speaking ? t.stopListening : t.listen}
+      <Icon name={speaking ? 'stop' : 'volume'} size={18} /> {speaking ? t.stopListening : t.listen}
     </button>
   )
 }

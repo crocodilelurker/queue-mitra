@@ -1,7 +1,7 @@
 // Text-to-speech helpers (Web Speech API). Hide the feature when the browser has no speech support.
 export const canSpeak = typeof window !== 'undefined' && 'speechSynthesis' in window
 
-export const SPEECH_LANG = { en: 'en-IN', hi: 'hi-IN', ta: 'ta-IN' }
+export const SPEECH_LANG = { en: 'en-IN', hi: 'hi-IN', te: 'te-IN', ta: 'ta-IN' }
 
 export function speak(text, lang = 'en', { onEnd } = {}) {
   if (!canSpeak || !text) return
