@@ -133,7 +133,7 @@ export default function WaitingBoard() {
         </section>
       </div>
       <footer className="board__foot">
-        <p>Emergency: Casualty, Ground Floor · Call 112 / 108 · आपातकाल: भूतल · அவசரம்: தரைத்தளம்</p>
+        <p>Emergency: Casualty, Ground Floor · Call 112 / 108 · आपातकाल: भूतल · అత్యవసరం: గ్రౌండ్ ఫ్లోర్</p>
         <Link to="/">Exit</Link>
       </footer>
     </div>

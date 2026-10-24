@@ -186,7 +186,7 @@ dialog.modal::backdrop {
   align-items: center;
   gap: 0.35rem;
   padding: 0.35rem 0.75rem;
-  min-height: 32px;
+  min-height: var(--tap);
   background: var(--surface-subtle);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-full);
@@ -339,7 +339,7 @@ dialog.modal::backdrop {
   align-items: center;
   gap: 0.35rem;
   padding: 0.3rem 0.65rem;
-  min-height: 32px;
+  min-height: var(--tap);
   background: var(--surface);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-full);
@@ -717,6 +717,7 @@ dialog.modal::backdrop {
 .staff-portal__links {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.5rem;
 }
 
@@ -725,7 +726,7 @@ dialog.modal::backdrop {
   align-items: center;
   gap: 0.35rem;
   padding: 0.35rem 0.75rem;
-  min-height: 34px;
+  min-height: var(--tap);
   background: var(--surface-subtle);
   border: 1px solid var(--border-color);
   border-radius: var(--radius-full);
@@ -1715,7 +1716,7 @@ dialog.modal::backdrop {
 
 .floor-tabs__tab {
   flex: 1;
-  min-height: 44px;
+  min-height: var(--tap);
   padding: 0.4rem 0.75rem;
   background: var(--surface);
   border: 1px solid var(--border-color);
@@ -2292,4 +2293,34 @@ dialog.modal::backdrop {
 
 .font-semibold {
   font-weight: 600;
+}
+
+/* ---------- Print: the OPD slip only (hide the app chrome and every button) ---------- */
+@media print {
+  .header,
+  .no-print,
+  .offline,
+  .demo,
+  .modal,
+  .emergency-btn,
+  .btn-emergency,
+  .sms-toast,
+  .staff-portal {
+    display: none !important;
+  }
+  body {
+    background: #fff !important;
+  }
+  .page {
+    padding: 0 !important;
+  }
+  .main {
+    margin: 0 !important;
+    max-width: none !important;
+  }
+  .slip {
+    box-shadow: none !important;
+    border: 2px solid #000 !important;
+    break-inside: avoid;
+  }
 }

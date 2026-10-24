@@ -93,7 +93,7 @@ export default function OpdSlip({ publicId }) {
           <p className="slip__qr-caption">{t.qrCaption}</p>
         </div>
 
-        <p className="slip__disclaimer">{pick(slip.disclaimer)}</p>
+        <p className="slip__disclaimer">{pick(slip.disclaimer, 'slipDisclaimer')}</p>
         <p className="field__hint">{f('emergencyNumbers', { phone: slip.hospital.contact?.emergencyPhone || '108' })}</p>
       </article>
 

@@ -147,6 +147,8 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 0.6rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* Emergency Header Button */
@@ -155,7 +157,7 @@
   align-items: center;
   gap: 0.4rem;
   padding: 0.4rem 0.85rem;
-  min-height: 38px;
+  min-height: var(--tap);
   border-radius: var(--radius-full);
   background: linear-gradient(135deg, var(--danger) 0%, var(--danger-dark) 100%);
   color: #ffffff;
@@ -199,6 +201,7 @@
 .header__tools {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.4rem;
 }
 
@@ -207,7 +210,7 @@
   align-items: center;
   gap: 0.35rem;
   padding: 0.4rem 0.75rem;
-  min-height: 38px;
+  min-height: var(--tap);
   border-radius: var(--radius-full);
   background: var(--surface-subtle);
   border: 1px solid var(--border-color);
@@ -247,7 +250,7 @@
 }
 
 .lang-switch__btn {
-  min-height: 32px;
+  min-height: var(--tap);
   padding: 0 0.65rem;
   font-size: var(--fs-xs);
   font-weight: 600;
@@ -375,7 +378,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  min-height: 48px;
+  min-height: var(--tap);
   padding: 0.6rem 1.25rem;
   background: var(--surface);
   border: var(--border);
@@ -406,14 +409,14 @@
 }
 
 .btn--sm {
-  min-height: 36px;
+  min-height: var(--tap);
   padding: 0.35rem 0.85rem;
   font-size: var(--fs-xs);
   border-radius: var(--radius-xs);
 }
 
 .btn--lg {
-  min-height: 52px;
+  min-height: var(--tap);
   padding: 0.8rem 1.5rem;
   font-size: var(--fs-md);
   border-radius: var(--radius-sm);
@@ -459,7 +462,7 @@
 }
 
 .link-btn {
-  min-height: 40px;
+  min-height: var(--tap);
   padding: 0;
   background: none;
   border: 0;
@@ -485,6 +488,11 @@
   gap: var(--sp-2);
   width: 100%;
   box-sizing: border-box;
+}
+
+/* Each /new step renders its own card; give it the padding the old wrapper used to provide. */
+.form.card {
+  padding: var(--sp-3) var(--sp-2);
 }
 
 .form__header {
@@ -549,7 +557,7 @@
 .field__control {
   width: 100%;
   box-sizing: border-box;
-  min-height: 48px;
+  min-height: var(--tap);
   padding: 0.6rem 0.9rem;
   background: var(--surface);
   border: 1px solid var(--border-color);
@@ -621,7 +629,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 46px;
+  min-height: var(--tap);
   padding: 0 0.75rem;
   background: var(--surface-subtle);
   border: 1px solid var(--border-color);
@@ -660,7 +668,7 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  min-height: 48px;
+  min-height: var(--tap);
   padding: 0.5rem 0.9rem;
   background: var(--surface);
   border: 1px solid var(--border-color);
@@ -774,7 +782,30 @@
   transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Floating Emergency Button */
+/* /new layout: the round Emergency button sits BESIDE the form (sticky, so it stays in reach while scrolling)
+   instead of floating over it, where it covered the third gender option on phones. Each step renders its own card. */
+.form-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-1);
+  width: 100%;
+}
+.form-layout .form-card {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: var(--sp-2);
+}
+.form-layout .emergency-btn {
+  position: sticky;
+  top: var(--sp-2);
+  right: auto;
+  bottom: auto;
+  flex: none;
+  z-index: 5;
+}
+
+/* Round Emergency Button */
 .emergency-btn {
   position: fixed;
   bottom: 1.75rem;

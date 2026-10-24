@@ -32,7 +32,7 @@ export default function DemoToolbar() {
       {open && (
         <div className="demo__panel box">
           <button type="button" className="btn btn--sm" disabled={busy} onClick={() => run('Seeded patients', api.seedPatients)}>
-            <span aria-hidden="true">👥</span> Add 20 sample patients
+            <span aria-hidden="true">👥</span> Add sample patients
           </button>
           {running ? (
             <button type="button" className="btn btn--sm" disabled={busy} onClick={() => run('Stopped', api.stopSimulation)}>

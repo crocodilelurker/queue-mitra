@@ -8,7 +8,7 @@ import { Link } from '../router.jsx'
 
 const HEAT = { green: 'ok', amber: 'warn', red: 'bad' }
 const HEAT_LABEL = { green: 'Normal', amber: 'Busy', red: 'Overcrowded' }
-const LANG_NAMES = { en: 'English', hi: 'Hindi', ta: 'Tamil', other: 'Other' }
+const LANG_NAMES = { en: 'English', hi: 'Hindi', te: 'Telugu', ta: 'Tamil', other: 'Other' }
 
 function Bar({ label, value, max }) {
   return (
