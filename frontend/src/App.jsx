@@ -8,6 +8,7 @@ import PatientManager from './pages/admin/PatientManager.jsx'
 import DoctorAppointmentManager from './pages/admin/DoctorAppointmentManager.jsx'
 import BillingManager from './pages/admin/BillingManager.jsx'
 import AdvancedReports from './pages/admin/AdvancedReports.jsx'
+import FollowUpManager from './pages/admin/FollowUpManager.jsx'
 import AnalyticsDashboard from './pages/AnalyticsDashboard.jsx'
 import DoctorDashboard from './pages/DoctorDashboard.jsx'
 import Home from './pages/Home.jsx'
@@ -40,7 +41,7 @@ const ROUTES = [
   { path: '/admin/consultations', component: DoctorDashboard },
   { path: '/admin/prescriptions', component: DoctorAppointmentManager },
   { path: '/admin/billing', component: BillingManager },
-  { path: '/admin/follow-ups', component: DoctorAppointmentManager },
+  { path: '/admin/follow-ups', component: FollowUpManager },
   { path: '/admin/reports', component: AdvancedReports },
   { path: '/admin/settings', component: AdvancedReports },
 ]
