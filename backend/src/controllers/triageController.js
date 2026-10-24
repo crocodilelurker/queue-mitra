@@ -23,7 +23,16 @@ export function getEmergencySigns(req, res) {
   const { language = "en" } = req.query;
   const signs = EMERGENCY_WARNING_SIGNS.map((s) => ({
     key: s.key,
-    reason: s[`reason${language === "hi" ? "Hi" : language === "ta" ? "Ta" : "En"}`] || s.reasonEn,
+    reason:
+      s[
+        language === "hi"
+          ? "reasonHi"
+          : language === "te"
+          ? "reasonTe"
+          : language === "ta"
+          ? "reasonTa"
+          : "reasonEn"
+      ] || s.reasonEn,
   }));
 
   res.json({
@@ -31,6 +40,7 @@ export function getEmergencySigns(req, res) {
       en: "Any of these signs? Go to Emergency (Casualty) now. You do not need a token.",
       hi: "इनमें से कोई भी लक्षण है? तुरंत इमरजेंसी जाएं। आपको टोकन की जरूरत नहीं है।",
       ta: "இந்த அறிகுறிகள் ஏதேனும் உள்ளதா? உடனடியாக அவசர சிகிச்சைக்கு செல்லவும். டோக்கன் தேவையில்லை.",
+      te: "ఈ లక్షణాలలో ఏమైనా ఉన్నాయా? వెంటనే ఎమర్జెన్సీ (కాజువాలిటీ) కి వెళ్లండి. టోకెన్ అవసరం లేదు.",
     }[language] || "Any of these signs? Go to Emergency immediately.",
     emergencyContacts: {
       ambulance: "108",

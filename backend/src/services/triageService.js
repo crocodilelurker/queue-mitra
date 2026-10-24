@@ -7,59 +7,107 @@
 export const EMERGENCY_WARNING_SIGNS = [
   {
     key: "chest_pain",
-    terms: ["chest pain", "heart attack", "left arm pain", "सीने में दर्द", "छाती में दर्द", "நெஞ்சு வலி", "மாரடைப்பு"],
+    terms: [
+      "chest pain", "heart attack", "left arm pain",
+      "सीने में दर्द", "छाती में दर्द",
+      "గుండె నొప్పి", "ఛాతీ నొప్పి", "ఎడమ చేయి నొప్పి",
+      "நெஞ்சு வலி", "மாரடைப்பு",
+    ],
     reasonEn: "Severe chest pain or suspected cardiac symptoms",
     reasonHi: "गंभीर सीने में दर्द या हृदय संबंधी लक्षण",
     reasonTa: "கடுமையான நெஞ்சு வலி அல்லது இதய அறிகுறிகள்",
+    reasonTe: "తీవ్రమైన ఛాతీ నొప్పి లేదా గుండె సమస్య లక్షణాలు",
   },
   {
     key: "breathing_difficulty",
-    terms: ["trouble breathing", "cannot breathe", "gasping", "breathless", "सांस लेने में तकलीफ", "सांस फूलना", "மூச்சுத்திணறல்", "மூச்சு விட சிரமம்"],
+    terms: [
+      "trouble breathing", "cannot breathe", "gasping", "breathless",
+      "सांस लेने में तकलीफ", "सांस फूलना",
+      "శ్వాస ఆడకపోవడం", "శ్వాస తీసుకోవడంలో ఇబ్బంది", "ఆయాసం",
+      "மூச்சுத்திணறல்", "மூச்சு விட சிரமம்",
+    ],
     reasonEn: "Difficulty breathing or acute breathlessness",
     reasonHi: "सांस लेने में गंभीर कठिनाई",
     reasonTa: "சுவாசிப்பதில் கடுமையான சிரமம்",
+    reasonTe: "శ్వాస తీసుకోవడంలో తీవ్రమైన ఇబ్బంది లేదా ఆయాసం",
   },
   {
     key: "heavy_bleeding",
-    terms: ["heavy bleeding", "bleeding profusely", "blood loss", "भारी रक्तस्राव", "खून बहना", "ரத்தப்போக்கு", "அதிக ரத்தப்போக்கு"],
+    terms: [
+      "heavy bleeding", "bleeding profusely", "blood loss",
+      "भारी रक्तस्राव", "खून बहना",
+      "రక్తస్రావం", "విపరీతమైన రక్తస్రావం", "రక్తం కారడం",
+      "ரத்தப்போக்கு", "அதிக ரத்தப்போக்கு",
+    ],
     reasonEn: "Heavy bleeding or severe wound",
     reasonHi: "अत्यधिक खून बहना",
     reasonTa: "அதிக இரத்தப்போக்கு",
+    reasonTe: "విపరీతమైన రక్తస్రావం లేదా తీవ్రమైన గాయం",
   },
   {
     key: "unconscious",
-    terms: ["unconscious", "fainted", "fainting", "passed out", "not waking up", "बेहोश", "बेहोशी", "மயக்கம்", "நினைவிழந்த நிலை"],
+    terms: [
+      "unconscious", "fainted", "fainting", "passed out", "not waking up",
+      "बेहोश", "बेहोशी",
+      "స్పృహ తప్పడం", "కళ్లు తిరిగి పడిపోవడం", "స్పృహ కోల్పోవడం",
+      "மயக்கம்", "நினைவிழந்த நிலை",
+    ],
     reasonEn: "Unconsciousness, fainting, or unresponsiveness",
     reasonHi: "बेहोशी या जागने में असमर्थता",
     reasonTa: "மயக்கம் அல்லது நினைவிழந்த நிலை",
+    reasonTe: "స్పృహ తప్పడం, కళ్లు తిరిగి పడిపోవడం లేదా స్పందించకపోవడం",
   },
   {
     key: "stroke_symptoms",
-    terms: ["face drooping", "slurred speech", "sudden paralysis", "drooping face", "लकवा", "चेहरे का टेढ़ापन", "பக்கவாதம்", "முகம் ஒருபுறம் சாய்தல்"],
+    terms: [
+      "face drooping", "slurred speech", "sudden paralysis", "drooping face",
+      "लकवा", "चेहरे का टेढ़ापन",
+      "పక్షవాతం", "ముఖం వంకరపోవడం", "మాట తడబడటం",
+      "பக்கவாதம்", "முகம் ஒருபுறம் சாய்தல்",
+    ],
     reasonEn: "Sudden facial drooping, speech difficulty, or weakness (Stroke signs)",
     reasonHi: "अचानक चेहरे का टेढ़ापन या पक्षाघात के लक्षण",
     reasonTa: "திடீர் பக்கவாத அறிகுறிகள்",
+    reasonTe: "ముఖం వంకరపోవడం, మాట తడబడటం లేదా ఆకస్మిక పక్షవాత లక్షణాలు",
   },
   {
     key: "severe_injury",
-    terms: ["severe injury", "accident", "head injury", "deep cut", "गंभीर चोट", "दुर्घटना", "सिर की चोट", "விபத்து", "கடுமையான காயம்"],
+    terms: [
+      "severe injury", "accident", "head injury", "deep cut",
+      "गंभीर चोट", "दुर्घटना", "सिर की चोट",
+      "తీవ్రమైన గాయం", "ప్రమాదం", "తలకి దెబ్బ",
+      "விபத்து", "கடுமையான காயம்",
+    ],
     reasonEn: "Severe physical trauma or accident",
     reasonHi: "गंभीर दुर्घटना या चोट",
     reasonTa: "கடுமையான காயம் அல்லது விபத்து",
+    reasonTe: "తీవ్రమైన శారీరక గాయం లేదా ప్రమాదం",
   },
   {
     key: "maternal_emergency",
-    terms: ["pregnant bleeding", "severe labour pain", "pregnancy emergency", "गर्भावस्था में खून", "गर्भवती महिला को तेज दर्द", "கர்ப்பகால ரத்தப்போக்கு"],
+    terms: [
+      "pregnant bleeding", "severe labour pain", "pregnancy emergency",
+      "गर्भावस्था में खून", "गर्भवती महिला को तेज दर्द",
+      "గర్భిణీకి రక్తస్రావం", "తీవ్రమైన ప్రసవ నొప్పులు", "గర్భధారణ సమస్య",
+      "கர்ப்பகால ரத்தப்போக்கு",
+    ],
     reasonEn: "Pregnant woman with bleeding or severe distress",
     reasonHi: "गर्भवती महिला में रक्तस्राव या तीव्र पीड़ा",
     reasonTa: "கர்ப்பிணிப் பெண்ணுக்கு இரத்தப்போக்கு அல்லது கடுமையான வலி",
+    reasonTe: "గర్భిణీ స్త్రీలలో రక్తస్రావం లేదా తీవ్రమైన ప్రసవ వేదన",
   },
   {
     key: "child_critical",
-    terms: ["child not breathing", "blue lips baby", "seizure child", "बच्चा बेहोश", "बच्चे को सांस नहीं आ रही", "குழந்தைக்கு மூச்சுத்திணறல்"],
+    terms: [
+      "child not breathing", "blue lips baby", "seizure child",
+      "बच्चा बेहोश", "बच्चे को सांस नहीं आ रही",
+      "పిల్లవాడికి శ్వాస ఆడకపోవడం", "శిశువు నీలంగా మారడం", "పిల్లలకు ఫిట్స్",
+      "குழந்தைக்கு மூச்சுத்திணறல்",
+    ],
     reasonEn: "Critically unwell infant or child",
     reasonHi: "अत्यंत अस्वस्थ बच्चा या शिशु",
     reasonTa: "மிகவும் உடல்நலம் குன்றிய குழந்தை",
+    reasonTe: "తీవ్రమైన అనారోగ్యంతో ఉన్న శిశువు లేదా చిన్నారి",
   },
 ];
 
@@ -75,6 +123,7 @@ const DEPARTMENT_KEYWORDS = {
       "fever", "cough", "cold", "flu", "bp", "blood pressure", "sugar", "diabetes", "headache",
       "weakness", "vomiting", "stomach ache", "loose motion", "diarrhea", "typhoid", "malaria",
       "बुखार", "खांसी", "जुकाम", "सिरदर्द", "कमजोरी", "पेट दर्द", "उल्टी", "दस्त", "बीपी", "शुगर",
+      "జ్వరం", "దగ్గు", "జలుబు", "తలనెప్పి", "తల నొప్పి", "బీపీ", "షుగర్", "వాంతులు", "కడుపు నొప్పి", "విరేచనాలు", "నీరసం",
       "காய்ச்சல்", "இருமல்", "சளி", "தலைவலி", "நீரிழிவு", "வயிற்று வலி",
     ],
   },
@@ -87,6 +136,7 @@ const DEPARTMENT_KEYWORDS = {
     keywords: [
       "child", "baby", "infant", "toddler", "pediatric", "under 14", "growth", "vaccination",
       "बच्चा", "शिशु", "बाल रोग", "टीकाकरण", "छोटा बच्चा",
+      "పిల్లలు", "శిశువు", "చిన్నారి", "టీకాలు", "బాలల ఆరోగ్యం", "పిల్లల జ్వరం",
       "குழந்தை", "சிறுவர்", "தடுப்பூசி",
     ],
   },
@@ -99,6 +149,7 @@ const DEPARTMENT_KEYWORDS = {
     keywords: [
       "pregnancy", "pregnant", "period", "menstrual", "women", "gynaec", "uterus", "antenatal",
       "गर्भावस्था", "गर्भवती", "महिला स्वास्थ्य", "मासिक धर्म",
+      "గర్భం", "గర్భిణీ", "మహిళల ఆరోగ్యం", "రుతుక్రమం", "పీరియడ్స్", "గర్భాశయం",
       "கர்ப்பம்", "பெண்கள் நலம்", "மாதவிடாய்",
     ],
   },
@@ -112,6 +163,7 @@ const DEPARTMENT_KEYWORDS = {
       "bone", "joint", "knee", "back pain", "fracture", "sprain", "arthritis", "shoulder pain",
       "swollen ankle", "walking difficulty", "spine",
       "हड्डी", "जोड़ों का दर्द", "घुटने का दर्द", "कमर दर्द", "मोच", "फ्रैक्चर",
+      "ఎముక", "కీళ్ల నొప్పి", "మోకాలి నొప్పి", "నడుము నొప్పి", "ఫ్రాక్చర్", "బెణుకు", "వెన్నునొప్పి",
       "எலும்பு", "மூட்டு வலி", "முழங்கால் வலி", "முதுகு வலி", "சுளுக்கு",
     ],
   },
@@ -125,6 +177,7 @@ const DEPARTMENT_KEYWORDS = {
       "throat", "sore throat", "throat pain", "ear", "ear pain", "nose", "blocked nose", "sinus",
       "tonsils", "hearing", "voice loss", "hoarseness",
       "गला", "गले में दर्द", "कान", "कान में दर्द", "नाक", "टॉन्सिल", "साइनस",
+      "గొంతు", "గొంతు నొప్పి", "చెవి", "చెవి నొప్పి", "ముక్కు", "ముక్కు దిబ్బడ", "టాన్సిల్స్", "సైనస్",
       "தொண்டை", "தொண்டை வலி", "காது", "காது வலி", "மூக்கு",
     ],
   },
@@ -137,6 +190,7 @@ const DEPARTMENT_KEYWORDS = {
     keywords: [
       "eye", "vision", "blur", "blurry", "red eye", "spectacles", "glasses", "cataract", "squint",
       "आंख", "आंखों में जलन", "धुंधला", "चश्मा", "मोतियाबिंद", "आंख लाल",
+      "కన్ను", "కంటి నొప్పి", "మసక", "మసక దృష్టి", "ఎర్రటి కన్ను", "కళ్లద్దాలు", "కంటి శుక్లం",
       "கண்", "பார்வை மங்கல்", "கண் வலி", "கண்ணாடி",
     ],
   },
@@ -145,10 +199,11 @@ const DEPARTMENT_KEYWORDS = {
     name: "Skin",
     rooms: ["Room 8"],
     floor: 1,
-    description: "rash, itching, skin allergy, fungal infection",
+    description: "skin rash, itching, fungal, boils, pimples",
     keywords: [
       "skin", "rash", "itching", "allergy", "fungal", "boils", "pimple", "eczema", "ringworm",
       "त्वचा", "खुजली", "चकत्ते", "दाद", "खाज", "एलर्जी", "मुंहासे",
+      "చర్మం", "దురద", "దద్దుర్లు", "తామర", "మచ్చలు", "మొటిమలు", "అలర్జీ",
       "தோல்", "அரிப்பு", "தடிப்பு", "தோல் ஒவ்வாமை",
     ],
   },
@@ -161,16 +216,26 @@ export function analyzeSymptoms({ text = "", age, gender, language = "en" }) {
   for (const warning of EMERGENCY_WARNING_SIGNS) {
     for (const term of warning.terms) {
       if (query.includes(term.toLowerCase())) {
+        const reasonKey =
+          language === "hi"
+            ? "reasonHi"
+            : language === "te"
+            ? "reasonTe"
+            : language === "ta"
+            ? "reasonTa"
+            : "reasonEn";
+
         return {
           isEmergency: true,
           emergencyWarning: {
             code: warning.key,
-            reason: warning[`reason${language === "hi" ? "Hi" : language === "ta" ? "Ta" : "En"}`] || warning.reasonEn,
+            reason: warning[reasonKey] || warning.reasonEn,
           },
           directive: {
             en: "URGENT MEDICAL ATTENTION REQUIRED. Please go directly to Emergency (Casualty) on the Ground Floor now. You do NOT need an OPD token.",
             hi: "तत्काल आपातकालीन सहायता की आवश्यकता है। कृपया तुरंत ग्राउंड फ्लोर पर इमरजेंसी (कैजुअल्टी) जाएं। आपको किसी टोकन की आवश्यकता नहीं है।",
             ta: "உடனடி அவசர சிகிச்சை தேவை. தயவுசெய்து உடனடியாக தரைத்தளத்தில் உள்ள அவசர சிகிச்சை பிரிவுக்கு செல்லவும். டோக்கன் தேவையில்லை.",
+            te: "తక్షణ అత్యవసర వైద్య సహాయం అవసరం. దయచేసి ఇప్పుడే నేరుగా గ్రౌండ్ ఫ్లోర్‌లోని అత్యవసర విభాగానికి (కాజువాలిటీ) వెళ్లండి. మీకు OPD టోకెన్ అవసరం లేదు.",
           }[language] || "URGENT MEDICAL ATTENTION REQUIRED.",
           emergencyContacts: {
             policeAndMedical: "112",
@@ -256,6 +321,7 @@ function buildSuggestionResponse(department, reason, confidence, language) {
       en: "While waiting for your turn: please take a seat in Waiting Hall A, stay hydrated with drinking water, and approach the Help Desk if symptoms worsen.",
       hi: "अपनी बारी की प्रतीक्षा के दौरान: कृपया वेटिंग हॉल ए में बैठें, पानी पिएं, और यदि तकलीफ बढ़े तो तुरंत हेल्प डेस्क पर बताएं।",
       ta: "காத்திருக்கும் போது: தயவுசெய்து காத்திருப்பு கூடம் ஏ-வில் அமரவும், நீர் அருந்தவும், அசௌகரியம் அதிகமானால் உதவி மையத்தை அணுகவும்.",
+      te: "మీ వంతు వచ్చే వరకు: దయచేసి వెయిటింగ్ హాల్ A లో కూర్చోండి, తాగునీరు తీసుకోండి మరియు లక్షణాలు తీవ్రమైతే వెంటనే హెల్ప్ డెస్క్‌ను సంప్రదించండి.",
     }[language] || "Please take a seat in the waiting area.",
     overrideNotice: "You can change or override this department selection at any time.",
   };

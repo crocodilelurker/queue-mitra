@@ -18,7 +18,7 @@ const hospital = {
   contact: { phone: "0191-0000000", emergencyPhone: "108" },
   floors: 3,
   staffPin: "1234",
-  languages: ["en", "hi", "ta"],
+  languages: ["hi", "en", "te"],
 };
 
 const departments = [
@@ -33,6 +33,7 @@ const departments = [
     translations: {
       hi: { name: "सामान्य चिकित्सा", description: "बुखार, खांसी, बीपी, शुगर" },
       ta: { name: "பொது மருத்துவம்", description: "காய்ச்சல், இருமல், ரத்த அழுத்தம், சர்க்கரை" },
+      te: { name: "సాధారణ వైద్య విభాగం", description: "జ్వరం, దగ్గు, బీపీ, షుగర్" },
     },
   },
   {
@@ -46,6 +47,7 @@ const departments = [
     translations: {
       hi: { name: "बाल रोग विभाग", description: "14 वर्ष से कम उम्र के बच्चों की बीमारी" },
       ta: { name: "குழந்தைகள் நலப்பிரிவு", description: "14 வயதுக்குட்பட்ட குழந்தைகளின் நோய்கள்" },
+      te: { name: "పిల్లల వైద్య విభాగం", description: "14 సంవత్సరాల లోపు పిల్లల అనారోగ్యం" },
     },
   },
   {
@@ -59,6 +61,7 @@ const departments = [
     translations: {
       hi: { name: "महिला एवं प्रसूति रोग", description: "गर्भावस्था जांच, महिला स्वास्थ्य" },
       ta: { name: "மகளிர் மற்றும் மகப்பேறு", description: "கர்ப்பகால பரிசோதனை, பெண்கள் நலம்" },
+      te: { name: "మహిళలు మరియు ప్రసూతి విభాగం", description: "గర్భధారణ పరీక్షలు, మహిళల ఆరోగ్యం" },
     },
   },
   {
@@ -72,6 +75,7 @@ const departments = [
     translations: {
       hi: { name: "हड्डी एवं जोड़ रोग", description: "घुटने, पीठ का दर्द, फ्रैक्चर" },
       ta: { name: "எலும்பு மற்றும் மூட்டு", description: "முழங்கால், முதுகு வலி, எலும்பு முறிவு" },
+      te: { name: "ఎముకలు మరియు కీళ్ల విభాగం", description: "మోకాలు, నడుము నొప్పి, ఫ్రాక్చర్" },
     },
   },
   {
@@ -85,6 +89,7 @@ const departments = [
     translations: {
       hi: { name: "कान, नाक एवं गला", description: "कान दर्द, बंद नाक, गले में दर्द" },
       ta: { name: "காது, மூக்கு மற்றும் தொண்டை", description: "காது வலி, மூக்கடைப்பு, தொண்டை வலி" },
+      te: { name: "చెవి, ముక్కు మరియు గొంతు విభాగం", description: "చెవి నొప్పి, ముక్కు దిబ్బడ, గొంతు నొప్పి" },
     },
   },
   {
@@ -98,6 +103,7 @@ const departments = [
     translations: {
       hi: { name: "नेत्र रोग विभाग", description: "धुंधली दृष्टि, लाल या दर्दनाक आंखें" },
       ta: { name: "கண் மருத்துவ பிரிவு", description: "பார்வை மங்கல், கண் சிவத்தல் அல்லது வலி" },
+      te: { name: "కంటి వైద్య విభాగం", description: "మసక దృష్టి, ఎర్రబడిన లేదా నొప్పిగల కళ్లు" },
     },
   },
   {
@@ -111,6 +117,7 @@ const departments = [
     translations: {
       hi: { name: "त्वचा रोग विभाग", description: "चकत्ते, खुजली, त्वचा की समस्याएं" },
       ta: { name: "தோல் மருத்துவ பிரிவு", description: "தோல் தடிப்பு, அரிப்பு, தோல் பிரச்சனைகள்" },
+      te: { name: "చర్మ వ్యాధుల విభాగం", description: "దద్దుర్లు, దురద, చర్మ సమస్యలు" },
     },
   },
 ];

@@ -14,7 +14,7 @@ export async function getHospitalAnalytics(hospitalCode = "CDH") {
 
   const totalTickets = tickets.length;
   const statusCounts = { waiting: 0, called: 0, completed: 0, no_show: 0, cancelled: 0 };
-  const languageCounts = { en: 0, hi: 0, ta: 0, other: 0 };
+  const languageCounts = { hi: 0, en: 0, te: 0, ta: 0, other: 0 };
   let assistedCount = 0;
   let urgentCount = 0;
   let totalResponseTimeSec = 0;
