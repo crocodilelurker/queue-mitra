@@ -125,9 +125,9 @@ frontend/
     │                               #   DoctorDashboard, WaitingBoard, AnalyticsDashboard, NotFound
     ├── components/
     │   ├── Header, Layout, LanguageSwitch, OfflineBanner, ActionCard, SymptomBox,
-    │   │   TriageResult, SlipLookup, SmsToast
+    │   │   TriageResult, SlipLookup, SmsToast, HospitalLiveBar, LiveDepartmentGlance, QuickSymptomPills
     │   ├── common/                 # Modal, EmergencyModal, EmergencyTicketNotice, ListenButton, Toggle, QrCode,
-    │   │                           #   DepartmentCard, Status (loading / error)
+    │   │                           #   DepartmentCard, Status (loading / error), Icons
     │   ├── new/                    # /new steps: StepIndicator, Field, PatientInfoStep, KnowledgeStep,
     │   │                           #   DepartmentStep, DescribeStep, ReviewStep, EmergencyButton, EmergencyBanner,
     │   │                           #   EmergencyTicketStep, validation.js
@@ -331,6 +331,7 @@ What was built, in order. Each step was pushed to the `swastik` branch and revie
 8. **Emergency card removed from Home.** The Home page now has three action cards; the header Emergency button (and the round button on `/new`) remain the way to reach emergency guidance.
 
 9. **Emergency ticket.** The Home Emergency button, the round button on `/new` and the guidance modal start a 2-step emergency flow (details, then an optional "problem if known") that issues a ticket immediately, at the front of the queue, with staff alerted. A normal ticket still needs all four steps. The map now also follows address changes while it is open (so "Directions to Casualty" works from the map itself). Backend: tickets can be flagged `emergency` and carry an optional `complaint`.
+10. **Modern clinical UI redesign and alignment overhaul.** Overhauled the design tokens with a medical-grade palette (slate/sapphire/teal), crisp multi-layered shadows and rounded borders. Replaced all raw emojis across all components with vector SVG icons (`Icons.jsx`). Added `HospitalLiveBar`, `LiveDepartmentGlance`, and `QuickSymptomPills` to streamline triage without walls of text. Fixed flex/grid container alignments to eliminate overflow blowout on cards. Added in-memory MongoDB fallback with auto-seeding in backend for zero-config startup.
 
 > **Maintenance rule:** whenever anything in `frontend/` changes, update this README in the same pull request (structure, screens and a new line in the change history).
 

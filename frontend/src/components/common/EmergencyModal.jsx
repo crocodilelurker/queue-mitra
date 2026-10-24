@@ -4,10 +4,10 @@ import { useI18n } from '../../i18n/index.jsx'
 import { Link } from '../../router.jsx'
 import Modal from './Modal.jsx'
 import ListenButton from './ListenButton.jsx'
+import { Icon } from './Icons.jsx'
 
 /**
- * Emergency guidance. It never judges whether a case is urgent: it always points to Casualty
- * and the emergency numbers. `detail` carries the triage result when a red-flag symptom was typed.
+ * Emergency guidance modal with 1-tap dial buttons, direct Casualty route, and warning indicators.
  */
 export default function EmergencyModal({ open, detail, onClose }) {
   const { t, lang } = useI18n()
@@ -29,39 +29,55 @@ export default function EmergencyModal({ open, detail, onClose }) {
   const spoken = [detail?.directive, headline].filter(Boolean).join('. ')
 
   return (
-    <Modal open={open} onClose={onClose} title={`⚠ ${t.emergency}`} variant="danger">
-      {detail?.directive && <p className="modal__alert">{detail.directive}</p>}
+    <Modal open={open} onClose={onClose} title={t.emergency} variant="danger">
+      {detail?.directive && (
+        <div className="emergency-directive-box">
+          <Icon name="emergency" size={20} />
+          <p>{detail.directive}</p>
+        </div>
+      )}
       {detail?.reason && <p className="modal__reason">{detail.reason}</p>}
       <p className="modal__lead">{headline}</p>
+
       <div className="modal__actions">
         <a className="btn btn--call" href="tel:112">
-          <span aria-hidden="true">📞</span> {t.call112}
+          <Icon name="phone" size={18} />
+          <span>{t.call112}</span>
         </a>
         <a className="btn btn--call" href="tel:108">
-          <span aria-hidden="true">🚑</span> {t.call108}
+          <Icon name="ambulance" size={18} />
+          <span>{t.call108}</span>
         </a>
         {!detail?.inTicketFlow && (
           <Link className="btn btn--primary" to="/new?emergency=1" onClick={onClose}>
-            <span aria-hidden="true">🎟️</span> {t.getEmergencyTicketNow}
+            <Icon name="ticket" size={18} />
+            <span>{t.getEmergencyTicketNow}</span>
           </Link>
         )}
-        <Link className="btn" to="/map?to=emergency_casualty_0" onClick={onClose}>
-          <span aria-hidden="true">🧭</span> {t.goCasualty}
+        <Link className="btn btn--outline" to="/map?to=emergency_casualty_0" onClick={onClose}>
+          <Icon name="compass" size={18} />
+          <span>{t.goCasualty}</span>
         </Link>
         <ListenButton text={spoken} />
       </div>
+
       {signs?.signs?.length > 0 && (
-        <>
+        <div className="modal__warning-section">
           <h3 className="modal__sub">{t.warningSigns}</h3>
           <ul className="modal__signs">
             {signs.signs.map((s) => (
-              <li key={s.key}>{s.reason}</li>
+              <li key={s.key}>
+                <Icon name="alert" size={14} />
+                <span>{s.reason}</span>
+              </li>
             ))}
           </ul>
-        </>
+        </div>
       )}
-      <button type="button" className="btn modal__close" onClick={onClose}>
-        <span aria-hidden="true">✕</span> {t.close}
+
+      <button type="button" className="btn btn--outline modal__close" onClick={onClose}>
+        <Icon name="close" size={16} />
+        <span>{t.close}</span>
       </button>
     </Modal>
   )

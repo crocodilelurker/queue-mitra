@@ -1,51 +1,104 @@
 :root {
-  --bg: #e0e0e0;
-  --surface: #ececec;
-  --paper: #fff;
-  --ink: #1e1e1e;
-  --ink-soft: #444;
-  --danger: #c92a2a;
-  --danger-dark: #9c1f1f;
-  --danger-bg: #ffe3e3;
-  --ok: #2b8a3e;
-  --ok-bg: #d3f9d8;
-  --warn: #b35900;
-  --warn-bg: #ffe8cc;
-  --focus: #1971c2;
-  --route: #1971c2;
+  /* Modern Medical Palette */
+  --bg: #f8fafc;
+  --bg-gradient: radial-gradient(ellipse at 50% 0%, rgba(2, 132, 199, 0.08) 0%, transparent 60%), #f8fafc;
+  --surface: #ffffff;
+  --surface-subtle: #f1f5f9;
+  --surface-hover: #f8fafc;
+  --paper: #ffffff;
 
-  --font: 'Inter Variable', Inter, system-ui, -apple-system, 'Segoe UI', sans-serif;
-  /* Accessibility rules from the brief: body text 18px or more, touch targets 56px or more. */
-  --fs-sm: 1rem;
-  --fs-md: 1.125rem;
-  --fs-lg: 1.35rem;
-  --fs-xl: clamp(1.7rem, 1.2rem + 2vw, 2.6rem);
+  --ink: #0f172a;
+  --ink-soft: #475569;
+  --ink-muted: #94a3b8;
 
+  --primary: #0284c7;
+  --primary-hover: #0369a1;
+  --primary-light: #e0f2fe;
+  --primary-glow: rgba(2, 132, 199, 0.2);
+
+  --teal: #0d9488;
+  --teal-light: #ccfbf1;
+  --indigo: #4f46e5;
+  --indigo-light: #e0e7ff;
+
+  --danger: #dc2626;
+  --danger-dark: #b91c1c;
+  --danger-bg: #fef2f2;
+  --danger-border: #fecaca;
+
+  --ok: #16a34a;
+  --ok-bg: #f0fdf4;
+  --ok-border: #bbf7d0;
+
+  --warn: #d97706;
+  --warn-bg: #fffbeb;
+  --warn-border: #fde68a;
+
+  --focus: #0284c7;
+  --route: #0284c7;
+
+  --font: 'Inter Variable', Inter, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+
+  /* Typography scale */
+  --fs-xs: 0.8125rem;
+  --fs-sm: 0.9375rem;
+  --fs-md: 1.0625rem;
+  --fs-lg: 1.25rem;
+  --fs-xl: clamp(1.75rem, 1.25rem + 2vw, 2.5rem);
+
+  /* Spacing */
   --sp-1: 0.5rem;
   --sp-2: 1rem;
   --sp-3: 1.5rem;
-  --sp-4: 2.5rem;
+  --sp-4: 2.25rem;
+  --sp-5: 3.5rem;
 
-  --radius: 14px;
-  --bw: 2px;
-  --border: var(--bw) solid var(--ink);
-  --tap: 56px;
+  /* Corners & Borders */
+  --radius-xs: 6px;
+  --radius-sm: 10px;
+  --radius: 16px;
+  --radius-lg: 22px;
+  --radius-full: 9999px;
+
+  --bw: 1px;
+  --border-color: #e2e8f0;
+  --border: var(--bw) solid var(--border-color);
+  --border-subtle: 1px solid #edf2f7;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
+  --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.07), 0 2px 4px -2px rgb(0 0 0 / 0.05);
+  --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.08), 0 4px 6px -4px rgb(0 0 0 / 0.04);
+  --shadow-xl: 0 20px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.04);
+  --shadow-glow: 0 0 20px rgba(2, 132, 199, 0.25);
+
+  --tap: 52px;
 }
 
-/* "Large text" preference: everything is sized in rem, so scaling the root scales the whole UI. */
+/* "Large text" preference */
 html[data-large='true'] {
-  font-size: 125%;
+  font-size: 120%;
 }
 
-/* "High contrast" preference. */
+/* "High contrast" preference */
 html[data-contrast='high'] {
-  --bg: #fff;
-  --surface: #fff;
-  --ink: #000;
-  --ink-soft: #000;
-  --danger: #a00000;
-  --danger-bg: #fff;
-  --ok: #005c1a;
-  --warn: #7a3b00;
-  --bw: 3px;
+  --bg: #ffffff;
+  --bg-gradient: #ffffff;
+  --surface: #ffffff;
+  --surface-subtle: #f8fafc;
+  --paper: #ffffff;
+  --ink: #000000;
+  --ink-soft: #111111;
+  --ink-muted: #333333;
+  --border-color: #000000;
+  --border: 2px solid #000000;
+  --primary: #004499;
+  --danger: #990000;
+  --danger-bg: #fff0f0;
+  --ok: #006622;
+  --warn: #994400;
+  --shadow-sm: none;
+  --shadow-md: none;
+  --shadow-lg: none;
+  --shadow-xl: none;
 }

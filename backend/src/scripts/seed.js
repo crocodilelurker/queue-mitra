@@ -126,10 +126,8 @@ const doctors = [
   { name: "Dr. Kavita Joshi", email: "kavita@queuemitra.test", dept: "SKN", room: "Room 8" },
 ];
 
-async function seed() {
-  await connectDB();
-
-  if (process.argv.includes("--reset")) {
+export async function seedData({ reset = false } = {}) {
+  if (reset) {
     await Promise.all([Ticket.deleteMany({}), Counter.deleteMany({})]);
     console.log("Cleared tickets and counters");
   }
@@ -148,7 +146,7 @@ async function seed() {
       { upsert: true, returnDocument: "after" }
     );
   }
-  console.log(`Departments seeded with translations & seating capacity: ${departments.length}`);
+  console.log(`Departments seeded: ${departments.length}`);
 
   for (const doc of doctors) {
     const existing = await User.findOne({ email: doc.email });
@@ -179,12 +177,19 @@ async function seed() {
     });
     console.log(`Staff account created: ${staffEmail}`);
   }
+}
 
+async function seed() {
+  await connectDB();
+  const reset = process.argv.includes("--reset");
+  await seedData({ reset });
   await disconnectDB();
 }
 
-seed().catch(async (err) => {
-  console.error(err);
-  await disconnectDB();
-  process.exit(1);
-});
+if (process.argv[1]?.endsWith("seed.js")) {
+  seed().catch(async (err) => {
+    console.error(err);
+    await disconnectDB();
+    process.exit(1);
+  });
+}

@@ -5,10 +5,10 @@ import { useSpeechRecognition } from '../../hooks/useSpeechRecognition.js'
 import { useI18n } from '../../i18n/index.jsx'
 import { navigate } from '../../router.jsx'
 import { ErrorNote } from '../common/Status.jsx'
+import { Icon } from '../common/Icons.jsx'
 import Field from './Field.jsx'
 
 export const MAX_COMPLAINT_LENGTH = 200
-// The backend has no Casualty queue, so an emergency without a known problem joins General Medicine at the front.
 const DEFAULT_DEPARTMENT = 'MED'
 
 /** Emergency flow, step 2: "disease or problem, if you know it (optional)", then the ticket at once. */
@@ -24,8 +24,6 @@ export default function EmergencyTicketStep({ patient, onBack }) {
     onResult: (spoken) => setComplaint((prev) => (prev ? `${prev} ${spoken}` : spoken).slice(0, MAX_COMPLAINT_LENGTH)),
   })
 
-  // If the patient named the problem, use the suggested department; otherwise (or on any failure) General Medicine.
-  // A failure here must never delay an emergency ticket.
   const chooseDepartment = async (text) => {
     if (!text) return DEFAULT_DEPARTMENT
     try {
@@ -63,7 +61,12 @@ export default function EmergencyTicketStep({ patient, onBack }) {
   }
 
   return (
-    <form className="form" onSubmit={submit} noValidate>
+    <form className="form card" onSubmit={submit} noValidate>
+      <div className="form__header">
+        <h2 className="form__title">{t.emergencyTicketTitle}</h2>
+        <p className="form__subtitle">{t.emergencyTicketBody}</p>
+      </div>
+
       <Field
         multiline
         rows={3}
@@ -71,18 +74,34 @@ export default function EmergencyTicketStep({ patient, onBack }) {
         hint={`${t.complaintHint} (${complaint.length} / ${MAX_COMPLAINT_LENGTH})`}
         value={complaint}
         maxLength={MAX_COMPLAINT_LENGTH}
+        placeholder="Brief description of the urgent symptoms..."
         onChange={(e) => setComplaint(e.target.value)}
       />
-      <button type="button" className="btn" aria-pressed={listening} disabled={!supported} title={supported ? undefined : t.micUnsupported} onClick={listening ? stop : start}>
-        <span aria-hidden="true">{listening ? '■' : '🎙'}</span> {listening ? t.micStop : t.mic}
-      </button>
-      <ErrorNote error={error} />
-      <div className="form__actions">
-        <button type="button" className="btn" onClick={onBack} disabled={busy}>
-          <span aria-hidden="true">←</span> {t.back}
+
+      <div className="symptom-input-tools">
+        <button
+          type="button"
+          className={`tool-pill ${listening ? 'tool-pill--active' : ''}`}
+          aria-pressed={listening}
+          disabled={!supported}
+          title={supported ? undefined : t.micUnsupported}
+          onClick={listening ? stop : start}
+        >
+          <Icon name={listening ? 'mic-stop' : 'mic'} size={15} />
+          <span>{listening ? t.micStop : t.mic}</span>
         </button>
-        <button type="submit" className="btn btn--danger" disabled={busy}>
-          <span aria-hidden="true">🎟️</span> {busy ? t.registering : t.getEmergencyTicket}
+      </div>
+
+      <ErrorNote error={error} />
+
+      <div className="form__actions">
+        <button type="button" className="btn btn--outline" onClick={onBack} disabled={busy}>
+          <Icon name="arrow-left" size={18} />
+          <span>{t.back}</span>
+        </button>
+        <button type="submit" className="btn btn--danger btn--lg" disabled={busy}>
+          <Icon name="emergency" size={18} />
+          <span>{busy ? t.registering : t.getEmergencyTicket}</span>
         </button>
       </div>
     </form>

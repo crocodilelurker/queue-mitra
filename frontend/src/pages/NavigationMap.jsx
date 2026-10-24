@@ -13,6 +13,7 @@ import { useAccess } from '../context/Access.jsx'
 import { useAsync } from '../hooks/useAsync.js'
 import { useI18n } from '../i18n/index.jsx'
 import { useLocation } from '../router.jsx'
+import { Icon } from '../components/common/Icons.jsx'
 
 const DEFAULT_START = 'main_entrance_0'
 const FLOORS = [0, 1, 2]
@@ -67,8 +68,6 @@ export default function NavigationMap() {
     [from, to, avoid, lang]
   )
 
-  // Open with a destination already chosen (from a slip, the emergency modal or a link), and follow the
-  // address if it changes while this page is open (for example "Directions to Casualty" from the modal).
   useEffect(() => {
     if (!map || handledSearch.current === search) return
     handledSearch.current = search
@@ -83,7 +82,6 @@ export default function NavigationMap() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [map, search])
 
-  // Directions are fetched in the chosen language, so refresh them when the language changes.
   const firstLang = useRef(lang)
   useEffect(() => {
     if (firstLang.current === lang) return
@@ -130,16 +128,25 @@ export default function NavigationMap() {
 
   return (
     <Layout wide className="main--map">
-      <h1 className="hero hero--sm">{t.mapTitle}</h1>
+      <div className="page-header">
+        <h1 className="page-header__title">{t.mapTitle}</h1>
+        <p className="page-header__sub">Step-by-step indoor wayfinding with landmark guidance and elevator routing</p>
+      </div>
 
       <div className="map-layout">
-        <section className="box panel map-controls">
+        <section className="card panel map-controls">
+          <div className="map-controls__header">
+            <Icon name="navigation" size={18} />
+            <h2 className="panel__title">Route Planner</h2>
+          </div>
+
           <label className="field__label" htmlFor="map-from">
             {t.from}
           </label>
           <select id="map-from" className="field__control" value={from} onChange={(e) => setFrom(e.target.value)}>
             {byFloor(places)}
           </select>
+
           <label className="field__label" htmlFor="map-to">
             {t.to}
           </label>
@@ -147,17 +154,24 @@ export default function NavigationMap() {
             <option value="">{t.chooseDest}</option>
             {byFloor(destinations)}
           </select>
-          <Toggle icon="♿" label={t.avoidStairs} hint={t.avoidStairsHint} checked={avoid} onChange={toggleAvoid} />
-          <button type="button" className="btn btn--primary" disabled={busy || !to} onClick={() => compute()}>
-            <span aria-hidden="true">🧭</span> {busy ? t.loading : t.showWay}
+
+          <Toggle iconName="map" label={t.avoidStairs} hint={t.avoidStairsHint} checked={avoid} onChange={toggleAvoid} />
+
+          <button type="button" className="btn btn--primary btn--block" disabled={busy || !to} onClick={() => compute()}>
+            <Icon name="compass" size={18} />
+            <span>{busy ? t.loading : t.showWay}</span>
           </button>
+
           {routeError && (
             <div className="status status--error" role="alert">
               <p>{routeError.status === 400 ? (routeError.message === 'destination' ? t.chooseDestFirst : t.noRoute) : routeError.status === 0 ? t.errNetwork : t.errGeneric}</p>
             </div>
           )}
 
-          <h2 className="form__subtitle">{t.checkpointTitle}</h2>
+          <div className="checkpoint-divider">
+            <span className="checkpoint-divider__text">OR SCAN POSTER</span>
+          </div>
+
           <p className="field__hint">{t.checkpointHint}</p>
           <select className="field__control" aria-label={t.checkpointTitle} value={cpId} onChange={(e) => setCpId(e.target.value)}>
             <option value="">{t.chooseCheckpoint}</option>
@@ -167,12 +181,14 @@ export default function NavigationMap() {
               </option>
             ))}
           </select>
-          <button type="button" className="btn" disabled={busy || !cpId || !to} onClick={() => compute({ checkpoint: cpId })}>
-            <span aria-hidden="true">📷</span> {t.scanPoster}
+          <button type="button" className="btn btn--outline btn--block" disabled={busy || !cpId || !to} onClick={() => compute({ checkpoint: cpId })}>
+            <Icon name="camera" size={18} />
+            <span>{t.scanPoster}</span>
           </button>
 
-          <button type="button" className="btn btn--danger" onClick={() => openLost()}>
-            <span aria-hidden="true">🆘</span> {t.imLost}
+          <button type="button" className="btn btn--danger btn--block" onClick={() => openLost()}>
+            <Icon name="emergency" size={18} />
+            <span>{t.imLost}</span>
           </button>
         </section>
 
@@ -185,15 +201,25 @@ export default function NavigationMap() {
               </button>
             ))}
           </div>
-          <div className="box map-box">
+
+          <div className="card map-box">
             <FloorMap places={places} edges={map.edges} floor={floor} route={route} startId={startPlace?.id} endId={to} onPick={(p) => setTo(p.id)} />
           </div>
 
           {route && (
-            <div className="box panel">
-              <h2 className="form__title">{t.directions}</h2>
-              <p>{f('routeSummary', { m: route.totalDistanceMeters, n: route.estimatedWalkMinutes })}</p>
-              {route.avoidStairsUsed && <p className="badge badge--ok">♿ {t.routeNoStairs}</p>}
+            <div className="card panel route-summary-panel">
+              <div className="route-summary-panel__header">
+                <div>
+                  <h2 className="panel__title">{t.directions}</h2>
+                  <p className="field__hint">{f('routeSummary', { m: route.totalDistanceMeters, n: route.estimatedWalkMinutes })}</p>
+                </div>
+                {route.avoidStairsUsed && (
+                  <span className="badge badge--ok">
+                    <Icon name="check" size={13} />
+                    <span>{t.routeNoStairs}</span>
+                  </span>
+                )}
+              </div>
               <RouteSteps steps={route.steps} places={places} />
               <ListenButton text={listenText} />
             </div>
@@ -234,8 +260,9 @@ export default function NavigationMap() {
             )}
           </>
         )}
-        <button type="button" className="btn modal__close" onClick={() => setLostOpen(false)}>
-          <span aria-hidden="true">✕</span> {t.close}
+        <button type="button" className="btn btn--outline modal__close" onClick={() => setLostOpen(false)}>
+          <Icon name="close" size={16} />
+          <span>{t.close}</span>
         </button>
       </Modal>
     </Layout>
