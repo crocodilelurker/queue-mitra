@@ -4,6 +4,7 @@ import { useI18n } from '../i18n/index.jsx'
 import { navigate } from '../router.jsx'
 import Field from './new/Field.jsx'
 import Modal from './common/Modal.jsx'
+import { Icon } from './common/Icons.jsx'
 
 /** "I have my slip": find today's ticket from the printed token number (for example MED-001). */
 export default function SlipLookup({ open, onClose }) {
@@ -39,17 +40,19 @@ export default function SlipLookup({ open, onClose }) {
             setError('')
           }}
           error={error}
-          placeholder="MED-001"
+          placeholder="e.g. MED-001, ENT-004"
           autoCapitalize="characters"
           autoComplete="off"
           maxLength={12}
         />
         <div className="form__actions">
-          <button type="button" className="btn" onClick={onClose}>
-            <span aria-hidden="true">✕</span> {t.close}
+          <button type="button" className="btn btn--outline" onClick={onClose}>
+            <Icon name="close" size={16} />
+            <span>{t.close}</span>
           </button>
           <button type="submit" className="btn btn--primary" disabled={busy}>
-            <span aria-hidden="true">🎟️</span> {busy ? t.loading : t.findTicket}
+            <Icon name="search" size={16} />
+            <span>{busy ? t.loading : t.findTicket}</span>
           </button>
         </div>
       </form>

@@ -1,19 +1,31 @@
 import { useI18n } from '../../i18n/index.jsx'
+import { Icon } from './Icons.jsx'
 
-export const DEPARTMENT_ICONS = { MED: '🩺', CHD: '🧒', WOM: '🤰', ORT: '🦴', ENT: '👂', EYE: '👁️', SKN: '🧴' }
-
-/** Picture card for one department, described in plain words. */
+/** Picture card for one department with crisp SVG icon and clean visual state. */
 export default function DepartmentCard({ department, selected, onSelect }) {
   const { deptName, deptDesc } = useI18n()
+  const code = department.code.toLowerCase()
+
   return (
-    <button type="button" className="dept-card" aria-pressed={selected} onClick={() => onSelect(department.code)}>
-      <span className="dept-card__icon" aria-hidden="true">
-        {DEPARTMENT_ICONS[department.code] || '🏥'}
-      </span>
-      <span className="dept-card__text">
-        <strong>{deptName(department)}</strong>
-        <span>{deptDesc(department)}</span>
-      </span>
+    <button
+      type="button"
+      className={`dept-card ${selected ? 'dept-card--selected' : ''}`}
+      aria-pressed={selected}
+      onClick={() => onSelect(department.code)}
+    >
+      <div className={`dept-card__icon-box dept-card__icon-box--${code}`}>
+        <Icon name={code} size={24} />
+      </div>
+      <div className="dept-card__text">
+        <strong className="dept-card__title">{deptName(department)}</strong>
+        <span className="dept-card__desc">{deptDesc(department)}</span>
+        <span className="dept-card__meta">
+          {department.rooms?.[0] ? `Room ${department.rooms[0]} • Floor ${department.floor}` : `Floor ${department.floor}`}
+        </span>
+      </div>
+      <div className="dept-card__check" aria-hidden="true">
+        {selected ? <Icon name="check" size={16} /> : <span className="dept-card__dot" />}
+      </div>
     </button>
   )
 }

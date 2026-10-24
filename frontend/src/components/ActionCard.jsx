@@ -1,19 +1,24 @@
 import { Link } from '../router.jsx'
+import { Icon } from './common/Icons.jsx'
 
-/** Large primary action: icon, bold label and one line of help. Renders a link or a button. */
-export default function ActionCard({ icon, title, hint, to, onClick }) {
+/** Modern action card: crisp SVG icon, bold label, clear microcopy, and sleek chevron arrow. */
+export default function ActionCard({ iconName = 'ticket', icon, title, hint, to, onClick, variant = 'primary' }) {
   const body = (
     <>
-      <span className="action__icon" aria-hidden="true">
-        {icon}
-      </span>
-      <span className="action__text">
-        <strong>{title}</strong>
-        <span>{hint}</span>
-      </span>
+      <div className={`action__icon-badge action__icon-badge--${variant}`}>
+        {iconName ? <Icon name={iconName} size={26} /> : <span className="action__icon-fallback">{icon}</span>}
+      </div>
+      <div className="action__text">
+        <strong className="action__title">{title}</strong>
+        <span className="action__hint">{hint}</span>
+      </div>
+      <div className="action__arrow" aria-hidden="true">
+        <Icon name="arrow-right" size={20} />
+      </div>
     </>
   )
-  const className = 'action'
+
+  const className = `action card action--${variant}`
   return to ? (
     <Link to={to} className={className}>
       {body}

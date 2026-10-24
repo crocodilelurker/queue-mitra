@@ -14,6 +14,7 @@ import { useI18n } from '../i18n/index.jsx'
 import { Link } from '../router.jsx'
 import { formatTime } from '../utils/format.js'
 import { chime, vibrate } from '../utils/sound.js'
+import { Icon } from '../components/common/Icons.jsx'
 
 function DoctorLine({ doctor }) {
   const { t, f, lang } = useI18n()
@@ -25,7 +26,11 @@ function DoctorLine({ doctor }) {
   }[doctor.state]
   return (
     <li className={`doc doc--${doctor.state}`}>
-      <strong>{doctor.name}</strong> · {doctor.room} · {status}
+      <div className="doc__indicator" />
+      <div className="doc__details">
+        <strong>{doctor.name}</strong>
+        <span>Room {doctor.room} · {status}</span>
+      </div>
     </li>
   )
 }
@@ -48,7 +53,6 @@ export default function MyTurn({ publicId }) {
   const hospitalCode = ticket?.hospital.code
   const deptCode = ticket?.department.code
 
-  // Doctor status and room list come from the department queue (public endpoint).
   useEffect(() => {
     if (!deptCode) return
     api.departmentQueue(deptCode, hospitalCode).then(setQueue).catch(() => {})
@@ -65,7 +69,6 @@ export default function MyTurn({ publicId }) {
   const onPosition = useCallback(
     (d) => {
       if (d.publicId !== publicId) return
-      // Alert when the patient moves to 3 or fewer ahead (sound + vibration; the banner stays on screen).
       if (d.peopleAhead <= 3 && lastAhead.current !== null && lastAhead.current > 3) {
         chime()
         vibrate()
@@ -106,7 +109,6 @@ export default function MyTurn({ publicId }) {
     },
   })
 
-  // After a dropped connection, refresh once so nothing is missed.
   const wasConnected = useRef(false)
   useEffect(() => {
     if (connected && wasConnected.current) reload(true)
@@ -149,25 +151,40 @@ export default function MyTurn({ publicId }) {
   return (
     <Layout>
       <SmsToast sms={toast} onClose={closeToast} />
-      <div className="turn-head">
-        <p className="turn-head__token">{ticket.tokenNumber}</p>
-        <p>
-          {ticket.firstName} · {dept}
-        </p>
-        <p className="field__hint" aria-live="off">
-          <span className={`live live--${connected ? 'on' : 'off'}`} aria-hidden="true" /> {connected ? t.liveOn : t.liveOff}
-          {updatedAt && ` · ${f('updatedAt', { time: formatTime(updatedAt, lang) })}`}
-        </p>
+
+      <div className="turn-hero card">
+        <div className="turn-hero__top">
+          <div className="turn-hero__badge">
+            <span className="slip__token-label">YOUR TOKEN</span>
+            <span className="turn-hero__token">{ticket.tokenNumber}</span>
+          </div>
+          <div className="turn-hero__status">
+            <span className={`live-beacon ${connected ? 'live-beacon--connected' : ''}`}>
+              <span className="live-beacon__dot" />
+              <span>{connected ? t.liveOn : t.liveOff}</span>
+            </span>
+            {updatedAt && <span className="turn-hero__sync">{f('updatedAt', { time: formatTime(updatedAt, lang) })}</span>}
+          </div>
+        </div>
+
+        <div className="turn-hero__patient">
+          <strong>{ticket.firstName}</strong>
+          <span>{dept} · Floor {floor}</span>
+        </div>
       </div>
 
       {ticket.isEmergency && (status === 'waiting' || status === 'called') && <EmergencyTicketNotice />}
 
       {status === 'called' && (
-        <section className="turn-card turn-card--called" role="alert">
-          <h1>{t.yourTurn}</h1>
-          <p>{f('yourTurnBody', { room: ticket.room, doctor: ticket.doctorName || '' })}</p>
-          <Link className="btn btn--primary" to={mapLink}>
-            <span aria-hidden="true">🚶</span> {t.guideRoom}
+        <section className="turn-card turn-card--called card" role="alert">
+          <div className="turn-card__called-icon">
+            <Icon name="bell" size={32} />
+          </div>
+          <h1 className="turn-card__called-title">{t.yourTurn}</h1>
+          <p className="turn-card__called-desc">{f('yourTurnBody', { room: ticket.room, doctor: ticket.doctorName || '' })}</p>
+          <Link className="btn btn--primary btn--lg" to={mapLink}>
+            <Icon name="map-pin" size={20} />
+            <span>{t.guideRoom}</span>
           </Link>
         </section>
       )}
@@ -175,35 +192,69 @@ export default function MyTurn({ publicId }) {
       {status === 'waiting' && (
         <>
           {ahead !== null && ahead <= 3 && (
-            <section className="turn-card turn-card--close" role="alert">
-              <strong>{f('closeAlert', { room, floor })}</strong>
+            <section className="turn-alert-banner card" role="alert">
+              <Icon name="bell" size={22} />
+              <div>
+                <strong>Turn Approaching!</strong>
+                <p>{f('closeAlert', { room, floor })}</p>
+              </div>
             </section>
           )}
-          <section className="turn-card" aria-live="polite">
-            <p className="turn-card__big">{ahead}</p>
-            <p>{ahead === 0 ? t.youAreNext : ahead === 1 ? t.aheadOne : f('aheadMany', { n: ahead })}</p>
-            <p className="turn-card__wait">{f('aboutMin', { n: ticket.estimatedWaitMinutes })}</p>
-            {ticket.nowServing?.length > 0 && (
-              <p className="field__hint">
-                {t.nowServing}: {ticket.nowServing.map((n) => `${n.tokenNumber} (${n.room})`).join(', ')}
-              </p>
-            )}
-            <p className="field__hint">
-              {t.goTo}: {room} · {f('floorN', { n: floor })}
-            </p>
+
+          <section className="turn-metrics card" aria-live="polite">
+            <div className="turn-metrics__ahead-box">
+              <span className="turn-metrics__number">{ahead}</span>
+              <span className="turn-metrics__label">
+                {ahead === 0 ? t.youAreNext : ahead === 1 ? t.aheadOne : f('aheadMany', { n: ahead })}
+              </span>
+            </div>
+
+            <div className="turn-metrics__wait-chip">
+              <Icon name="clock" size={16} />
+              <span>{f('aboutMin', { n: ticket.estimatedWaitMinutes })}</span>
+            </div>
+
+            <div className="turn-metrics__meta">
+              {ticket.nowServing?.length > 0 && (
+                <div className="turn-metrics__meta-row">
+                  <span className="meta-label">{t.nowServing}:</span>
+                  <strong>{ticket.nowServing.map((n) => `${n.tokenNumber} (${n.room})`).join(', ')}</strong>
+                </div>
+              )}
+              <div className="turn-metrics__meta-row">
+                <span className="meta-label">{t.goTo}:</span>
+                <strong>{room} · {f('floorN', { n: floor })}</strong>
+              </div>
+            </div>
+
+            <Link className="btn btn--primary btn--block" to={mapLink}>
+              <Icon name="compass" size={18} />
+              <span>{t.directionsToRoom}</span>
+            </Link>
           </section>
-          <Link className="btn" to={mapLink}>
-            <span aria-hidden="true">🚶</span> {t.directionsToRoom}
-          </Link>
         </>
       )}
 
-      {status === 'completed' && <section className="turn-card">{t.finished}</section>}
-      {status === 'no_show' && <section className="turn-card turn-card--close">{t.noShow}</section>}
+      {status === 'completed' && (
+        <section className="turn-card card text-center">
+          <Icon name="check" size={36} color="#16a34a" />
+          <p className="mt-2 font-semibold">{t.finished}</p>
+        </section>
+      )}
+
+      {status === 'no_show' && (
+        <section className="turn-card card text-center">
+          <Icon name="alert" size={36} color="#dc2626" />
+          <p className="mt-2 font-semibold">{t.noShow}</p>
+        </section>
+      )}
 
       {queue?.doctors?.length > 0 && (
-        <section className="box panel">
-          <h2 className="form__title">{t.doctorStatus}</h2>
+        <section className="card panel">
+          <h2 className="panel__title">
+            <Icon name="doctor" size={18} />
+            <span>{t.doctorStatus}</span>
+          </h2>
           <ul className="doc-list">
             {queue.doctors.map((d) => (
               <DoctorLine key={d.name} doctor={d} />
@@ -214,43 +265,47 @@ export default function MyTurn({ publicId }) {
 
       {(ticket.urgentRaised || urgentSeen) && (
         <section className="emergency-note" role="status">
+          <Icon name="alert" size={18} />
           <p>{urgentSeen && !ticket.urgentRaised ? t.urgentSeen : t.urgentSent}</p>
         </section>
       )}
 
-      <details className="box panel" open={messages.length > 0 && messages.length < 3}>
-        <summary>
-          <span aria-hidden="true">💬</span> {t.smsTitle} ({messages.length})
+      <details className="card panel" open={messages.length > 0 && messages.length < 3}>
+        <summary className="panel__summary">
+          <Icon name="chat" size={18} />
+          <span>{t.smsTitle} ({messages.length})</span>
         </summary>
         {messages.length === 0 ? (
-          <p className="field__hint">{t.noMessages}</p>
+          <p className="field__hint mt-2">{t.noMessages}</p>
         ) : (
           <ul className="sms-list">
             {messages.map((m) => (
-              <li key={m.id}>
-                <span className="field__hint">{formatTime(m.sentAt, lang)}</span>
-                <p>{pick(m.message)}</p>
+              <li key={m.id} className="sms-list__item">
+                <span className="sms-list__time">{formatTime(m.sentAt, lang)}</span>
+                <p className="sms-list__body">{pick(m.message)}</p>
               </li>
             ))}
           </ul>
         )}
       </details>
 
-      <details className="box panel">
-        <summary>
-          <span aria-hidden="true">♿</span> {t.prefsTitle}
+      <details className="card panel">
+        <summary className="panel__summary">
+          <Icon name="user" size={18} />
+          <span>{t.prefsTitle}</span>
         </summary>
-        <div className="toggles">
-          <Toggle icon="♿" label={t.prefAvoidStairs} checked={prefs.avoidStairs} onChange={(v) => savePref('avoidStairs', v)} />
-          <Toggle icon="🔠" label={t.prefLargeText} checked={prefs.largeText} onChange={(v) => savePref('largeText', v)} />
-          <Toggle icon="🔊" label={t.prefReadAloud} checked={prefs.readAloud} onChange={(v) => savePref('readAloud', v)} />
-          <Toggle icon="◐" label={t.prefHighContrast} checked={prefs.highContrast} onChange={(v) => savePref('highContrast', v)} />
+        <div className="toggles mt-2">
+          <Toggle iconName="map" label={t.prefAvoidStairs} checked={prefs.avoidStairs} onChange={(v) => savePref('avoidStairs', v)} />
+          <Toggle iconName="sparkles" label={t.prefLargeText} checked={prefs.largeText} onChange={(v) => savePref('largeText', v)} />
+          <Toggle iconName="speaker" label={t.prefReadAloud} checked={prefs.readAloud} onChange={(v) => savePref('readAloud', v)} />
+          <Toggle iconName="eye" label={t.prefHighContrast} checked={prefs.highContrast} onChange={(v) => savePref('highContrast', v)} />
         </div>
       </details>
 
       {(status === 'waiting' || status === 'called') && (
         <button type="button" className="btn btn--danger btn--block" onClick={() => setUrgentOpen(true)}>
-          <span aria-hidden="true">🆘</span> {t.urgentBtn}
+          <Icon name="emergency" size={18} />
+          <span>{t.urgentBtn}</span>
         </button>
       )}
 
@@ -258,11 +313,13 @@ export default function MyTurn({ publicId }) {
         <p>{t.urgentConfirm}</p>
         <ErrorNote error={urgentError} />
         <div className="form__actions">
-          <button type="button" className="btn" onClick={() => setUrgentOpen(false)} disabled={urgentBusy}>
-            <span aria-hidden="true">✕</span> {t.cancel}
+          <button type="button" className="btn btn--outline" onClick={() => setUrgentOpen(false)} disabled={urgentBusy}>
+            <Icon name="close" size={16} />
+            <span>{t.cancel}</span>
           </button>
           <button type="button" className="btn btn--danger" onClick={raiseUrgent} disabled={urgentBusy}>
-            <span aria-hidden="true">🆘</span> {urgentBusy ? t.loading : t.urgentYes}
+            <Icon name="emergency" size={16} />
+            <span>{urgentBusy ? t.loading : t.urgentYes}</span>
           </button>
         </div>
       </Modal>
