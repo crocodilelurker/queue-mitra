@@ -19,7 +19,8 @@ export default function FollowUpManager() {
   )
 
   // Filter for follow-up appointments or appointments with followUpDate
-  const followUps = (allAppointments || []).filter((apt) => {
+  const aptList = Array.isArray(allAppointments) ? allAppointments : allAppointments?.appointments || []
+  const followUps = aptList.filter((apt) => {
     const isFollowUp = apt.type === 'follow_up' || Boolean(apt.followUpDate)
     if (!isFollowUp) return false
 
@@ -54,6 +55,15 @@ export default function FollowUpManager() {
     }
   }
 
+  const today = new Date()
+  const dueSoon = followUps.filter((f) => {
+    const dStr = f.followUpDate || f.appointmentDate
+    if (!dStr) return false
+    const fDate = new Date(dStr)
+    const diffDays = Math.ceil((fDate - today) / (1000 * 60 * 60 * 24))
+    return diffDays >= 0 && diffDays <= 7 && f.status !== 'completed'
+  })
+
   return (
     <AdminLayout>
       {/* 1. Page Header (Screenshot 2) */}
@@ -76,15 +86,24 @@ export default function FollowUpManager() {
       </div>
 
       {/* 2. Yellow Reminder Alert Banner (Screenshot 2) */}
-      <div className="followup-reminder-banner" role="alert">
-        <div className="followup-reminder-title">
-          <Icon name="clock" size={16} color="#854d0e" />
-          <span>Reminders: 1 follow-up due within 2 days</span>
+      {dueSoon.length > 0 ? (
+        <div className="followup-reminder-banner" role="alert">
+          <div className="followup-reminder-title">
+            <Icon name="clock" size={16} color="#854d0e" />
+            <span>Reminders: {dueSoon.length} follow-up{dueSoon.length !== 1 ? 's' : ''} due this week</span>
+          </div>
+          <div className="followup-reminder-sub">
+            {dueSoon[0]?.patientName} ({dueSoon[0]?.followUpDate || dueSoon[0]?.appointmentDate})
+          </div>
         </div>
-        <div className="followup-reminder-sub">
-          {followUps[0]?.patientName || 'Rahul Desai'} ({followUps[0]?.appointmentDate || '2026-10-31'})
+      ) : (
+        <div className="followup-reminder-banner" style={{ background: '#f0fdf4', borderColor: '#bbf7d0' }} role="status">
+          <div className="followup-reminder-title" style={{ color: '#166534' }}>
+            <Icon name="check-circle" size={16} color="#166534" />
+            <span>All scheduled patient follow-up reviews are up to date</span>
+          </div>
         </div>
-      </div>
+      )}
 
       {/* 3. Filter Toolbar (Screenshot 2) */}
       <div className="followup-filter-box">

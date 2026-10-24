@@ -31,6 +31,8 @@ export default function BillingManager() {
     [statusFilter, searchTerm]
   )
 
+  const billList = Array.isArray(bills) ? bills : bills?.bills || []
+
   const reloadAll = () => {
     reloadSummary(true)
     reloadBills(true)
@@ -55,44 +57,44 @@ export default function BillingManager() {
         </button>
       </div>
 
-      {/* Financial Overview KPI Cards */}
-      <div className="admin-metrics-grid">
-        <div className="metric-card metric-card--primary">
-          <div className="metric-card__header">
-            <span className="metric-card__label">Total Invoiced</span>
-            <span className="metric-card__icon"><Icon name="bill" size={18} /></span>
+      {/* Financial Overview Pastel Metric Cards */}
+      <section className="mediflow-metrics-grid" style={{ marginBottom: '1.5rem' }}>
+        <div className="pastel-metric-card pastel-card--blue">
+          <div className="pastel-card__icon">
+            <Icon name="bill" size={18} />
           </div>
-          <div className="metric-card__value">₹{summary?.totalBilled ?? 0}</div>
-          <div className="metric-card__hint">{summary?.invoiceCount ?? 0} Consultations Invoiced</div>
+          <div className="pastel-card__value">₹{summary?.totalBilled ?? 0}</div>
+          <div className="pastel-card__label">Total Invoiced</div>
+          <div className="pastel-card__sub">{summary?.invoiceCount ?? 0} Consultations</div>
         </div>
 
-        <div className="metric-card metric-card--ok">
-          <div className="metric-card__header">
-            <span className="metric-card__label">Revenue Collected</span>
-            <span className="metric-card__icon"><Icon name="check-circle" size={18} /></span>
+        <div className="pastel-metric-card pastel-card--green">
+          <div className="pastel-card__icon">
+            <Icon name="check-circle" size={18} />
           </div>
-          <div className="metric-card__value">₹{summary?.totalCollected ?? 0}</div>
-          <div className="metric-card__hint">{summary?.paidCount ?? 0} Cash & UPI Transactions</div>
+          <div className="pastel-card__value">₹{summary?.totalCollected ?? 0}</div>
+          <div className="pastel-card__label">Revenue Collected</div>
+          <div className="pastel-card__sub">{summary?.paidCount ?? 0} Paid Bills</div>
         </div>
 
-        <div className="metric-card metric-card--indigo">
-          <div className="metric-card__header">
-            <span className="metric-card__label">Subsidies & Waivers</span>
-            <span className="metric-card__icon"><Icon name="sparkles" size={18} /></span>
+        <div className="pastel-metric-card pastel-card--purple">
+          <div className="pastel-card__icon">
+            <Icon name="sparkles" size={18} />
           </div>
-          <div className="metric-card__value">₹{summary?.totalWaived ?? 0}</div>
-          <div className="metric-card__hint">{summary?.waivedCount ?? 0} Ayushman / Casualty Waivers</div>
+          <div className="pastel-card__value">₹{summary?.totalWaived ?? 0}</div>
+          <div className="pastel-card__label">Subsidies & Waivers</div>
+          <div className="pastel-card__sub">{summary?.waivedCount ?? 0} Exemptions</div>
         </div>
 
-        <div className="metric-card metric-card--warn">
-          <div className="metric-card__header">
-            <span className="metric-card__label">Pending Dues</span>
-            <span className="metric-card__icon"><Icon name="clock" size={18} /></span>
+        <div className="pastel-metric-card pastel-card--pink">
+          <div className="pastel-card__icon">
+            <Icon name="clock" size={18} />
           </div>
-          <div className="metric-card__value">₹{summary?.totalPending ?? 0}</div>
-          <div className="metric-card__hint">{summary?.pendingCount ?? 0} Patients at Billing Counter</div>
+          <div className="pastel-card__value">₹{summary?.totalPending ?? 0}</div>
+          <div className="pastel-card__label">Pending Dues</div>
+          <div className="pastel-card__sub">{summary?.pendingCount ?? 0} Unpaid</div>
         </div>
-      </div>
+      </section>
 
       {/* Invoices Ledger Table */}
       <div className="admin-table-container">
@@ -146,14 +148,14 @@ export default function BillingManager() {
               </tr>
             </thead>
             <tbody>
-              {bills?.length === 0 ? (
+              {billList.length === 0 ? (
                 <tr>
                   <td colSpan={9} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--ink-muted)' }}>
                     No billing records found matching your filters.
                   </td>
                 </tr>
               ) : (
-                bills?.map((bill) => (
+                billList.map((bill) => (
                   <tr key={bill._id}>
                     <td>
                       <span className="profile-id-badge">{bill.invoiceNumber}</span>

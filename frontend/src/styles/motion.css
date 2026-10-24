@@ -174,23 +174,9 @@
 
 @media (prefers-reduced-motion: no-preference) {
   /* Each route renders a fresh page (App.jsx keys it by path), so this plays on every navigation. */
-  .page {
-    animation: fade-in var(--dur-med) var(--ease-out) backwards;
-  }
-  .main > * {
-    animation: fade-up var(--dur-slow) var(--ease-out) backwards;
-  }
-  .main > *:nth-child(2) {
-    animation-delay: 50ms;
-  }
-  .main > *:nth-child(3) {
-    animation-delay: 100ms;
-  }
-  .main > *:nth-child(4) {
-    animation-delay: 150ms;
-  }
-  .main > *:nth-child(n + 5) {
-    animation-delay: 200ms;
+  .page,
+  .main {
+    animation: fade-in var(--dur-med) var(--ease-out);
   }
 
   /* Cards and rows in a group arrive one after another. */
@@ -334,15 +320,7 @@
     animation: bell-ring 1.2s ease-in-out 0.4s 3;
   }
 
-  /* Scroll reveal: lower sections rise into place as they enter the viewport (supported browsers only;
-     others keep the load animation above). */
-  @supports (animation-timeline: view()) {
-    .main > *:nth-child(n + 4) {
-      animation: reveal-up linear both;
-      animation-timeline: view();
-      animation-range: entry 0% entry 38%;
-    }
-  }
+  /* Scroll reveal removed: animation-timeline: view() caused elements on initial load to remain hidden with opacity: 0 */
 }
 
 /* Reduced motion: no animation at all, and transitions reduced to an instant change. */

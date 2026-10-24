@@ -98,8 +98,8 @@ export default function WaitingBoard() {
     join: hospital ? [['board:join', hospital.hospital._id]] : [],
     on: { 'queue:updated': refresh, 'token:called': onCalled },
   })
-
-  const byDept = (codes) => codes.flatMap((c) => rooms.current.filter((r) => r.departmentCode === c))
+  const roomList = data?.rooms ?? []
+  const byDept = (codes) => codes.flatMap((c) => roomList.filter((r) => r.departmentCode === c))
 
   return (
     <div className="board">

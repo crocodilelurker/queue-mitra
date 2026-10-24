@@ -31,25 +31,34 @@ function ConsultTimer({ since }) {
 }
 
 export default function DoctorDashboard() {
-  const { user, signIn, signOut } = useStaffSession()
-  const { currentUser, loginAsDoctor } = useAuth()
+  const { user, signOut } = useStaffSession()
+  const { currentUser, loginAsDoctor, logout } = useAuth()
   const activeDoctorUser = user?.role === 'doctor' ? user : currentUser?.role === 'doctor' ? currentUser : null
+
+  const handleSignOut = async () => {
+    signOut()
+    await logout()
+  }
 
   // If not logged in as doctor, display clean chamber selector
   if (!activeDoctorUser) {
-    return <DoctorChamberSelector onSelectDoctor={async (doc) => {
-      try {
-        const res = await api.login(doc.email, 'doctor123')
-        session.set(res.token)
-        reconnectSocket()
-        window.location.reload()
-      } catch {
-        await loginAsDoctor(doc)
-      }
-    }} />
+    return (
+      <DoctorChamberSelector
+        onSelectDoctor={async (doc) => {
+          try {
+            const res = await api.login(doc.email, 'doctor123')
+            session.set(res.token)
+            reconnectSocket()
+          } catch {
+            /* use local doctor fallback */
+          }
+          await loginAsDoctor(doc)
+        }}
+      />
+    )
   }
 
-  return <DoctorChamberWorkspace doctor={activeDoctorUser} onSignOut={signOut} />
+  return <DoctorChamberWorkspace doctor={activeDoctorUser} onSignOut={handleSignOut} />
 }
 
 /** Doctor Chamber Workspace Component */

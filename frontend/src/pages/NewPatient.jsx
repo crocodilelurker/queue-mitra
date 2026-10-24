@@ -32,7 +32,7 @@ export default function NewPatient() {
   const { openEmergency } = useEmergency()
   const { search } = useLocation()
   const emergency = new URLSearchParams(search).get('emergency') === '1'
-  const preset = new URLSearchParams(window.location.search).get('dept')?.toUpperCase() || null
+  const preset = new URLSearchParams(search).get('dept')?.toUpperCase() || null
 
   const [step, setStep] = useState('info') // info | know | dept | describe | review | complaint
   const [patient, setPatient] = useState(EMPTY_PATIENT)

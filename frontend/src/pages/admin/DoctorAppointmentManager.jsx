@@ -35,6 +35,9 @@ export default function DoctorAppointmentManager() {
     [selectedStatus, selectedDept]
   )
 
+  const doctorList = Array.isArray(doctors) ? doctors : doctors?.doctors || []
+  const aptList = Array.isArray(appointmentsList) ? appointmentsList : appointmentsList?.appointments || []
+
   // Handle URL query parameters (e.g. ?book=1&patientId=CDH-P-1001)
   const [presetPatient, setPresetPatient] = useState(null)
   useEffect(() => {
@@ -104,8 +107,9 @@ export default function DoctorAppointmentManager() {
           Active Doctor Chambers & Specialties
         </h3>
         <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))', gap: '1rem' }}>
-          {doctors?.map((doc) => {
-            const isOnDuty = doc.status === 'on_duty' || doc.status === 'in_consultation'
+          {doctorList.map((doc) => {
+            const statusStr = typeof doc.status === 'string' ? doc.status : doc.status?.state || 'available'
+            const isOnDuty = statusStr === 'on_duty' || statusStr === 'available' || statusStr === 'in_consultation'
             return (
               <div
                 key={doc._id}
@@ -127,8 +131,8 @@ export default function DoctorAppointmentManager() {
                       {doc.specialty || 'General Medicine'}
                     </div>
                   </div>
-                  <span className={`status-pill status-pill--${doc.status}`}>
-                    {doc.status?.replace('_', ' ')}
+                  <span className={`status-pill status-pill--${statusStr}`}>
+                    {statusStr.replace('_', ' ')}
                   </span>
                 </div>
 
@@ -228,14 +232,14 @@ export default function DoctorAppointmentManager() {
               </tr>
             </thead>
             <tbody>
-              {appointmentsList?.length === 0 ? (
+              {aptList.length === 0 ? (
                 <tr>
                   <td colSpan={8} style={{ textAlign: 'center', padding: '2.5rem', color: 'var(--ink-muted)' }}>
                     No appointments found matching your filters.
                   </td>
                 </tr>
               ) : (
-                appointmentsList?.map((apt) => (
+                aptList.map((apt) => (
                   <tr key={apt._id}>
                     <td>
                       <span className="profile-id-badge">{apt.appointmentId}</span>
@@ -349,7 +353,7 @@ export default function DoctorAppointmentManager() {
       {isBookOpen && (
         <BookingModal
           presetPatient={presetPatient}
-          doctors={doctors}
+          doctors={doctorList}
           onClose={() => setIsBookOpen(false)}
           onSuccess={(res) => {
             setIsBookOpen(false)

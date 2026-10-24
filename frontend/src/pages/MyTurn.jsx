@@ -23,7 +23,7 @@ function DoctorLine({ doctor }) {
     on_break: f('docBreak', { time: formatTime(doctor.until, lang) }),
     running_late: f('docLate', { n: doctor.delayMinutes }),
     offline: t.docOffline,
-  }[doctor.state]
+  }[doctor.state] || t.docInRoom
   return (
     <li className={`doc doc--${doctor.state}`}>
       <div className="doc__indicator" />

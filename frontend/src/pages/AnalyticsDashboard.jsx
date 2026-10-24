@@ -34,13 +34,18 @@ export default function AnalyticsDashboard() {
   if (loading) return <Layout><Loading /></Layout>
   if (error && !data) return <Layout><ErrorNote error={error} onRetry={reload} /></Layout>
 
-  const { overview, emergencySLA, languages, hourlyTraffic, departmentHeatmap } = data
+  const overview = data?.overview || {}
+  const emergencySLA = data?.emergencySLA || { averageResponseTimeSeconds: 0, flagsResolved: 0, targetSlaSeconds: 60, totalUrgentFlagsRaised: 0 }
+  const languages = data?.languages || {}
+  const hourlyTraffic = data?.hourlyTraffic || {}
+  const departmentHeatmap = data?.departmentHeatmap || []
+
   const hourly = Object.entries(hourlyTraffic)
   const maxHour = Math.max(1, ...hourly.map(([, v]) => v))
   const maxLang = Math.max(1, ...Object.values(languages))
-  const assistedPct = overview.totalPatientsToday ? Math.round((overview.assistedCount / overview.totalPatientsToday) * 100) : 0
-  const sla = emergencySLA.averageResponseTimeSeconds
-  const slaOk = emergencySLA.flagsResolved === 0 || sla <= emergencySLA.targetSlaSeconds
+  const assistedPct = overview.totalPatientsToday ? Math.round(((overview.assistedCount || 0) / overview.totalPatientsToday) * 100) : 0
+  const sla = emergencySLA.averageResponseTimeSeconds || 0
+  const slaOk = emergencySLA.flagsResolved === 0 || sla <= (emergencySLA.targetSlaSeconds || 60)
 
   const cards = [
     ['Registered today', overview.totalPatientsToday],

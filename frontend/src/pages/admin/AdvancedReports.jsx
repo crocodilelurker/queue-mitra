@@ -30,19 +30,20 @@ export default function AdvancedReports() {
   }
 
   const { kpis, liveQueueMatrix, doctors, financialSummary } = overview || {}
+  const aptList = Array.isArray(appointments) ? appointments : appointments?.appointments || []
 
   // Compute departmental volumes from appointments
   const deptCounts = {}
-  ;(appointments || []).forEach((apt) => {
+  aptList.forEach((apt) => {
     const code = apt.departmentCode || 'general'
     deptCounts[code] = (deptCounts[code] || 0) + 1
   })
 
-  const totalConsultations = appointments?.length || 1
+  const totalConsultations = aptList.length || 1
 
   // Compute common diagnoses
   const diagnosisCounts = {}
-  ;(appointments || []).forEach((apt) => {
+  aptList.forEach((apt) => {
     if (apt.diagnosis) {
       diagnosisCounts[apt.diagnosis] = (diagnosisCounts[apt.diagnosis] || 0) + 1
     }

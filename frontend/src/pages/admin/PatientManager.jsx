@@ -54,6 +54,8 @@ export default function PatientManager() {
     }
   }
 
+  const patientList = Array.isArray(patients) ? patients : patients?.patients || []
+
   return (
     <AdminLayout>
       {/* 1. Page Header (Screenshot 1: Patients & count) */}
@@ -61,7 +63,7 @@ export default function PatientManager() {
         <div>
           <h1 className="mediflow-page-title">Patients</h1>
           <p className="mediflow-page-subtitle">
-            {patients ? `${patients.length} patients shown` : 'Loading patients...'}
+            {loading ? 'Loading patients...' : `${patientList.length} patients shown`}
           </p>
         </div>
 
@@ -111,7 +113,7 @@ export default function PatientManager() {
         <div style={{ padding: '1rem 0' }}>
           <ErrorNote error={error} onRetry={reload} />
         </div>
-      ) : !patients || patients.length === 0 ? (
+      ) : patientList.length === 0 ? (
         <div
           style={{
             background: '#ffffff',
@@ -126,7 +128,7 @@ export default function PatientManager() {
         </div>
       ) : (
         <div style={{ display: 'flex', flexDirection: 'column' }}>
-          {patients.map((p, idx) => {
+          {patientList.map((p, idx) => {
             const initials = `${p.firstName?.[0] || 'P'}${p.lastName?.[0] || ''}`.toUpperCase()
             const colorClass = AVATAR_COLORS[idx % AVATAR_COLORS.length]
             const ageDisplay = p.age ? `${p.age} yrs` : 'Age N/A'

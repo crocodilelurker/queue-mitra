@@ -111,22 +111,30 @@ export const api = {
   resetDemo: () => post('/demo/reset', { hospitalCode: H }),
   // mediflow opd management
   adminOverview: () => get('/admin/overview'),
-  adminDoctors: () => get('/admin/doctors'),
+  adminDoctors: async () => {
+    const res = await get('/admin/doctors')
+    return Array.isArray(res) ? res : res?.doctors || []
+  },
   updateDoctorStatus: (id, status) => patch(`/admin/doctors/${enc(id)}/status`, { status }),
-  patients: (search = '') => get(`/patients${search ? `?search=${enc(search)}` : ''}`),
+  patients: async (search = '') => {
+    const res = await get(`/patients${search ? `?search=${enc(search)}` : ''}`)
+    return Array.isArray(res) ? res : res?.patients || []
+  },
   patientProfile: (patientId) => get(`/patients/${enc(patientId)}`),
   registerPatient: (payload) => post('/patients', payload),
   updatePatient: (patientId, payload) => patch(`/patients/${enc(patientId)}`, payload),
-  appointments: (params = {}) => {
+  appointments: async (params = {}) => {
     const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v != null && v !== '')).toString()
-    return get(`/appointments${q ? `?${q}` : ''}`)
+    const res = await get(`/appointments${q ? `?${q}` : ''}`)
+    return Array.isArray(res) ? res : res?.appointments || []
   },
   bookAppointment: (payload) => post('/appointments', payload),
   updateAppointment: (id, payload) => patch(`/appointments/${enc(id)}`, payload),
   completeConsultation: (id, payload) => post(`/appointments/${enc(id)}/complete`, payload),
-  billing: (params = {}) => {
+  billing: async (params = {}) => {
     const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v != null && v !== '')).toString()
-    return get(`/billing${q ? `?${q}` : ''}`)
+    const res = await get(`/billing${q ? `?${q}` : ''}`)
+    return Array.isArray(res) ? res : res?.bills || []
   },
   billingSummary: (params = {}) => {
     const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v != null && v !== '')).toString()
