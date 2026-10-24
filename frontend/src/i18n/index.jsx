@@ -3,10 +3,10 @@ import { lookupDepartment } from '../api/departments.js'
 import { fmt } from '../utils/format.js'
 import en from './en.js'
 import hi from './hi.js'
-import ta from './ta.js'
+import te from './te.js'
 import { checkpointNameFor, placeNameFor } from './places.js'
 
-const LANGS = { en, hi, ta }
+const LANGS = { hi, en, te }
 const KEY = 'qm-lang'
 const I18nContext = createContext(null)
 

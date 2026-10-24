@@ -15,6 +15,7 @@ const notificationSchema = new mongoose.Schema(
       en: { type: String, required: true },
       hi: { type: String },
       ta: { type: String },
+      te: { type: String },
     },
     sentAt: { type: Date, default: Date.now },
     status: { type: String, default: "delivered" },

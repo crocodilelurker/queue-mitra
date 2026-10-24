@@ -8,15 +8,15 @@ import { canSpeak, speak } from '../utils/speech.js'
 // Wings as laid out on the first floor (see the hospital map): left wing rooms 1-4, right wing rooms 5-8.
 const LEFT = ['MED', 'CHD', 'WOM']
 const RIGHT = ['ORT', 'ENT', 'EYE', 'SKN']
-const ANNOUNCE_LANGS = ['en', 'hi', 'ta']
+const ANNOUNCE_LANGS = ['hi', 'en', 'te']
 
 function announcement(call, rooms, lang) {
   const info = rooms.find((r) => r.room === call.room && r.departmentName === call.department)
-  const dept = (lang !== 'en' && info?.departmentTranslations?.[lang]?.name) || call.department
+  const dept = (lang !== 'en' && (info?.departmentTranslations?.[lang]?.name || info?.translations?.[lang]?.name)) || call.department
   return {
-    en: `Token ${call.tokenNumber}, please proceed to ${call.room} (${dept}) on Floor ${call.floor}.`,
     hi: `टोकन ${call.tokenNumber}, कृपया मंजिल ${call.floor} पर ${call.room} (${dept}) में जाएं।`,
-    ta: `டோக்கன் ${call.tokenNumber}, தயவுசெய்து தளம் ${call.floor}-ல் உள்ள ${call.room} (${dept})-க்கு செல்லவும்.`,
+    en: `Token ${call.tokenNumber}, please proceed to ${call.room} (${dept}) on Floor ${call.floor}.`,
+    te: `టోకెన్ ${call.tokenNumber}, దయచేసి అంతస్తు ${call.floor} లోని ${call.room} (${dept}) కి వెళ్లండి.`,
   }[lang]
 }
 
@@ -30,7 +30,7 @@ function RoomCard({ room, flash }) {
           {room.room} · {room.departmentName}
         </h2>
         <p className="board-room__alt">
-          {room.departmentTranslations?.hi?.name} · {room.departmentTranslations?.ta?.name}
+          {room.departmentTranslations?.hi?.name || ''} {room.departmentTranslations?.te?.name ? `· ${room.departmentTranslations.te.name}` : ''}
         </p>
         <p className="board-room__doctor">
           {room.doctorName}
@@ -39,10 +39,10 @@ function RoomCard({ room, flash }) {
         </p>
       </header>
       <div className="board-room__queue">
-        <p className="board-room__label">Now serving · अभी · இப்போது</p>
+        <p className="board-room__label">Now serving · अभी · ఇప్పుడు</p>
         <p className="board-room__token">{room.nowServing || '—'}</p>
         <p className="board-room__next">
-          <span className="board-room__label">Next · अगला · அடுத்து</span>
+          <span className="board-room__label">Next · अगला · తర్వాత</span>
           {room.nextTokens.length ? room.nextTokens.map((n) => <span key={n}>{n}</span>) : <span className="board-room__none">—</span>}
         </p>
       </div>

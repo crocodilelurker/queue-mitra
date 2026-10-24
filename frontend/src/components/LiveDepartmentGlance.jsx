@@ -5,20 +5,38 @@ import { useI18n } from '../i18n/index.jsx'
 
 export default function LiveDepartmentGlance() {
   const { list, loading } = useDepartments()
-  const { deptName } = useI18n()
+  const { deptName, t, lang } = useI18n()
 
   if (loading || !list.length) return null
+
+  const headerTitle = {
+    en: 'Live OPD Counters',
+    hi: 'लाइव ओपीडी काउंटर',
+    te: 'లైవ్ OPD కౌంటర్లు',
+  }[lang] || 'Live OPD Counters'
+
+  const tvBoardText = {
+    en: 'TV Board',
+    hi: 'टीवी बोर्ड',
+    te: 'టీవీ బోర్డు',
+  }[lang] || 'TV Board'
+
+  const registerText = {
+    en: 'Register',
+    hi: 'पंजीकरण',
+    te: 'నమోదు',
+  }[lang] || 'Register'
 
   return (
     <section className="live-glance card">
       <div className="live-glance__header">
         <div className="live-glance__title">
           <span className="live-pulse" aria-hidden="true" />
-          <h3>Live OPD Counters</h3>
-          <span className="live-glance__badge">Floor 1 & Ground</span>
+          <h3>{headerTitle}</h3>
+          <span className="live-glance__badge">{t.floorN ? t.floorN.replace('{n}', '1') : 'Floor 1'}</span>
         </div>
         <Link to="/board" className="live-glance__link">
-          <span>TV Board</span>
+          <span>{tvBoardText}</span>
           <Icon name="chevron-right" size={16} />
         </Link>
       </div>
@@ -29,7 +47,7 @@ export default function LiveDepartmentGlance() {
             key={dept.code}
             to={`/new?dept=${dept.code}`}
             className="glance-chip"
-            title={`Register for ${deptName(dept)}`}
+            title={`${registerText} - ${deptName(dept)}`}
           >
             <div className="glance-chip__top">
               <span className={`dept-icon-badge dept-icon-badge--${dept.code.toLowerCase()}`}>
@@ -39,8 +57,8 @@ export default function LiveDepartmentGlance() {
             </div>
             <strong className="glance-chip__name">{deptName(dept)}</strong>
             <div className="glance-chip__footer">
-              <span className="glance-chip__room">{dept.rooms?.[0] ? `Room ${dept.rooms[0]}` : `Floor ${dept.floor}`}</span>
-              <span className="glance-chip__action">Register</span>
+              <span className="glance-chip__room">{dept.rooms?.[0] ? `${t.room} ${dept.rooms[0]}` : `${t.floor} ${dept.floor}`}</span>
+              <span className="glance-chip__action">{registerText}</span>
             </div>
           </Link>
         ))}

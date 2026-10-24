@@ -18,6 +18,7 @@ const departmentSchema = new mongoose.Schema(
     translations: {
       hi: { name: { type: String, trim: true }, description: { type: String, trim: true } },
       ta: { name: { type: String, trim: true }, description: { type: String, trim: true } },
+      te: { name: { type: String, trim: true }, description: { type: String, trim: true } },
     },
     opdHours: {
       start: { type: String, default: "09:00" },
