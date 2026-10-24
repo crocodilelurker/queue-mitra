@@ -5,10 +5,11 @@ import Layout from '../components/Layout.jsx'
 import DemoToolbar from '../components/staff/DemoToolbar.jsx'
 import { useAsync } from '../hooks/useAsync.js'
 import { Link } from '../router.jsx'
+import { Icon } from '../components/common/Icons.jsx'
 
 const HEAT = { green: 'ok', amber: 'warn', red: 'bad' }
 const HEAT_LABEL = { green: 'Normal', amber: 'Busy', red: 'Overcrowded' }
-const LANG_NAMES = { en: 'English', hi: 'Hindi', ta: 'Tamil', other: 'Other' }
+const LANG_NAMES = { en: 'English', hi: 'Hindi', te: 'Telugu', ta: 'Tamil', other: 'Other' }
 
 function Bar({ label, value, max }) {
   return (
@@ -54,7 +55,7 @@ export default function AnalyticsDashboard() {
       <div className="staff-bar">
         <h1 className="hero hero--sm">{data.hospital.name} · Analytics</h1>
         <Link className="btn btn--sm" to="/doctor">
-          <span aria-hidden="true">🩺</span> Staff desk
+          <Icon name="stethoscope" size={16} /> Staff desk
         </Link>
       </div>
       <p className="field__hint">Date {data.serviceDate} · refreshes every 5 seconds</p>

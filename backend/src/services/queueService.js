@@ -452,9 +452,15 @@ export async function callNext(doctor) {
   };
 }
 
-async function closeTicket(doctor, ticketId, status) {
+async function closeTicket(doctor, ticketId, status, clinicalData = {}) {
   const update = { status };
-  if (status === "completed") update.completedAt = new Date();
+  if (status === "completed") {
+    update.completedAt = new Date();
+    if (clinicalData.diagnosis) update.diagnosis = clinicalData.diagnosis;
+    if (clinicalData.consultationNotes) update.consultationNotes = clinicalData.consultationNotes;
+    if (clinicalData.prescriptions) update.prescriptions = clinicalData.prescriptions;
+    if (clinicalData.followUpDate) update.followUpDate = clinicalData.followUpDate;
+  }
 
   const ticket = await Ticket.findOneAndUpdate(
     { _id: ticketId, doctor: doctor._id, status: "called" },
@@ -463,12 +469,55 @@ async function closeTicket(doctor, ticketId, status) {
   );
   if (!ticket) throw ApiError.notFound("No called ticket with this id for this doctor");
 
+  // If follow-up date was set, auto-schedule follow-up appointment
+  if (clinicalData.followUpDate) {
+    try {
+      const Appointment = (await import("../models/Appointment.js")).default;
+      const Counter = (await import("../models/Counter.js")).default;
+      const year = new Date().getFullYear();
+      const lastApt = await Appointment.findOne({
+        appointmentId: new RegExp(`^APT-${year}-([0-9]+)$`),
+      }).sort({ appointmentId: -1 });
+
+      let nextNum = 1001;
+      if (lastApt && lastApt.appointmentId) {
+        const m = lastApt.appointmentId.match(/-([0-9]+)$/);
+        if (m) nextNum = Math.max(nextNum, parseInt(m[1], 10) + 1);
+      }
+
+      await Counter.findOneAndUpdate(
+        { _id: `appointment:${year}` },
+        { $set: { seq: nextNum - 1000 } },
+        { upsert: true }
+      );
+
+      await Appointment.create({
+        appointmentId: `APT-${year}-${String(nextNum)}`,
+        hospital: doctor.hospital,
+        patientName: ticket.patient?.firstName,
+        patientMobile: ticket.patient?.mobile,
+        patientGender: ticket.patient?.gender,
+        patientAge: ticket.patient?.age,
+        doctor: doctor._id,
+        doctorName: doctor.name,
+        department: doctor.department,
+        appointmentDate: clinicalData.followUpDate,
+        slotTime: "10:00 AM",
+        type: "follow_up",
+        status: "booked",
+        complaint: `Follow-up for: ${clinicalData.diagnosis || "Consultation review"}`,
+      });
+    } catch (err) {
+      console.warn("Follow-up appointment auto-creation warning:", err.message);
+    }
+  }
+
   emit(rooms.ticket(ticket.publicId), "ticket:updated", { publicId: ticket.publicId, status });
   await broadcastQueue(ticket.department);
   return staffTicket(ticket);
 }
 
-export const completeTicket = (doctor, ticketId) => closeTicket(doctor, ticketId, "completed");
+export const completeTicket = (doctor, ticketId, clinicalData) => closeTicket(doctor, ticketId, "completed", clinicalData);
 export const markNoShow = (doctor, ticketId) => closeTicket(doctor, ticketId, "no_show");
 
 // Send a patient to the end of the queue (e.g. they stepped out or arrived late)

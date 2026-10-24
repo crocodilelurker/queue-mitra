@@ -60,6 +60,12 @@ const ticketSchema = new mongoose.Schema(
     // What the patient told us (disease or problem, if they knew it). Optional.
     complaint: { type: String, trim: true, maxlength: 200 },
 
+    // Clinical consultation notes recorded by the doctor
+    diagnosis: { type: String, trim: true },
+    consultationNotes: { type: String, trim: true },
+    prescriptions: { type: String, trim: true },
+    followUpDate: { type: String, trim: true },
+
     status: { type: String, enum: TICKET_STATUSES, default: "waiting" },
     doctor: { type: mongoose.Schema.Types.ObjectId, ref: "User", default: null },
     room: { type: String, default: null },

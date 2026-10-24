@@ -57,7 +57,7 @@ export default function LiveDepartmentGlance() {
             </div>
             <strong className="glance-chip__name">{deptName(dept)}</strong>
             <div className="glance-chip__footer">
-              <span className="glance-chip__room">{dept.rooms?.[0] ? `${t.room} ${dept.rooms[0]}` : `${t.floor} ${dept.floor}`}</span>
+              <span className="glance-chip__room">{dept.rooms?.[0] ? dept.rooms[0] : `${t.floor} ${dept.floor}`}</span>
               <span className="glance-chip__action">{registerText}</span>
             </div>
           </Link>

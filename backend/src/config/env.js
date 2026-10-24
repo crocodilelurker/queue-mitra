@@ -14,6 +14,8 @@ const env = {
   jwtExpiresIn: process.env.JWT_EXPIRES_IN || "12h",
   clientUrl: process.env.CLIENT_URL || "http://localhost:5173",
   timeZone: process.env.HOSPITAL_TIMEZONE || "Asia/Kolkata",
+  openRouterApiKey: process.env.OPENROUTER_API_KEY || "",
+  openRouterModel: process.env.OPENROUTER_MODEL || "meta-llama/llama-3.2-3b-instruct:free",
 };
 
 env.isProduction = env.nodeEnv === "production";

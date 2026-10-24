@@ -59,7 +59,7 @@ export default function OpdSlip({ publicId }) {
       <article className="slip card" aria-label={t.slipHeader}>
         <header className="slip__head">
           <div className="slip__crest">
-            <Icon name="cross" size={18} color="#0284c7" />
+            <Icon name="cross" size={18} color="#0f766e" />
             <span className="slip__hospital">{slip.hospital.name}</span>
           </div>
           <p className="slip__meta">
@@ -76,7 +76,7 @@ export default function OpdSlip({ publicId }) {
           <p className="slip__token" aria-label={`${t.token} ${slip.tokenNumber}`}>
             {slip.tokenNumber}
           </p>
-          <span className="slip__token-dept">{dept} · Room {slip.room}</span>
+          <span className="slip__token-dept">{dept} · {slip.room}</span>
         </div>
 
         <dl className="summary-list">
@@ -93,7 +93,7 @@ export default function OpdSlip({ publicId }) {
           <p className="slip__qr-caption">{t.qrCaption}</p>
         </div>
 
-        <p className="slip__disclaimer">{pick(slip.disclaimer)}</p>
+        <p className="slip__disclaimer">{pick(slip.disclaimer, 'slipDisclaimer')}</p>
         <p className="field__hint">{f('emergencyNumbers', { phone: slip.hospital.contact?.emergencyPhone || '108' })}</p>
       </article>
 

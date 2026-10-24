@@ -249,7 +249,7 @@ export default function NavigationMap() {
                 })()}
               </p>
               <p className="staff-card__dest staff-card__dest--en">I need to go to: {lost.staffCard.destinationNameEn} · Floor {lost.staffCard.destinationFloor}</p>
-              <p>{pick(lost.staffCard.instructions)}</p>
+              <p>{pick(lost.staffCard.instructions, 'lostCardHelp')}</p>
               {lang !== 'en' && <p lang="en">{lost.staffCard.instructions.en}</p>}
             </section>
             {lost.nearestHelpDesk && (

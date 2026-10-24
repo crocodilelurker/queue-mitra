@@ -96,7 +96,7 @@ export const api = {
   // doctor / staff
   dashboard: () => get('/doctor/dashboard'),
   callNext: () => post('/doctor/call-next'),
-  complete: (id) => post(`/doctor/tickets/${id}/complete`),
+  complete: (id, payload = {}) => post(`/doctor/tickets/${id}/complete`, payload),
   noShow: (id) => post(`/doctor/tickets/${id}/no-show`),
   requeue: (id) => post(`/doctor/tickets/${id}/requeue`),
   transfer: (id, departmentCode) => post(`/doctor/tickets/${id}/transfer`, { departmentCode }),
@@ -109,4 +109,29 @@ export const api = {
   stopSimulation: () => post('/demo/auto-simulate/stop'),
   simulationStatus: () => get('/demo/auto-simulate/status'),
   resetDemo: () => post('/demo/reset', { hospitalCode: H }),
+  // mediflow opd management
+  adminOverview: () => get('/admin/overview'),
+  adminDoctors: () => get('/admin/doctors'),
+  updateDoctorStatus: (id, status) => patch(`/admin/doctors/${enc(id)}/status`, { status }),
+  patients: (search = '') => get(`/patients${search ? `?search=${enc(search)}` : ''}`),
+  patientProfile: (patientId) => get(`/patients/${enc(patientId)}`),
+  registerPatient: (payload) => post('/patients', payload),
+  updatePatient: (patientId, payload) => patch(`/patients/${enc(patientId)}`, payload),
+  appointments: (params = {}) => {
+    const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v != null && v !== '')).toString()
+    return get(`/appointments${q ? `?${q}` : ''}`)
+  },
+  bookAppointment: (payload) => post('/appointments', payload),
+  updateAppointment: (id, payload) => patch(`/appointments/${enc(id)}`, payload),
+  completeConsultation: (id, payload) => post(`/appointments/${enc(id)}/complete`, payload),
+  billing: (params = {}) => {
+    const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v != null && v !== '')).toString()
+    return get(`/billing${q ? `?${q}` : ''}`)
+  },
+  billingSummary: (params = {}) => {
+    const q = new URLSearchParams(Object.entries(params).filter(([, v]) => v != null && v !== '')).toString()
+    return get(`/billing/summary${q ? `?${q}` : ''}`)
+  },
+  collectPayment: (billId, payload) => post(`/billing/${enc(billId)}/pay`, payload),
 }
+

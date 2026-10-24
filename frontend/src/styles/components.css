@@ -113,7 +113,7 @@
   width: 36px;
   height: 36px;
   border-radius: var(--radius-sm);
-  background: linear-gradient(135deg, var(--primary) 0%, #0369a1 100%);
+  background: var(--grad-primary);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -147,6 +147,8 @@
   align-items: center;
   flex-wrap: wrap;
   gap: 0.6rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 /* Emergency Header Button */
@@ -155,7 +157,7 @@
   align-items: center;
   gap: 0.4rem;
   padding: 0.4rem 0.85rem;
-  min-height: 38px;
+  min-height: var(--tap);
   border-radius: var(--radius-full);
   background: linear-gradient(135deg, var(--danger) 0%, var(--danger-dark) 100%);
   color: #ffffff;
@@ -199,6 +201,7 @@
 .header__tools {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   gap: 0.4rem;
 }
 
@@ -207,7 +210,7 @@
   align-items: center;
   gap: 0.35rem;
   padding: 0.4rem 0.75rem;
-  min-height: 38px;
+  min-height: var(--tap);
   border-radius: var(--radius-full);
   background: var(--surface-subtle);
   border: 1px solid var(--border-color);
@@ -222,7 +225,7 @@
 .pill-btn:hover {
   background: var(--surface);
   color: var(--ink);
-  border-color: #cbd5e1;
+  border-color: var(--border-strong);
 }
 
 .pill-btn--active {
@@ -247,7 +250,7 @@
 }
 
 .lang-switch__btn {
-  min-height: 32px;
+  min-height: var(--tap);
   padding: 0 0.65rem;
   font-size: var(--fs-xs);
   font-weight: 600;
@@ -278,8 +281,8 @@
   flex-wrap: wrap;
   gap: 0.5rem;
   padding: 0.5rem 1rem;
-  background: linear-gradient(90deg, rgba(2, 132, 199, 0.06) 0%, rgba(13, 148, 136, 0.06) 100%);
-  border: 1px solid rgba(2, 132, 199, 0.15);
+  background: linear-gradient(90deg, rgba(15, 118, 110, 0.06) 0%, rgba(14, 116, 144, 0.06) 100%);
+  border: 1px solid rgba(15, 118, 110, 0.15);
   border-radius: var(--radius-full);
   width: 100%;
   box-sizing: border-box;
@@ -294,7 +297,7 @@
 .hospital-live-bar__divider {
   width: 1px;
   height: 14px;
-  background: #cbd5e1;
+  background: var(--border-strong);
 }
 
 .hospital-live-bar__name {
@@ -375,7 +378,7 @@
   align-items: center;
   justify-content: center;
   gap: 0.5rem;
-  min-height: 48px;
+  min-height: var(--tap);
   padding: 0.6rem 1.25rem;
   background: var(--surface);
   border: var(--border);
@@ -392,7 +395,7 @@
 
 .btn:hover:not(:disabled) {
   background: var(--surface-subtle);
-  border-color: #cbd5e1;
+  border-color: var(--border-strong);
   transform: translateY(-1px);
 }
 
@@ -406,14 +409,14 @@
 }
 
 .btn--sm {
-  min-height: 36px;
+  min-height: var(--tap);
   padding: 0.35rem 0.85rem;
   font-size: var(--fs-xs);
   border-radius: var(--radius-xs);
 }
 
 .btn--lg {
-  min-height: 52px;
+  min-height: var(--tap);
   padding: 0.8rem 1.5rem;
   font-size: var(--fs-md);
   border-radius: var(--radius-sm);
@@ -424,16 +427,16 @@
 }
 
 .btn--primary {
-  background: linear-gradient(135deg, var(--primary) 0%, #0369a1 100%);
+  background: var(--grad-primary);
   color: #ffffff;
   border-color: transparent;
   box-shadow: 0 2px 10px var(--primary-glow);
 }
 
 .btn--primary:hover:not(:disabled) {
-  background: linear-gradient(135deg, #0284c7 0%, #075985 100%);
+  background: linear-gradient(135deg, var(--primary-hover) 0%, var(--primary-strong) 100%);
   color: #ffffff;
-  box-shadow: 0 4px 14px rgba(2, 132, 199, 0.35);
+  box-shadow: 0 4px 14px rgba(15, 118, 110, 0.35);
 }
 
 .btn--outline {
@@ -459,7 +462,7 @@
 }
 
 .link-btn {
-  min-height: 40px;
+  min-height: var(--tap);
   padding: 0;
   background: none;
   border: 0;
@@ -485,6 +488,11 @@
   gap: var(--sp-2);
   width: 100%;
   box-sizing: border-box;
+}
+
+/* Each /new step renders its own card; give it the padding the old wrapper used to provide. */
+.form.card {
+  padding: var(--sp-3) var(--sp-2);
 }
 
 .form__header {
@@ -549,7 +557,7 @@
 .field__control {
   width: 100%;
   box-sizing: border-box;
-  min-height: 48px;
+  min-height: var(--tap);
   padding: 0.6rem 0.9rem;
   background: var(--surface);
   border: 1px solid var(--border-color);
@@ -621,7 +629,7 @@
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 46px;
+  min-height: var(--tap);
   padding: 0 0.75rem;
   background: var(--surface-subtle);
   border: 1px solid var(--border-color);
@@ -636,7 +644,7 @@
 .choice__item:hover span {
   background: var(--surface);
   color: var(--ink);
-  border-color: #cbd5e1;
+  border-color: var(--border-strong);
 }
 
 .choice__item input:checked + span {
@@ -660,7 +668,7 @@
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  min-height: 48px;
+  min-height: var(--tap);
   padding: 0.5rem 0.9rem;
   background: var(--surface);
   border: 1px solid var(--border-color);
@@ -687,7 +695,7 @@
   position: relative;
   width: 2.8rem;
   height: 1.6rem;
-  background: #cbd5e1;
+  background: var(--border-strong);
   border-radius: var(--radius-full);
   transition: background-color 0.2s ease;
 }
@@ -761,7 +769,7 @@
 
 .steps-bar-track {
   height: 6px;
-  background: #e2e8f0;
+  background: var(--border-color);
   border-radius: var(--radius-full);
   overflow: hidden;
   width: 100%;
@@ -774,7 +782,30 @@
   transition: width 0.3s cubic-bezier(0.16, 1, 0.3, 1);
 }
 
-/* Floating Emergency Button */
+/* /new layout: the round Emergency button sits BESIDE the form (sticky, so it stays in reach while scrolling)
+   instead of floating over it, where it covered the third gender option on phones. Each step renders its own card. */
+.form-layout {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-1);
+  width: 100%;
+}
+.form-layout .form-card {
+  flex: 1;
+  min-width: 0;
+  display: grid;
+  gap: var(--sp-2);
+}
+.form-layout .emergency-btn {
+  position: sticky;
+  top: var(--sp-2);
+  right: auto;
+  bottom: auto;
+  flex: none;
+  z-index: 5;
+}
+
+/* Round Emergency Button */
 .emergency-btn {
   position: fixed;
   bottom: 1.75rem;
@@ -915,9 +946,333 @@
 
 .offline {
   padding: 0.5rem var(--sp-2);
-  background: #334155;
+  background: var(--ink-soft);
   color: #ffffff;
   font-size: var(--fs-xs);
   font-weight: 600;
   text-align: center;
+}
+
+/* ==========================================================================
+   Design refinement
+   (1) a compact header on phones, (2) loading state, (3) the components that had lost their
+   styling in the redesign (page titles, notices, QR code, stats, live dots, siren banner, ...).
+   ========================================================================== */
+
+/* ---------- (1) Header ----------
+   Wide screens keep the sticky one-row bar. On phones the bar used to stack into four rows (about 280px)
+   and, being sticky, covered a third of the screen all the time; it is now two compact rows and scrolls away. */
+@media (max-width: 56em) {
+  .header {
+    position: static;
+    padding: 0.65rem 0.75rem;
+    margin-bottom: var(--sp-2);
+  }
+  .header__inner {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.6rem 0.75rem;
+  }
+  .header__actions {
+    display: contents;
+  }
+  .header__brand {
+    grid-column: 1;
+    grid-row: 1;
+    min-width: 0;
+  }
+  .btn-emergency {
+    grid-column: 2;
+    grid-row: 1;
+  }
+  .header__tools {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    width: 100%;
+    gap: 0.5rem;
+  }
+}
+
+/* ---------- (2) Loading ---------- */
+.status:not(.status--error) {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.75rem;
+  color: var(--ink-soft);
+  font-weight: 600;
+}
+.status:not(.status--error)::before {
+  content: '';
+  width: 1.25rem;
+  height: 1.25rem;
+  border-radius: 50%;
+  border: 3px solid var(--primary-light);
+  border-top-color: var(--primary);
+}
+
+/* ---------- (3) Components that had no styles ---------- */
+
+/* Page titles used on the staff, 404 and /new screens */
+.hero {
+  margin: 0;
+  font-size: var(--fs-xl);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  color: var(--ink);
+}
+.hero--sm {
+  font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.1rem);
+}
+
+/* Centered staff login */
+.login {
+  display: grid;
+  gap: var(--sp-3);
+  width: 100%;
+  max-width: 32rem;
+  margin-inline: auto;
+}
+
+/* Info box (used after a walk-in registration) */
+.notice {
+  display: grid;
+  gap: 0.25rem;
+  padding: var(--sp-2);
+  background: var(--primary-light);
+  border: 1px solid var(--primary-border);
+  border-left: 4px solid var(--primary);
+  border-radius: var(--radius-sm);
+  color: var(--primary-hover);
+}
+.notice a {
+  color: var(--primary-hover);
+  font-weight: 700;
+}
+
+/* QR code on the slip */
+.qr {
+  display: block;
+  width: min(11rem, 60%);
+  height: auto;
+  padding: 0.6rem;
+  background: #fff;
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Queue summary and analytics figures */
+.queue-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-1);
+}
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.6rem;
+  margin: 0;
+}
+.stats > div {
+  padding: 0.75rem 0.9rem;
+  background: var(--surface-subtle);
+  border: var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+.stats dt {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.stats dd {
+  margin: 0.15rem 0 0;
+  font-size: var(--fs-lg);
+  font-weight: 800;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Generic status card on the live screen (completed / not present) */
+.turn-card {
+  display: grid;
+  gap: 0.5rem;
+  justify-items: center;
+  padding: var(--sp-3) var(--sp-2);
+  text-align: center;
+}
+
+/* Small helper text styles */
+.meta-label {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.modal__reason {
+  font-weight: 700;
+  color: var(--danger-dark);
+}
+
+/* Live connection dot (board clock) */
+.live {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: #8fa7a3;
+}
+.live--on {
+  background: #22c55e;
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.25);
+}
+.live--off {
+  background: #f59e0b;
+}
+.live-beacon__text {
+  font-weight: 700;
+}
+
+/* Doctor on duty rows: a missing state colour */
+.doc--offline {
+  border-left-color: #8fa7a3;
+}
+
+/* SMS notification toast: slides in from the top like a phone notification */
+.sms-toast {
+  position: fixed;
+  z-index: 130;
+  top: max(0.75rem, env(safe-area-inset-top));
+  inset-inline: 0.75rem;
+  display: grid;
+  gap: 0.4rem;
+  max-width: 28rem;
+  margin-inline: auto;
+  padding: var(--sp-2);
+  background: var(--ink);
+  color: #fff;
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-xl);
+}
+.sms-toast p {
+  margin: 0;
+  line-height: 1.45;
+}
+.sms-toast__head {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  opacity: 0.85;
+}
+.sms-toast__close {
+  display: inline-grid;
+  place-items: center;
+  margin-inline-start: auto;
+  min-width: 44px;
+  min-height: 44px;
+  background: none;
+  border: 0;
+  border-radius: 50%;
+  color: inherit;
+  cursor: pointer;
+  transition: background-color var(--dur-fast) ease;
+}
+.sms-toast__close:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+
+/* Urgent help siren banner on the staff screens: unmistakable, and impossible to scroll away from */
+.urgent-banner {
+  position: sticky;
+  top: 0.75rem;
+  z-index: 120;
+  display: grid;
+  gap: var(--sp-1);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--grad-emergency);
+  color: #fff;
+  border-radius: var(--radius);
+  box-shadow: 0 12px 32px rgba(185, 28, 28, 0.4);
+}
+.urgent-banner__title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: var(--fs-lg);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.urgent-banner ul {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.urgent-banner li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+  padding: 0.6rem 0.75rem;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: var(--radius-sm);
+}
+.urgent-banner .btn {
+  background: #fff;
+  border-color: transparent;
+  color: var(--danger-dark);
+}
+.urgent-banner .btn:hover:not(:disabled) {
+  background: #fef2f2;
+}
+.urgent-banner .btn[aria-pressed='true'] {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+/* Floating demo dock: stays in the bottom corner while the page scrolls */
+.demo {
+  position: fixed;
+  right: max(0.75rem, env(safe-area-inset-right));
+  bottom: max(0.75rem, env(safe-area-inset-bottom));
+  z-index: 90;
+  display: grid;
+  gap: 0.5rem;
+  justify-items: end;
+}
+.demo__panel {
+  display: grid;
+  gap: 0.5rem;
+  width: min(19rem, calc(100vw - 1.5rem));
+  padding: 0.75rem;
+  background: #fff;
+  box-shadow: var(--shadow-xl);
+}
+.demo__toggle {
+  background: var(--ink);
+  border-color: var(--ink);
+  border-radius: var(--radius-full);
+  color: #fff;
+  box-shadow: var(--shadow-lg);
+}
+.demo__toggle:hover:not(:disabled) {
+  background: #14393d;
+  border-color: #14393d;
+}
+
+/* Brand subtitle stays on one line */
+.brand-sub {
+  white-space: nowrap;
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
 }

@@ -93,6 +93,10 @@ export default function Home() {
           <span>Staff & Doctor Desks:</span>
         </div>
         <div className="staff-portal__links">
+          <Link to="/admin" className="staff-link" style={{ background: 'var(--primary-light)', color: 'var(--primary-hover)', fontWeight: 600 }}>
+            <Icon name="hospital-building" size={15} />
+            <span>Mediflow OPD Central</span>
+          </Link>
           <Link to="/doctor" className="staff-link">
             <Icon name="user" size={15} />
             <span>{t.linkDoctor}</span>

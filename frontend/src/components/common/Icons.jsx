@@ -343,6 +343,247 @@ export function Icon({ name, size = 20, className = '', color = 'currentColor', 
         </svg>
       )
 
+    case 'calendar':
+      return (
+        <svg {...iconProps}>
+          <rect width="18" height="18" x="3" y="4" rx="2" ry="2" />
+          <line x1="16" y1="2" x2="16" y2="6" />
+          <line x1="8" y1="2" x2="8" y2="6" />
+          <line x1="3" y1="10" x2="21" y2="10" />
+        </svg>
+      )
+
+    case 'clipboard':
+    case 'records':
+      return (
+        <svg {...iconProps}>
+          <rect width="8" height="4" x="8" y="2" rx="1" ry="1" />
+          <path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2" />
+          <path d="M9 12h6" />
+          <path d="M9 16h6" />
+        </svg>
+      )
+
+    case 'bill':
+    case 'receipt':
+    case 'invoice':
+      return (
+        <svg {...iconProps}>
+          <path d="M14 2H6a2 2 0 0 0-2 2v16l3-1.5 3 1.5 3-1.5 3 1.5 3-1.5 3 1.5V8z" />
+          <path d="M14 2v6h6" />
+          <line x1="8" y1="13" x2="16" y2="13" />
+          <line x1="8" y1="17" x2="13" y2="17" />
+        </svg>
+      )
+
+    case 'currency-inr':
+    case 'inr':
+    case 'cash':
+      return (
+        <svg {...iconProps}>
+          <path d="M6 3h12" />
+          <path d="M6 8h12" />
+          <path d="m6 13 8.5 8" />
+          <path d="M6 13h3a4 4 0 0 0 0-8" />
+        </svg>
+      )
+
+    case 'filter':
+      return (
+        <svg {...iconProps}>
+          <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
+        </svg>
+      )
+
+    case 'plus':
+      return (
+        <svg {...iconProps}>
+          <line x1="12" y1="5" x2="12" y2="19" />
+          <line x1="5" y1="12" x2="19" y2="12" />
+        </svg>
+      )
+
+    case 'check-circle':
+      return (
+        <svg {...iconProps}>
+          <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+          <polyline points="22 4 12 14.01 9 11.01" />
+        </svg>
+      )
+
+    case 'bell':
+      return (
+        <svg {...iconProps}>
+          <path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9" />
+          <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+        </svg>
+      )
+
+    case 'bell-off':
+      return (
+        <svg {...iconProps}>
+          <path d="M8.7 3A6 6 0 0 1 18 8a21.3 21.3 0 0 0 .6 5" />
+          <path d="M17 17H3s3-2 3-9a4.67 4.67 0 0 1 .3-1.7" />
+          <path d="M10.3 21a1.94 1.94 0 0 0 3.4 0" />
+          <path d="m2 2 20 20" />
+        </svg>
+      )
+
+    case 'key':
+      return (
+        <svg {...iconProps}>
+          <circle cx="7.5" cy="15.5" r="5.5" />
+          <path d="m21 2-9.6 9.6" />
+          <path d="m15.5 7.5 3 3L22 7l-3-3" />
+        </svg>
+      )
+
+    case 'home':
+      return (
+        <svg {...iconProps}>
+          <path d="m3 9 9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z" />
+          <path d="M9 22V12h6v10" />
+        </svg>
+      )
+
+    case 'refresh':
+      return (
+        <svg {...iconProps}>
+          <path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8" />
+          <path d="M21 3v5h-5" />
+          <path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16" />
+          <path d="M8 16H3v5" />
+        </svg>
+      )
+
+    case 'play':
+      return (
+        <svg {...iconProps}>
+          <polygon points="6 3 20 12 6 21 6 3" />
+        </svg>
+      )
+
+    case 'stop':
+      return (
+        <svg {...iconProps}>
+          <rect x="6" y="6" width="12" height="12" rx="1.5" />
+        </svg>
+      )
+
+    case 'message':
+      return (
+        <svg {...iconProps}>
+          <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+        </svg>
+      )
+
+    case 'flag':
+      return (
+        <svg {...iconProps}>
+          <path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" />
+          <path d="M4 22v-7" />
+        </svg>
+      )
+
+    case 'door':
+      return (
+        <svg {...iconProps}>
+          <path d="M13 4h3a2 2 0 0 1 2 2v14" />
+          <path d="M2 20h3" />
+          <path d="M13 20h9" />
+          <path d="M10 12v.01" />
+          <path d="M13 4.56v16.16a1 1 0 0 1-1.24.97L5 20V5.56a2 2 0 0 1 1.52-1.94l4-1A2 2 0 0 1 13 4.56Z" />
+        </svg>
+      )
+
+    case 'help':
+      return (
+        <svg {...iconProps}>
+          <circle cx="12" cy="12" r="10" />
+          <path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3" />
+          <path d="M12 17h.01" />
+        </svg>
+      )
+
+    case 'pill':
+      return (
+        <svg {...iconProps}>
+          <path d="m10.5 20.5 10-10a4.95 4.95 0 1 0-7-7l-10 10a4.95 4.95 0 1 0 7 7Z" />
+          <path d="m8.5 8.5 7 7" />
+        </svg>
+      )
+
+    case 'flask':
+      return (
+        <svg {...iconProps}>
+          <path d="M10 2v7.53a2 2 0 0 1-.21.9L4.72 20.55a1 1 0 0 0 .9 1.45h12.76a1 1 0 0 0 .9-1.45l-5.07-10.13a2 2 0 0 1-.21-.9V2" />
+          <path d="M8.5 2h7" />
+          <path d="M7 16h10" />
+        </svg>
+      )
+
+    case 'lift':
+      return (
+        <svg {...iconProps}>
+          <rect x="4" y="2" width="16" height="20" rx="2" />
+          <path d="m9 10 3-3 3 3" />
+          <path d="m9 14 3 3 3-3" />
+        </svg>
+      )
+
+    case 'stairs':
+      return (
+        <svg {...iconProps}>
+          <path d="M3 21h5v-5h5v-5h5V6h3" />
+        </svg>
+      )
+
+    case 'armchair':
+      return (
+        <svg {...iconProps}>
+          <path d="M19 9V6a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v3" />
+          <path d="M3 16a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-5a2 2 0 0 0-4 0v1.5a.5.5 0 0 1-.5.5h-9a.5.5 0 0 1-.5-.5V11a2 2 0 0 0-4 0z" />
+          <path d="M5 18v2" />
+          <path d="M19 18v2" />
+        </svg>
+      )
+
+    case 'bed':
+      return (
+        <svg {...iconProps}>
+          <path d="M2 4v16" />
+          <path d="M2 8h18a2 2 0 0 1 2 2v10" />
+          <path d="M2 17h20" />
+          <path d="M6 8v9" />
+        </svg>
+      )
+
+    case 'droplet':
+      return (
+        <svg {...iconProps}>
+          <path d="M12 22a7 7 0 0 0 7-7c0-2-1-3.9-3-5.5s-3.5-4-4-6.5c-.5 2.5-2 4.9-4 6.5C6 11.1 5 13 5 15a7 7 0 0 0 7 7z" />
+        </svg>
+      )
+
+    case 'accessibility':
+      return (
+        <svg {...iconProps}>
+          <circle cx="16" cy="4" r="1" />
+          <path d="m18 19 1-7-6 1" />
+          <path d="m5 8 3-3 5.5 3-2.36 3.5" />
+          <path d="M4.24 14.5a5 5 0 0 0 6.88 6" />
+          <path d="M13.76 17.5a5 5 0 0 0-6.88-6" />
+        </svg>
+      )
+
+    case 'pin':
+      return (
+        <svg {...iconProps}>
+          <path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" />
+          <circle cx="12" cy="10" r="3" />
+        </svg>
+      )
+
     default:
       return (
         <svg {...iconProps}>

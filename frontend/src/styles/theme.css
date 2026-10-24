@@ -1,0 +1,941 @@
+/* ==========================================================================
+   Theme layer: "Care Teal & Saffron"
+   Loaded after the component and page styles. It gives the interface its premium finish: an aurora
+   background, glass header, gradient hero, tactile buttons, lifted cards, ticket-style slip and
+   friendlier form feedback. Colours come from tokens.css; motion lives in motion.css.
+   ========================================================================== */
+
+/* ---------- Typography ---------- */
+h1,
+h2,
+h3 {
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.slip__token,
+.turn-hero__token,
+.turn-metrics__number,
+.board-room__token,
+.stat-card__value,
+.current-token-badge,
+.wait-list__token {
+  font-variant-numeric: tabular-nums;
+}
+::selection {
+  background: rgba(15, 118, 110, 0.22);
+}
+
+/* ---------- Background: a soft aurora behind everything ---------- */
+body {
+  background: var(--bg-gradient);
+}
+body::before {
+  content: '';
+  position: fixed;
+  inset: -20vmax;
+  z-index: -1;
+  pointer-events: none;
+  background: radial-gradient(40vmax 40vmax at 18% 12%, rgba(15, 118, 110, 0.13), transparent 62%),
+    radial-gradient(34vmax 34vmax at 86% 8%, rgba(245, 158, 11, 0.11), transparent 62%),
+    radial-gradient(38vmax 38vmax at 72% 92%, rgba(14, 116, 144, 0.1), transparent 62%);
+}
+
+/* ---------- Header: frosted glass with a crest ---------- */
+.header {
+  background: rgba(255, 255, 255, 0.78);
+  -webkit-backdrop-filter: saturate(170%) blur(18px);
+  backdrop-filter: saturate(170%) blur(18px);
+  border: 1px solid rgba(255, 255, 255, 0.75);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md), inset 0 1px 0 rgba(255, 255, 255, 0.9);
+}
+.brand-crest {
+  background: var(--grad-hero);
+  border-radius: 12px;
+  box-shadow: 0 6px 16px -4px var(--primary-glow), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+.brand-title {
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  color: var(--ink);
+}
+.brand-sub {
+  color: var(--accent-ink);
+  font-weight: 700;
+}
+.pill-btn,
+.lang-switch {
+  background: rgba(238, 243, 241, 0.85);
+  border-color: var(--border-color);
+}
+.pill-btn {
+  transition: background-color var(--dur-fast) ease, color var(--dur-fast) ease, border-color var(--dur-fast) ease,
+    transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) ease;
+}
+.pill-btn:hover {
+  background: #fff;
+  border-color: var(--primary-border);
+  color: var(--primary-hover);
+  box-shadow: var(--shadow-sm);
+}
+.pill-btn--active {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+.lang-switch__btn {
+  transition: background-color var(--dur-med) var(--ease-out), color var(--dur-fast) ease, box-shadow var(--dur-med) var(--ease-out);
+}
+.lang-switch__btn[aria-pressed='true'] {
+  background: #fff;
+  color: var(--primary-hover);
+  box-shadow: 0 2px 8px -2px rgba(11, 43, 46, 0.2);
+}
+
+/* ---------- Buttons: tactile, with a light sheen on the primary ones ---------- */
+.btn {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  border: 1px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  color: var(--ink);
+  box-shadow: var(--shadow-sm);
+  transition: transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) ease,
+    background-color var(--dur-fast) ease, border-color var(--dur-fast) ease, color var(--dur-fast) ease;
+}
+.btn:hover:not(:disabled) {
+  transform: translateY(-2px);
+  background: var(--primary-tint);
+  border-color: var(--primary-border);
+  color: var(--primary-hover);
+  box-shadow: var(--shadow-md);
+}
+.btn:disabled {
+  opacity: 0.55;
+  filter: saturate(0.6);
+}
+.btn[aria-pressed='true'] {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+.btn--primary {
+  background: var(--grad-primary);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 10px 22px -8px rgba(15, 118, 110, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.22);
+}
+.btn--primary:hover:not(:disabled) {
+  background: var(--grad-primary);
+  border-color: transparent;
+  color: #fff;
+  filter: brightness(1.07);
+  box-shadow: 0 16px 30px -10px rgba(15, 118, 110, 0.6), inset 0 1px 0 rgba(255, 255, 255, 0.28);
+}
+.btn--primary::after,
+.btn--danger::after,
+.btn--call::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background: linear-gradient(100deg, transparent 20%, rgba(255, 255, 255, 0.34) 50%, transparent 80%);
+  transform: translateX(-130%);
+  transition: transform 0.7s var(--ease-out);
+}
+.btn--primary:hover:not(:disabled)::after,
+.btn--danger:hover:not(:disabled)::after,
+.btn--call:hover:not(:disabled)::after {
+  transform: translateX(130%);
+}
+.btn--danger,
+.btn--call {
+  background: var(--grad-emergency);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 10px 22px -8px rgba(220, 38, 38, 0.55), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.btn--danger:hover:not(:disabled),
+.btn--call:hover:not(:disabled) {
+  background: var(--grad-emergency);
+  border-color: transparent;
+  color: #fff;
+  filter: brightness(1.06);
+}
+.btn--outline {
+  background: rgba(255, 255, 255, 0.7);
+  border: 1.5px solid var(--primary-border);
+  color: var(--primary-hover);
+}
+.btn--outline:hover:not(:disabled) {
+  background: #fff;
+  border-color: var(--primary);
+}
+.link-btn {
+  color: var(--primary-hover);
+}
+
+/* ---------- Cards: layered shadow, soft border, and a lift on anything clickable ---------- */
+.card,
+.box {
+  background: linear-gradient(180deg, #ffffff 0%, #fbfdfc 100%);
+  border: 1px solid rgba(217, 227, 224, 0.95);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-md);
+}
+.card:hover {
+  box-shadow: var(--shadow-md);
+}
+.action,
+.dept-card,
+.knowledge-card,
+.glance-chip,
+.staff-link,
+.quick-pill {
+  transition: transform var(--dur-med) var(--ease-out), box-shadow var(--dur-med) var(--ease-out),
+    border-color var(--dur-fast) ease, background-color var(--dur-fast) ease, color var(--dur-fast) ease;
+}
+.action:hover,
+.dept-card:hover,
+.knowledge-card:hover,
+.glance-chip:hover {
+  transform: translateY(-3px);
+  border-color: var(--primary-border);
+  box-shadow: var(--shadow-lg);
+}
+.action__icon-badge {
+  transition: transform var(--dur-med) var(--ease-out);
+}
+.action:hover .action__icon-badge {
+  transform: scale(1.08) rotate(-4deg);
+}
+.action__arrow {
+  transition: transform var(--dur-med) var(--ease-out), color var(--dur-fast) ease;
+}
+.action:hover .action__arrow {
+  transform: translateX(4px);
+  color: var(--primary);
+}
+.section-title,
+.panel__title {
+  letter-spacing: -0.02em;
+}
+
+/* ---------- Home: a deep-teal hero with a saffron glow ---------- */
+.home-hero {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  padding: clamp(1.75rem, 4vw, 3rem) clamp(1.25rem, 4vw, 2.5rem);
+  text-align: center;
+  color: #fff;
+  background: var(--grad-hero);
+  border-radius: var(--radius-lg);
+  box-shadow: var(--shadow-xl), inset 0 1px 0 rgba(255, 255, 255, 0.18);
+}
+.home-hero::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: -10rem;
+  right: -6rem;
+  width: 24rem;
+  height: 24rem;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(253, 224, 71, 0.26), transparent 66%);
+}
+.home-hero::after {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  background: radial-gradient(circle at 12% 130%, rgba(255, 255, 255, 0.16), transparent 46%),
+    repeating-linear-gradient(135deg, rgba(255, 255, 255, 0.035) 0 2px, transparent 2px 16px);
+}
+.home-hero__title {
+  margin: 0;
+  color: #fff;
+  font-size: var(--fs-xl);
+  font-weight: 800;
+  letter-spacing: -0.035em;
+  line-height: 1.08;
+}
+.home-hero__title > span {
+  display: block;
+}
+.home-hero__gradient {
+  background: var(--grad-accent);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.home-hero__subtitle {
+  max-width: 34rem;
+  margin: 0.9rem auto 0;
+  color: #dff4f0;
+}
+.hospital-live-bar {
+  background: rgba(255, 255, 255, 0.72);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.8);
+  box-shadow: var(--shadow-sm);
+}
+.hospital-live-bar__tag--accent {
+  color: var(--accent-ink);
+}
+
+/* Symptom finder: a teal-to-saffron signature line across the top */
+.symptom-card {
+  position: relative;
+  overflow: hidden;
+}
+.symptom-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary), var(--teal) 55%, var(--accent));
+}
+.symptom-card__badge {
+  background: var(--primary-light);
+  color: var(--primary-hover);
+}
+.symptom-input-wrap {
+  transition: border-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease, background-color var(--dur-fast) ease;
+}
+.symptom-input-wrap:focus-within {
+  border-color: var(--primary);
+  background: #fff;
+  box-shadow: var(--ring);
+}
+.quick-pill:hover {
+  background: var(--primary-light);
+  border-color: var(--primary-border);
+  color: var(--primary-hover);
+  transform: translateY(-2px);
+}
+.tool-pill {
+  transition: background-color var(--dur-fast) ease, border-color var(--dur-fast) ease, transform var(--dur-fast) var(--ease-out);
+}
+.tool-pill:hover:not(:disabled) {
+  background: var(--primary-light);
+  border-color: var(--primary-border);
+}
+
+/* ---------- Forms: calm focus, clear feedback ---------- */
+.field__label {
+  font-weight: 600;
+  color: var(--ink);
+}
+.field__control {
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  transition: border-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease, background-color var(--dur-fast) ease;
+}
+.field__control:hover {
+  border-color: var(--primary-border);
+}
+.field__control:focus {
+  outline: none;
+  border-color: var(--primary);
+  box-shadow: var(--ring);
+}
+.field__control--error {
+  border-color: var(--danger);
+  background: var(--danger-bg);
+}
+.field__control--error:focus {
+  box-shadow: 0 0 0 4px rgba(220, 38, 38, 0.2);
+}
+.field__error {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  color: var(--danger-dark);
+  font-weight: 600;
+}
+.field__error::before {
+  content: '!';
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  width: 1.15rem;
+  height: 1.15rem;
+  border-radius: 50%;
+  background: var(--danger);
+  color: #fff;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+/* Gender chips: the chosen one fills with the brand gradient */
+.choice__item span {
+  border: 1.5px solid var(--border-strong);
+  border-radius: var(--radius-sm);
+  background: #fff;
+  transition: background-color var(--dur-fast) ease, border-color var(--dur-fast) ease, color var(--dur-fast) ease,
+    transform var(--dur-fast) var(--ease-out), box-shadow var(--dur-fast) ease;
+}
+.choice__item:hover span {
+  border-color: var(--primary-border);
+  background: var(--primary-tint);
+}
+.choice__item input:checked + span {
+  background: var(--grad-primary);
+  border-color: transparent;
+  color: #fff;
+  font-weight: 700;
+  box-shadow: 0 8px 18px -8px rgba(15, 118, 110, 0.6);
+}
+
+/* Switches: a springy thumb */
+.toggle {
+  border-radius: var(--radius-sm);
+  transition: border-color var(--dur-fast) ease, background-color var(--dur-fast) ease, box-shadow var(--dur-fast) ease;
+}
+.toggle:hover {
+  border-color: var(--primary-border);
+  background: var(--primary-tint);
+}
+.toggle__track {
+  background: var(--border-strong);
+  transition: background-color var(--dur-med) var(--ease-out);
+}
+.toggle--checked .toggle__track,
+.toggle input:checked ~ .toggle__track {
+  background: var(--primary);
+}
+.toggle__thumb {
+  transition: transform var(--dur-med) cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+
+/* ---------- Registration: progress, department cards, steps ---------- */
+.steps-chip {
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
+  background: var(--primary-light);
+  color: var(--primary-hover);
+  font-weight: 800;
+}
+.steps-bar-track {
+  position: relative;
+  height: 10px;
+  overflow: hidden;
+  border-radius: var(--radius-full);
+  background: var(--surface-subtle);
+  box-shadow: inset 0 1px 2px rgba(11, 43, 46, 0.08);
+}
+.steps-bar-fill {
+  position: relative;
+  border-radius: var(--radius-full);
+  background: linear-gradient(90deg, var(--primary), var(--teal) 70%, var(--accent));
+  transition: width var(--dur-slow) var(--ease-out);
+}
+.dept-card {
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius);
+  background: #fff;
+}
+.dept-card--selected,
+.dept-card[aria-pressed='true'] {
+  border-color: var(--primary);
+  background: var(--primary-tint);
+  box-shadow: 0 0 0 4px rgba(15, 118, 110, 0.14), var(--shadow-md);
+  color: var(--ink);
+}
+.dept-card--selected .dept-card__desc,
+.dept-card[aria-pressed='true'] .dept-card__desc {
+  color: var(--ink-soft);
+}
+.dept-card__check {
+  display: grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 50%;
+  transition: background-color var(--dur-fast) ease, transform var(--dur-med) cubic-bezier(0.34, 1.56, 0.64, 1);
+}
+.dept-card--selected .dept-card__check {
+  background: var(--primary);
+  color: #fff;
+  transform: scale(1.1);
+}
+.knowledge-card {
+  border: 1.5px solid var(--border-color);
+  border-radius: var(--radius);
+  background: #fff;
+}
+
+/* ---------- OPD slip: a ticket, with the token as the hero ---------- */
+.slip {
+  position: relative;
+  overflow: hidden;
+  border: 1px solid var(--primary-border);
+  border-radius: var(--radius-lg);
+  background: #fff;
+  box-shadow: var(--shadow-xl);
+}
+.slip::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 6px;
+  background: linear-gradient(90deg, var(--primary), var(--teal) 60%, var(--accent));
+}
+.slip__crest {
+  color: var(--primary-hover);
+}
+.slip__badge {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border: 1px solid #fde68a;
+  font-weight: 800;
+}
+.slip__token-box {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--grad-hero);
+  border: 0;
+  border-radius: var(--radius);
+  color: #fff;
+  box-shadow: 0 18px 36px -16px rgba(11, 79, 74, 0.7), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+}
+.slip__token-box::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: -4rem;
+  right: -3rem;
+  width: 12rem;
+  height: 12rem;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(251, 191, 36, 0.4), transparent 68%);
+}
+.slip__token-label {
+  color: #bfe9e2;
+  letter-spacing: 0.14em;
+}
+.slip__token {
+  background: var(--grad-accent);
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  letter-spacing: 0.05em;
+  filter: drop-shadow(0 4px 14px rgba(251, 191, 36, 0.35));
+}
+.slip__token-dept {
+  color: #e3f6f2;
+}
+.slip__qr .qr {
+  border: 1px solid var(--primary-border);
+  box-shadow: var(--shadow-md);
+}
+.slip__disclaimer {
+  background: var(--danger-bg);
+  border: 1px solid var(--danger-border);
+  border-left: 4px solid var(--danger);
+  border-radius: var(--radius-sm);
+  color: #7f1d1d;
+}
+.summary-list__item:nth-child(odd) {
+  background: var(--primary-tint);
+}
+
+/* ---------- Live turn: big number, saffron wait chip, urgent states ---------- */
+.turn-hero {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
+}
+.turn-hero::before {
+  content: '';
+  position: absolute;
+  inset: 0 auto 0 0;
+  width: 5px;
+  background: linear-gradient(var(--primary), var(--teal));
+}
+.turn-hero__token {
+  color: var(--primary-hover);
+}
+.turn-metrics__number {
+  background: linear-gradient(135deg, var(--primary), var(--teal));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+  filter: drop-shadow(0 6px 16px rgba(15, 118, 110, 0.22));
+}
+.turn-metrics__wait-chip {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border: 1px solid #fde68a;
+  font-weight: 700;
+}
+.turn-alert-banner {
+  background: linear-gradient(135deg, var(--accent-soft), #fff7da);
+  border: 1px solid #fcd34d;
+  border-left: 5px solid var(--accent);
+  color: #5f2f06;
+}
+.turn-card--called {
+  position: relative;
+  overflow: hidden;
+  isolation: isolate;
+  background: var(--grad-ok);
+  border: 0;
+  color: #fff;
+  box-shadow: 0 24px 48px -16px rgba(21, 114, 56, 0.6);
+}
+.turn-card--called::before {
+  content: '';
+  position: absolute;
+  z-index: -1;
+  top: -6rem;
+  left: 50%;
+  width: 18rem;
+  height: 18rem;
+  margin-left: -9rem;
+  border-radius: 50%;
+  background: radial-gradient(circle, rgba(255, 255, 255, 0.24), transparent 68%);
+}
+.turn-card__called-icon {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+.doc {
+  border-radius: var(--radius-sm);
+  transition: background-color var(--dur-fast) ease;
+}
+.sms-list__item {
+  border-radius: var(--radius-sm);
+  background: var(--primary-tint);
+  border: 1px solid var(--primary-border);
+}
+.sms-toast {
+  background: linear-gradient(135deg, #0b3b38, #0b2b2e);
+  border: 1px solid rgba(94, 234, 212, 0.25);
+  box-shadow: var(--shadow-xl), 0 0 0 1px rgba(255, 255, 255, 0.04) inset;
+}
+
+/* ---------- Emergency surfaces ---------- */
+.emergency-note,
+.emergency-alert-banner,
+.emergency-directive-box {
+  border-radius: var(--radius);
+  border: 1px solid var(--danger-border);
+  border-left: 5px solid var(--danger);
+  background: linear-gradient(180deg, var(--danger-bg), #fff);
+  box-shadow: var(--shadow-md);
+}
+.modal--danger {
+  border-color: var(--danger-border);
+}
+
+/* ---------- Dashboards ---------- */
+.stat-card {
+  position: relative;
+  overflow: hidden;
+  border-radius: var(--radius);
+  transition: transform var(--dur-med) var(--ease-out), box-shadow var(--dur-med) var(--ease-out);
+}
+.stat-card::before {
+  content: '';
+  position: absolute;
+  inset: 0 0 auto 0;
+  height: 4px;
+  background: linear-gradient(90deg, var(--primary), var(--teal));
+}
+.stat-card:nth-child(2)::before {
+  background: linear-gradient(90deg, var(--accent), #fbbf24);
+}
+.stat-card:nth-child(3)::before {
+  background: linear-gradient(90deg, var(--teal), #22d3ee);
+}
+.stat-card:nth-child(4)::before {
+  background: linear-gradient(90deg, #15803d, #4ade80);
+}
+.stat-card:nth-child(5)::before {
+  background: linear-gradient(90deg, var(--danger-dark), #f87171);
+}
+.stat-card:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+.stat-card__value {
+  background: linear-gradient(135deg, var(--ink), var(--primary));
+  -webkit-background-clip: text;
+  background-clip: text;
+  -webkit-text-fill-color: transparent;
+  color: transparent;
+}
+.stats > div {
+  background: var(--primary-tint);
+  border: 1px solid var(--primary-border);
+}
+.bar__track {
+  background: var(--surface-subtle);
+  box-shadow: inset 0 1px 2px rgba(11, 43, 46, 0.08);
+}
+.bar__fill {
+  background: linear-gradient(90deg, var(--primary), var(--teal));
+  border-radius: var(--radius-full);
+}
+.heat {
+  transition: transform var(--dur-med) var(--ease-out), box-shadow var(--dur-med) var(--ease-out);
+}
+.heat:hover {
+  transform: translateY(-3px);
+  box-shadow: var(--shadow-lg);
+}
+.doctor-status-card,
+.current-patient-card {
+  border-radius: var(--radius-lg);
+}
+.current-token-badge {
+  background: var(--grad-hero);
+  color: #fbbf24;
+  border: 0;
+  box-shadow: 0 10px 22px -10px rgba(11, 79, 74, 0.7);
+}
+.wait-list__item {
+  border-radius: var(--radius-sm);
+  transition: background-color var(--dur-fast) ease, transform var(--dur-med) var(--ease-out);
+}
+.wait-list__item:hover {
+  background: var(--primary-tint);
+  transform: translateX(3px);
+}
+.staff-portal {
+  border-radius: var(--radius);
+}
+.staff-link {
+  background: var(--primary-tint);
+  border-color: var(--primary-border);
+  color: var(--primary-hover);
+}
+.staff-link:hover {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+/* ---------- Map ---------- */
+.floormap__plate {
+  fill: #eaf1ee;
+}
+.floormap__route-glow {
+  stroke: rgba(14, 116, 144, 0.26);
+}
+.floor-tabs__tab {
+  border-radius: var(--radius-sm);
+  transition: background-color var(--dur-fast) ease, color var(--dur-fast) ease, transform var(--dur-fast) var(--ease-out),
+    box-shadow var(--dur-fast) ease;
+}
+.floor-tabs__tab[aria-selected='true'],
+.floor-tabs__tab[aria-pressed='true'] {
+  background: var(--grad-primary);
+  border-color: transparent;
+  color: #fff;
+  box-shadow: 0 10px 20px -10px rgba(15, 118, 110, 0.6);
+}
+.steps-list__num {
+  background: var(--grad-primary);
+  box-shadow: 0 6px 14px -4px var(--primary-glow);
+}
+.steps-list__item:last-child .steps-list__num {
+  background: var(--grad-accent);
+  color: #5f2f06;
+  box-shadow: 0 6px 14px -4px rgba(245, 158, 11, 0.5);
+}
+.steps-list__item:not(:last-child)::before {
+  background: linear-gradient(var(--primary-border), var(--border-color));
+}
+
+/* ---------- TV board: deep teal ink with glowing, saffron tokens ---------- */
+.board {
+  background: radial-gradient(60rem 30rem at 10% -10%, rgba(15, 118, 110, 0.35), transparent 60%),
+    radial-gradient(50rem 28rem at 100% 0%, rgba(245, 158, 11, 0.12), transparent 60%), #05201f;
+}
+.board-room {
+  background: linear-gradient(180deg, #0b3532 0%, #0a2f2d 100%);
+  border: 1px solid rgba(94, 234, 212, 0.16);
+  box-shadow: 0 18px 36px -18px rgba(0, 0, 0, 0.6);
+}
+.board-room__token {
+  color: #fbbf24;
+  text-shadow: 0 0 28px rgba(251, 191, 36, 0.35);
+}
+.board__head h1 {
+  letter-spacing: -0.03em;
+}
+.board__head {
+  border-bottom-color: rgba(94, 234, 212, 0.18);
+}
+.board__sound {
+  background: rgba(94, 234, 212, 0.1);
+  border-color: rgba(94, 234, 212, 0.35);
+  color: #5eead4;
+}
+
+/* ---------- Modals ---------- */
+dialog.modal::backdrop {
+  background: rgba(5, 32, 31, 0.55);
+  -webkit-backdrop-filter: blur(6px);
+  backdrop-filter: blur(6px);
+}
+.modal {
+  border-radius: var(--radius-lg);
+  border: 1px solid rgba(255, 255, 255, 0.7);
+  box-shadow: var(--shadow-xl);
+}
+.modal__title {
+  letter-spacing: -0.03em;
+}
+
+/* ---------- Loading, empty and error states ---------- */
+.loading-state {
+  display: grid;
+  gap: var(--sp-2);
+}
+.skeleton {
+  border-radius: var(--radius-sm);
+  background: linear-gradient(90deg, #e3ece9 25%, #f2f7f5 37%, #e3ece9 63%);
+  background-size: 200% 100%;
+}
+.skeleton--title {
+  height: 2.2rem;
+  width: 55%;
+}
+.skeleton--card {
+  height: 8rem;
+  border-radius: var(--radius);
+}
+.skeleton--line {
+  height: 1rem;
+  width: 85%;
+}
+.status:not(.status--error)::before {
+  border-color: var(--primary-light);
+  border-top-color: var(--primary);
+}
+.status--error {
+  position: relative;
+  padding: var(--sp-3) var(--sp-2);
+  border-radius: var(--radius);
+  background: linear-gradient(180deg, var(--danger-bg), #fff);
+  border: 1px solid var(--danger-border);
+  color: var(--danger-dark);
+  box-shadow: var(--shadow-md);
+}
+.status--error::before {
+  content: '';
+  width: 2.75rem;
+  height: 2.75rem;
+  border-radius: 50%;
+  background: var(--danger) url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='24' height='24' viewBox='0 0 24 24' fill='none' stroke='white' stroke-width='2.4' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M12 8v5'/%3E%3Cpath d='M12 17h.01'/%3E%3Ccircle cx='12' cy='12' r='9'/%3E%3C/svg%3E") center / 1.5rem no-repeat;
+  box-shadow: 0 8px 18px -6px rgba(220, 38, 38, 0.5);
+}
+/* Empty lists: a soft dashed panel instead of loose grey text */
+p.field__hint.text-center.py-3,
+details .field__hint:only-child {
+  display: grid;
+  place-items: center;
+  min-height: 5rem;
+  padding: var(--sp-2);
+  border: 1.5px dashed var(--primary-border);
+  border-radius: var(--radius);
+  background: var(--primary-tint);
+  color: var(--ink-soft);
+  text-align: center;
+}
+
+/* ---------- Print: the slip must stay readable on plain paper ---------- */
+@media print {
+  body::before {
+    display: none !important;
+  }
+  .slip::before {
+    display: none;
+  }
+  .slip__token-box {
+    background: #fff !important;
+    color: #000 !important;
+    border: 2px dashed #000 !important;
+    box-shadow: none !important;
+  }
+  .slip__token-box::before {
+    display: none;
+  }
+  .slip__token {
+    background: none !important;
+    -webkit-text-fill-color: #000 !important;
+    color: #000 !important;
+    filter: none !important;
+  }
+  .slip__token-label,
+  .slip__token-dept {
+    color: #000 !important;
+  }
+}
+
+/* ---------- Finishing touches ---------- */
+.demo__toggle {
+  background: var(--ink);
+  border-color: var(--ink);
+  color: #fff;
+}
+.demo__toggle:hover:not(:disabled) {
+  background: #14393d;
+  border-color: #14393d;
+  color: #fff;
+}
+.modal__actions .btn {
+  width: 100%;
+}
+
+/* "Your turn" is the moment that matters most: white text on the green panel, never dark-on-dark */
+.turn-card--called .turn-card__called-title {
+  color: #fff;
+  text-shadow: 0 2px 12px rgba(0, 0, 0, 0.25);
+}
+.turn-card--called .turn-card__called-desc {
+  color: #eaf8ee;
+}
+.turn-card--called .btn--primary {
+  background: #fff;
+  color: var(--ok);
+  box-shadow: 0 12px 24px -10px rgba(0, 0, 0, 0.45);
+}
+.turn-card--called .btn--primary:hover:not(:disabled) {
+  background: #f0fdf4;
+  color: #0f5c2e;
+  filter: none;
+}
+
+/* Doctor screen: the token is a proper badge, not a text highlight */
+.current-token-badge {
+  display: inline-block;
+  padding: 0.4rem 0.95rem;
+  border-radius: var(--radius-sm);
+  line-height: 1.1;
+}
+
+/* Contrast fixes found by the gradient-aware audit */
+.slip__token-box .slip__token-label {
+  color: #e6f7f4;
+}
+.turn-hero .slip__token-label {
+  color: var(--primary-hover);
+}
+.emergency-note .form__title,
+.emergency-note--ticket .form__title {
+  color: var(--danger-dark);
+}

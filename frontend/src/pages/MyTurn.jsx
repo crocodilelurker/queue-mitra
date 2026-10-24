@@ -29,7 +29,7 @@ function DoctorLine({ doctor }) {
       <div className="doc__indicator" />
       <div className="doc__details">
         <strong>{doctor.name}</strong>
-        <span>Room {doctor.room} · {status}</span>
+        <span>{doctor.room} · {status}</span>
       </div>
     </li>
   )
@@ -237,7 +237,7 @@ export default function MyTurn({ publicId }) {
 
       {status === 'completed' && (
         <section className="turn-card card text-center">
-          <Icon name="check" size={36} color="#16a34a" />
+          <Icon name="check" size={36} color="#157238" />
           <p className="mt-2 font-semibold">{t.finished}</p>
         </section>
       )}

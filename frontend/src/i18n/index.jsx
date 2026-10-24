@@ -55,8 +55,9 @@ export function I18nProvider({ children }) {
       deptDesc,
       placeName: (place) => placeNameFor(place, lang, deptName, t.room),
       checkpointName: (cp) => checkpointNameFor(cp, lang),
-      // Picks the current language from a { en, hi, ta } object returned by the backend.
-      pick: (obj) => (obj ? obj[lang] || obj.en || '' : ''),
+      // Picks the current language from a { en, hi, ... } object returned by the backend. If the backend has no
+      // text for this language, `fallbackKey` names a translated string held in the dictionaries; else English.
+      pick: (obj, fallbackKey) => (obj ? obj[lang] || (fallbackKey && lang !== 'en' ? t[fallbackKey] : '') || obj.en || '' : ''),
     }
   }, [lang])
 

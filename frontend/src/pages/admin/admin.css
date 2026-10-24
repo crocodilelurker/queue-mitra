@@ -1,0 +1,1379 @@
+/* ==========================================================================
+   MEDIFLOW - COMPLETE CLINICAL OPD ADMIN & DASHBOARD SYSTEM
+   Pixel-perfect match with MediFlow reference UI
+   ========================================================================== */
+
+/* ---------- Shell & Master Container ---------- */
+.mediflow-shell {
+  display: flex;
+  min-height: 100vh;
+  width: 100%;
+  background: #f8fafc;
+  color: #0f172a;
+  font-family: var(--font, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif);
+  box-sizing: border-box;
+}
+
+/* ---------- Sidebar Navigation ---------- */
+.mediflow-sidebar {
+  width: 250px;
+  background: #ffffff;
+  border-right: 1px solid #e2e8f0;
+  display: flex;
+  flex-direction: column;
+  flex-shrink: 0;
+  position: sticky;
+  top: 0;
+  height: 100vh;
+  overflow-y: auto;
+  box-sizing: border-box;
+  z-index: 30;
+}
+
+.mediflow-sidebar__brand {
+  padding: 1.25rem 1.25rem 1rem;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  text-decoration: none;
+  color: inherit;
+}
+
+.mediflow-brand-icon {
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
+  background: #0d9488;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4px 10px rgba(13, 148, 136, 0.25);
+  flex-shrink: 0;
+}
+
+.mediflow-brand-text {
+  display: flex;
+  flex-direction: column;
+}
+
+.mediflow-brand-title {
+  font-size: 1.25rem;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: #0f172a;
+  line-height: 1.15;
+}
+
+.mediflow-brand-subtitle {
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: #64748b;
+}
+
+/* Sidebar Nav Items */
+.mediflow-nav {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  padding: 0.75rem 0.85rem;
+  flex: 1;
+}
+
+.mediflow-nav__item {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.65rem 0.95rem;
+  border-radius: 10px;
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #475569;
+  text-decoration: none;
+  transition: all 0.15s ease;
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  width: 100%;
+  text-align: left;
+  box-sizing: border-box;
+}
+
+.mediflow-nav__item:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.mediflow-nav__item--active {
+  background: #0d9488 !important;
+  color: #ffffff !important;
+  box-shadow: 0 4px 12px rgba(13, 148, 136, 0.25);
+}
+
+.mediflow-nav__item--active .icon-svg {
+  stroke: #ffffff;
+}
+
+/* Sidebar Footer Card */
+.mediflow-sidebar__footer {
+  padding: 1rem;
+  border-top: 1px solid #f1f5f9;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.mediflow-demo-card {
+  background: #fefce8;
+  border: 1px solid #fef08a;
+  border-radius: 10px;
+  padding: 0.75rem 0.85rem;
+  font-size: 0.75rem;
+  color: #854d0e;
+  line-height: 1.4;
+  display: flex;
+  gap: 0.45rem;
+  align-items: flex-start;
+}
+
+.mediflow-kiosk-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.45rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: #64748b;
+  text-decoration: none;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  transition: all 0.15s ease;
+}
+
+.mediflow-kiosk-btn:hover {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+/* ---------- Topbar ---------- */
+.mediflow-main-wrapper {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  background: #f8fafc;
+}
+
+.mediflow-topbar {
+  height: 68px;
+  background: #ffffff;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 2rem;
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  gap: 1.5rem;
+}
+
+.mediflow-search-wrapper {
+  flex: 1;
+  max-width: 480px;
+  position: relative;
+}
+
+.mediflow-search-input {
+  width: 100%;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 9999px;
+  padding: 0.55rem 1rem 0.55rem 2.5rem;
+  font-size: 0.88rem;
+  color: #0f172a;
+  outline: none;
+  transition: all 0.15s ease;
+  box-sizing: border-box;
+}
+
+.mediflow-search-input:focus {
+  border-color: #0d9488;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+}
+
+.mediflow-search-icon {
+  position: absolute;
+  left: 0.85rem;
+  top: 50%;
+  transform: translateY(-50%);
+  color: #94a3b8;
+  pointer-events: none;
+}
+
+.mediflow-topbar__actions {
+  display: flex;
+  align-items: center;
+  gap: 1.15rem;
+}
+
+.btn-icon-topbar {
+  position: relative;
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-icon-topbar:hover {
+  background: #f1f5f9;
+  color: #0f172a;
+}
+
+.notification-badge {
+  position: absolute;
+  top: -2px;
+  right: -2px;
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  background: #dc2626;
+  color: #ffffff;
+  font-size: 0.65rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border: 2px solid #ffffff;
+}
+
+.user-profile-badge {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  cursor: pointer;
+  padding: 0.35rem 0.65rem;
+  border-radius: 8px;
+  transition: background 0.15s ease;
+}
+
+.user-profile-badge:hover {
+  background: #f1f5f9;
+}
+
+.user-avatar-circle {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  background: #ccfbf1;
+  color: #0f766e;
+  font-weight: 700;
+  font-size: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.user-info-text {
+  display: flex;
+  flex-direction: column;
+  text-align: left;
+}
+
+.user-info-name {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #0f172a;
+  line-height: 1.2;
+}
+
+.user-info-role {
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.btn-signout {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-signout:hover {
+  background: #fee2e2;
+  border-color: #fca5a5;
+  color: #991b1b;
+}
+
+/* ---------- Yellow Disclaimer Banner ---------- */
+.mediflow-disclaimer-banner {
+  background: #fffbeb;
+  border: 1px solid #fef3c7;
+  border-radius: 12px;
+  padding: 0.85rem 1.25rem;
+  font-size: 0.84rem;
+  color: #92400e;
+  display: flex;
+  align-items: flex-start;
+  gap: 0.65rem;
+  margin: 1.5rem 2rem 0;
+  line-height: 1.5;
+}
+
+/* ---------- Main Body & Hero Greeting ---------- */
+.mediflow-body {
+  padding: 1.5rem 2rem 2.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+  flex: 1;
+}
+
+.mediflow-hero {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 1.25rem;
+}
+
+.mediflow-hero__text h1 {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: #0f172a;
+  margin: 0;
+  letter-spacing: -0.02em;
+}
+
+.mediflow-hero__text p {
+  font-size: 0.95rem;
+  color: #64748b;
+  margin: 0.35rem 0 0;
+}
+
+.mediflow-hero__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  flex-wrap: wrap;
+}
+
+.btn-action-primary-teal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.6rem 1.15rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  background: #0d9488;
+  color: #ffffff !important;
+  border: 1px solid #0d9488;
+  border-radius: 9px;
+  cursor: pointer;
+  box-shadow: 0 2px 8px rgba(13, 148, 136, 0.25);
+  transition: all 0.15s ease;
+}
+
+.btn-action-primary-teal:hover {
+  background: #0f766e;
+  border-color: #0f766e;
+  transform: translateY(-1px);
+}
+
+.btn-action-outline {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.6rem 1.15rem;
+  font-size: 0.88rem;
+  font-weight: 600;
+  background: #ffffff;
+  color: #1e293b;
+  border: 1px solid #cbd5e1;
+  border-radius: 9px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-action-outline:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  transform: translateY(-1px);
+}
+
+/* ---------- 6 Pastel Stat Metric Cards Grid ---------- */
+.mediflow-metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 1rem;
+  width: 100%;
+}
+
+.pastel-metric-card {
+  border-radius: 14px;
+  padding: 1.25rem 1.15rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  border: 1px solid rgba(0, 0, 0, 0.04);
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.pastel-metric-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.06);
+}
+
+.pastel-card--blue { background: #e0f2fe; }
+.pastel-card--green { background: #dcfce7; }
+.pastel-card--amber { background: #fef3c7; }
+.pastel-card--purple { background: #ede9fe; }
+.pastel-card--teal { background: #ccfbf1; }
+.pastel-card--pink { background: #ffe4e6; }
+
+.pastel-card__icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.85);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: #334155;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+}
+
+.pastel-card__value {
+  font-size: 2.15rem;
+  font-weight: 800;
+  color: #0f172a;
+  line-height: 1.1;
+  letter-spacing: -0.03em;
+}
+
+.pastel-card__label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #334155;
+  line-height: 1.3;
+}
+
+.pastel-card__sub {
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+/* ---------- 2-Column Section (Today's Schedule & Live OPD Queue) ---------- */
+.mediflow-columns-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.15fr) minmax(0, 0.85fr);
+  gap: 1.5rem;
+  width: 100%;
+}
+
+@media (max-width: 1024px) {
+  .mediflow-columns-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.mediflow-white-box {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.mediflow-box-header {
+  padding: 1.15rem 1.5rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.mediflow-box-header h2 {
+  font-size: 1.1rem;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0;
+}
+
+.mediflow-link-sm {
+  font-size: 0.82rem;
+  font-weight: 600;
+  color: #0d9488;
+  text-decoration: none;
+}
+
+.mediflow-link-sm:hover {
+  text-decoration: underline;
+}
+
+/* Schedule Items List */
+.schedule-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.95rem 1.5rem;
+  border-bottom: 1px solid #f8fafc;
+  gap: 1rem;
+  transition: background 0.15s ease;
+}
+
+.schedule-item-row:hover {
+  background: #f8fafc;
+}
+
+.schedule-item-row:last-child {
+  border-bottom: none;
+}
+
+.schedule-time-badge {
+  font-size: 0.88rem;
+  font-weight: 700;
+  color: #0284c7;
+  min-width: 50px;
+}
+
+.schedule-patient-meta {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.schedule-patient-name {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.schedule-patient-id {
+  font-size: 0.75rem;
+  color: #94a3b8;
+  font-family: monospace;
+  margin-left: 0.35rem;
+}
+
+.schedule-doctor-sub {
+  font-size: 0.8rem;
+  color: #64748b;
+}
+
+.badge-completed {
+  background: #dcfce7;
+  color: #15803d;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+}
+
+.badge-inprogress {
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+}
+
+.badge-scheduled {
+  background: #fef3c7;
+  color: #b45309;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+}
+
+/* Live OPD Queue Row */
+.queue-item-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.85rem 1.5rem;
+  border-bottom: 1px solid #f8fafc;
+  gap: 1rem;
+}
+
+.queue-item-row:last-child {
+  border-bottom: none;
+}
+
+.token-badge-blue {
+  background: #e0f2fe;
+  color: #0369a1;
+  font-size: 0.85rem;
+  font-weight: 800;
+  padding: 0.35rem 0.65rem;
+  border-radius: 8px;
+  min-width: 58px;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+
+.token-badge-coral {
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 0.85rem;
+  font-weight: 800;
+  padding: 0.35rem 0.65rem;
+  border-radius: 8px;
+  min-width: 58px;
+  text-align: center;
+  letter-spacing: 0.02em;
+}
+
+.queue-patient-meta {
+  flex: 1;
+}
+
+.queue-patient-name {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.queue-doctor-sub {
+  font-size: 0.78rem;
+  color: #64748b;
+}
+
+.wait-time-tag {
+  color: #dc2626;
+  font-weight: 600;
+}
+
+/* ---------- MediFlow Patient Cards (Screenshot 1) ---------- */
+.mediflow-page-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+}
+
+.mediflow-page-title {
+  font-size: 1.85rem;
+  font-weight: 800;
+  color: #0f172a;
+  letter-spacing: -0.02em;
+  margin: 0;
+  line-height: 1.15;
+}
+
+.mediflow-page-subtitle {
+  font-size: 0.9rem;
+  color: #64748b;
+  margin: 0.25rem 0 0;
+}
+
+.mediflow-search-bar-row {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  margin-bottom: 1.5rem;
+  width: 100%;
+}
+
+.mediflow-search-bar-input {
+  flex: 1;
+  background: #ffffff;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 0.65rem 1.15rem;
+  font-size: 0.92rem;
+  color: #0f172a;
+  outline: none;
+  transition: all 0.15s ease;
+}
+
+.mediflow-search-bar-input:focus {
+  border-color: #0d9488;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+}
+
+.btn-teal-search {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.65rem 1.35rem;
+  font-size: 0.9rem;
+  font-weight: 600;
+  background: #0d9488;
+  color: #ffffff !important;
+  border: 1px solid #0d9488;
+  border-radius: 10px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-teal-search:hover {
+  background: #0f766e;
+}
+
+/* Patient Card Item */
+.patient-card-item {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1.1rem 1.4rem;
+  margin-bottom: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: transform 0.15s ease, box-shadow 0.15s ease;
+}
+
+.patient-card-item:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, 0.04);
+}
+
+.patient-card-left {
+  display: flex;
+  align-items: center;
+  gap: 1.15rem;
+}
+
+.patient-avatar-circle {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: 700;
+  font-size: 0.92rem;
+  flex-shrink: 0;
+}
+
+.avatar--teal { background: #ccfbf1; color: #0f766e; }
+.avatar--cyan { background: #cffafe; color: #0e7490; }
+.avatar--mint { background: #d1fae5; color: #047857; }
+.avatar--amber { background: #fef3c7; color: #b45309; }
+.avatar--purple { background: #ede9fe; color: #6d28d9; }
+
+.patient-card-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.patient-card-name {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.patient-card-sub {
+  font-size: 0.82rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.patient-card-right {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.patient-phone-display {
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  font-size: 0.88rem;
+  color: #475569;
+  font-family: inherit;
+  margin-right: 0.5rem;
+}
+
+.btn-card-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.4rem 0.85rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-card-action:hover {
+  background: #f8fafc;
+  border-color: #94a3b8;
+  color: #0f172a;
+}
+
+/* ---------- MediFlow Follow-ups (Screenshot 2) ---------- */
+.followup-reminder-banner {
+  background: #fefce8;
+  border: 1px solid #fef08a;
+  border-radius: 12px;
+  padding: 0.95rem 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  margin-bottom: 1.5rem;
+}
+
+.followup-reminder-title {
+  font-size: 0.92rem;
+  font-weight: 700;
+  color: #854d0e;
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.followup-reminder-sub {
+  font-size: 0.82rem;
+  color: #a16207;
+}
+
+.followup-filter-box {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1.15rem 1.4rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  align-items: flex-end;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+
+.followup-field-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  flex: 1;
+  min-width: 200px;
+}
+
+.followup-field-group label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+/* Follow-up Card Item */
+.followup-card-item {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  padding: 1.15rem 1.4rem;
+  margin-bottom: 0.85rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1.25rem;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.02);
+  transition: transform 0.15s ease;
+}
+
+.followup-card-item:hover {
+  transform: translateY(-1px);
+}
+
+.followup-card-left {
+  display: flex;
+  align-items: center;
+  gap: 1.15rem;
+  flex: 1;
+}
+
+.followup-date-badge {
+  width: 52px;
+  height: 52px;
+  border-radius: 12px;
+  background: #e0f2fe;
+  color: #0369a1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.followup-date-day {
+  font-size: 1.25rem;
+  font-weight: 800;
+  line-height: 1;
+}
+
+.followup-date-my {
+  font-size: 0.7rem;
+  font-weight: 600;
+  margin-top: 2px;
+}
+
+.followup-card-details {
+  display: flex;
+  flex-direction: column;
+  gap: 0.15rem;
+}
+
+.followup-patient-title {
+  font-size: 1.05rem;
+  font-weight: 700;
+  color: #0f172a;
+}
+
+.followup-patient-id {
+  font-size: 0.78rem;
+  font-family: monospace;
+  color: #94a3b8;
+  margin-left: 0.35rem;
+}
+
+.followup-doctor-line {
+  font-size: 0.82rem;
+  color: #64748b;
+}
+
+.followup-reason-line {
+  font-size: 0.82rem;
+  color: #0f172a;
+  font-weight: 500;
+}
+
+.followup-card-right {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.followup-status-block {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.15rem;
+}
+
+.badge-upcoming-pill {
+  background: #fef3c7;
+  color: #b45309;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+}
+
+.badge-overdue-pill {
+  background: #fee2e2;
+  color: #dc2626;
+  font-size: 0.75rem;
+  font-weight: 700;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+}
+
+.followup-due-subtext {
+  font-size: 0.72rem;
+  color: #64748b;
+  font-weight: 500;
+}
+
+.btn-complete-teal {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.45rem 0.95rem;
+  font-size: 0.82rem;
+  font-weight: 600;
+  background: #0d9488;
+  color: #ffffff !important;
+  border: 1px solid #0d9488;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-complete-teal:hover {
+  background: #0f766e;
+}
+
+
+/* ---------- Admin Tables & Data Grids ---------- */
+.admin-section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1.25rem;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.admin-section-header h2 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #0f172a;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin: 0;
+}
+
+.admin-table-container {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
+  width: 100%;
+  margin-bottom: 1.5rem;
+}
+
+.admin-table-toolbar {
+  padding: 1rem 1.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  flex-wrap: wrap;
+  border-bottom: 1px solid #f1f5f9;
+  background: #fafbfc;
+}
+
+.admin-search-box {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 0.45rem 0.75rem;
+  min-width: 260px;
+}
+
+.admin-search-box input {
+  border: none;
+  background: transparent;
+  outline: none;
+  font-size: 0.875rem;
+  color: #0f172a;
+  width: 100%;
+}
+
+.admin-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  text-align: left;
+}
+
+.admin-table th {
+  background: #f8fafc;
+  color: #475569;
+  font-weight: 600;
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid #e2e8f0;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+}
+
+.admin-table td {
+  padding: 0.85rem 1rem;
+  border-bottom: 1px solid #f1f5f9;
+  color: #0f172a;
+  vertical-align: middle;
+}
+
+.admin-table tr:last-child td {
+  border-bottom: none;
+}
+
+.admin-table tr:hover td {
+  background: #f8fafc;
+}
+
+/* Status Badges */
+.status-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.25rem 0.65rem;
+  border-radius: 9999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.status-pill--scheduled { background: #e0f2fe; color: #0369a1; }
+.status-pill--checked_in { background: #fef3c7; color: #92400e; }
+.status-pill--in_consultation { background: #fdf2f8; color: #9d174d; }
+.status-pill--completed { background: #dcfce7; color: #166534; }
+.status-pill--cancelled { background: #fee2e2; color: #991b1b; }
+.status-pill--paid { background: #dcfce7; color: #166534; }
+.status-pill--waived { background: #ede9fe; color: #5b21b6; }
+.status-pill--pending { background: #fef3c7; color: #b45309; }
+.status-pill--on_duty { background: #dcfce7; color: #166534; }
+.status-pill--off_duty { background: #f1f5f9; color: #64748b; }
+
+.btn-action-sm {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.35rem 0.7rem;
+  font-size: 0.78rem;
+  font-weight: 600;
+  border-radius: 6px;
+  border: 1px solid #cbd5e1;
+  background: #ffffff;
+  color: #334155;
+  cursor: pointer;
+  transition: all 0.15s ease;
+}
+
+.btn-action-sm:hover {
+  background: #f0fdfa;
+  color: #0d9488;
+  border-color: #99f6e4;
+}
+
+.btn-action-primary {
+  background: #0d9488 !important;
+  color: #ffffff !important;
+  border-color: #0d9488 !important;
+}
+
+.btn-action-primary:hover {
+  background: #0f766e !important;
+}
+
+.profile-id-badge {
+  font-family: monospace;
+  font-weight: 700;
+  font-size: 0.95rem;
+  color: #0d9488;
+  background: #f0fdfa;
+  padding: 0.2rem 0.6rem;
+  border-radius: 6px;
+  border: 1px solid #ccfbf1;
+  display: inline-block;
+}
+
+/* Patient Drawer */
+.patient-drawer-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.4);
+  backdrop-filter: blur(4px);
+  z-index: 1000;
+  display: flex;
+  justify-content: flex-end;
+}
+
+.patient-drawer {
+  background: #ffffff;
+  width: min(100%, 540px);
+  height: 100%;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.15);
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+}
+
+.drawer-header {
+  padding: 1.25rem 1.5rem;
+  border-bottom: 1px solid #e2e8f0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  background: #f8fafc;
+  position: sticky;
+  top: 0;
+  z-index: 10;
+}
+
+.drawer-content {
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.patient-profile-card {
+  background: #f0fdfa;
+  border: 1px solid #99f6e4;
+  border-radius: 12px;
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.info-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+}
+
+.info-field-label {
+  font-size: 0.72rem;
+  font-weight: 600;
+  color: #64748b;
+  text-transform: uppercase;
+}
+
+.info-field-val {
+  font-size: 0.9rem;
+  font-weight: 600;
+  color: #0f172a;
+}
+
+.form-grid-2col {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+
+@media (max-width: 640px) {
+  .form-grid-2col {
+    grid-template-columns: 1fr;
+  }
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.form-group label {
+  font-size: 0.8rem;
+  font-weight: 600;
+  color: #475569;
+}
+
+.form-control {
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  padding: 0.55rem 0.75rem;
+  font-size: 0.9rem;
+  color: #0f172a;
+  background: #ffffff;
+  outline: none;
+  transition: border-color 0.15s ease;
+}
+
+.form-control:focus {
+  border-color: #0d9488;
+  box-shadow: 0 0 0 3px rgba(13, 148, 136, 0.15);
+}
+
+/* Printable Receipt */
+.receipt-paper {
+  background: #ffffff;
+  border: 2px dashed #cbd5e1;
+  border-radius: 12px;
+  padding: 2rem;
+  max-width: 480px;
+  margin: 0 auto;
+  font-family: 'Courier New', Courier, monospace;
+  color: #1e293b;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05);
+}
+
+.receipt-header {
+  text-align: center;
+  border-bottom: 2px solid #0f172a;
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+}
+
+.receipt-hospital-title {
+  font-size: 1.15rem;
+  font-weight: 900;
+  margin: 0;
+  text-transform: uppercase;
+}
+
+.receipt-subtitle {
+  font-size: 0.8rem;
+  color: #475569;
+  margin: 0.2rem 0;
+}
+
+.receipt-row {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.88rem;
+  margin: 0.35rem 0;
+}
+
+.receipt-divider {
+  border-top: 1px dashed #94a3b8;
+  margin: 0.85rem 0;
+}
+
+.receipt-total {
+  display: flex;
+  justify-content: space-between;
+  font-size: 1.15rem;
+  font-weight: 900;
+  border-top: 2px solid #0f172a;
+  border-bottom: 2px solid #0f172a;
+  padding: 0.5rem 0;
+  margin: 0.75rem 0;
+}
+
+.receipt-footer {
+  text-align: center;
+  font-size: 0.75rem;
+  color: #64748b;
+  margin-top: 1.5rem;
+}
+
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  .receipt-paper, .receipt-paper * {
+    visibility: visible;
+  }
+  .receipt-paper {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+    max-width: 100%;
+    border: none;
+    box-shadow: none;
+  }
+}
+
