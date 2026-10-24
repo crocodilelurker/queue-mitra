@@ -96,7 +96,7 @@ export const api = {
   // doctor / staff
   dashboard: () => get('/doctor/dashboard'),
   callNext: () => post('/doctor/call-next'),
-  complete: (id) => post(`/doctor/tickets/${id}/complete`),
+  complete: (id, payload = {}) => post(`/doctor/tickets/${id}/complete`, payload),
   noShow: (id) => post(`/doctor/tickets/${id}/no-show`),
   requeue: (id) => post(`/doctor/tickets/${id}/requeue`),
   transfer: (id, departmentCode) => post(`/doctor/tickets/${id}/transfer`, { departmentCode }),

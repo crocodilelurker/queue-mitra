@@ -10,7 +10,7 @@ export async function callNext(req, res) {
 }
 
 export async function completeTicket(req, res) {
-  res.json(await queueService.completeTicket(req.user, req.params.ticketId));
+  res.json(await queueService.completeTicket(req.user, req.params.ticketId, req.body ?? {}));
 }
 
 export async function markNoShow(req, res) {
