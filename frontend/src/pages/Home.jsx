@@ -1,119 +1,79 @@
-import { useState } from 'react'
-import ActionCard from '../components/ActionCard.jsx'
+import LanguagePicker from '../components/LanguagePicker.jsx'
 import Layout from '../components/Layout.jsx'
-import SlipLookup from '../components/SlipLookup.jsx'
-import SymptomBox from '../components/SymptomBox.jsx'
-import TriageResult from '../components/TriageResult.jsx'
-import HospitalLiveBar from '../components/HospitalLiveBar.jsx'
-import LiveDepartmentGlance from '../components/LiveDepartmentGlance.jsx'
-import DemoToolbar from '../components/staff/DemoToolbar.jsx'
-import { useEmergency } from '../context/Emergency.jsx'
-import { useI18n } from '../i18n/index.jsx'
-import { Link, navigate } from '../router.jsx'
+import LiveLine from '../components/LiveLine.jsx'
+import UrgentHelp from '../components/UrgentHelp.jsx'
+import ListenButton from '../components/common/ListenButton.jsx'
 import { Icon } from '../components/common/Icons.jsx'
+import { useI18n } from '../i18n/index.jsx'
+import { Link } from '../router.jsx'
+
+function BigButton({ to, icon, title, hint, tone = 'default' }) {
+  return (
+    <Link to={to} className={`big-btn big-btn--${tone}`}>
+      <span className="big-btn__icon" aria-hidden="true">
+        <Icon name={icon} size={32} />
+      </span>
+      <span className="big-btn__text">
+        <span className="big-btn__title">{title}</span>
+        {hint && <span className="big-btn__hint">{hint}</span>}
+      </span>
+      <Icon name="chevron-right" size={24} className="big-btn__chev" />
+    </Link>
+  )
+}
 
 export default function Home() {
-  const { t } = useI18n()
-  const { openEmergency } = useEmergency()
-  const [slipOpen, setSlipOpen] = useState(false)
-  const [result, setResult] = useState(null)
+  const { t, lang, langs, langChosen } = useI18n()
+
+  // First visit: ask for a language before anything else.
+  if (!langChosen) {
+    return (
+      <Layout>
+        <section className="intro">
+          <h1 className="page-title page-title--icon">
+            <Icon name="globe" size={30} />
+            <span>{t.pickLanguageTitle}</span>
+          </h1>
+          <p className="lead">
+            {Object.entries(langs)
+              .filter(([code]) => code !== lang)
+              .map(([code, d]) => (
+                <span key={code} lang={code} className="lead__alt">
+                  {d.pickLanguageTitle}
+                </span>
+              ))}
+          </p>
+        </section>
+        <LanguagePicker />
+      </Layout>
+    )
+  }
+
+  const spoken = [t.homeTitle, t.homeCalm, t.cardRegister, t.cardSlip, t.cardMap, t.emergency].join('. ')
 
   return (
-    <Layout emergencyTo="/new?emergency=1">
-      <HospitalLiveBar />
-
-      <section className="home-hero">
-        <h1 className="home-hero__title">
-          <span>Digital OPD Queue</span>
-          <span className="home-hero__gradient">& Indoor Navigation</span>
-        </h1>
-        <p className="home-hero__subtitle">
-          Real-time doctor tokens, multilingual symptom triage, and step-by-step hospital directions.
-        </p>
+    <Layout
+      footer={
+        <Link to="/login" className="footer-link">
+          {t.staffLogin}
+        </Link>
+      }
+    >
+      <section className="intro">
+        <h1 className="page-title">{t.homeTitle}</h1>
+        <p className="lead">{t.homeCalm}</p>
+        <LiveLine />
       </section>
 
-      <SymptomBox
-        showPhoto
-        onResult={(data) => setResult({ type: 'suggestion', data })}
-        onEmergency={(detail) => setResult({ type: 'emergency', detail })}
-      />
-
-      {result?.type === 'emergency' && (
-        <section className="emergency-alert-banner" role="alert">
-          <div className="emergency-alert-banner__icon">
-            <Icon name="emergency" size={28} />
-          </div>
-          <div className="emergency-alert-banner__content">
-            <strong>Immediate Emergency Attention Required</strong>
-            <p>{result.detail.directive}</p>
-          </div>
-          <button type="button" className="btn btn--danger" onClick={() => openEmergency(result.detail)}>
-            <span>Emergency Protocol</span>
-            <Icon name="arrow-right" size={16} />
-          </button>
-        </section>
-      )}
-
-      {result?.type === 'suggestion' && (
-        <TriageResult result={result.data} onAccept={(code) => navigate(`/new?dept=${code}`)} />
-      )}
-
-      <div className="actions-section">
-        <h2 className="section-title">Quick Services</h2>
-        <div className="actions-grid">
-          <ActionCard
-            to="/new"
-            iconName="ticket"
-            variant="blue"
-            title={t.cardRegister}
-            hint={t.cardRegisterHint}
-          />
-          <ActionCard
-            onClick={() => setSlipOpen(true)}
-            iconName="qr"
-            variant="teal"
-            title={t.cardSlip}
-            hint={t.cardSlipHint}
-          />
-          <ActionCard
-            to="/map"
-            iconName="map"
-            variant="indigo"
-            title={t.cardMap}
-            hint={t.cardMapHint}
-          />
-        </div>
-      </div>
-
-      <LiveDepartmentGlance />
-
-      <nav className="staff-portal card" aria-label="Hospital staff portal">
-        <div className="staff-portal__label">
-          <Icon name="doctor" size={18} />
-          <span>Staff & Doctor Desks:</span>
-        </div>
-        <div className="staff-portal__links">
-          <Link to="/admin" className="staff-link" style={{ background: 'var(--primary-light)', color: 'var(--primary-hover)', fontWeight: 600 }}>
-            <Icon name="hospital-building" size={15} />
-            <span>Mediflow OPD Central</span>
-          </Link>
-          <Link to="/doctor" className="staff-link">
-            <Icon name="user" size={15} />
-            <span>{t.linkDoctor}</span>
-          </Link>
-          <Link to="/board" className="staff-link">
-            <Icon name="tv" size={15} />
-            <span>{t.linkBoard}</span>
-          </Link>
-          <Link to="/analytics" className="staff-link">
-            <Icon name="chart" size={15} />
-            <span>{t.linkAnalytics}</span>
-          </Link>
-        </div>
+      <nav className="big-grid" aria-label={t.homeTitle}>
+        <BigButton to="/register" icon="ticket" title={t.cardRegister} hint={t.cardRegisterHint} tone="primary" />
+        <BigButton to="/my-slip" icon="qr" title={t.cardSlip} hint={t.cardSlipHint} />
+        <BigButton to="/map" icon="map" title={t.cardMap} hint={t.cardMapHint} />
+        <BigButton to="/emergency" icon="emergency" title={t.emergency} hint={t.cardEmergencyHint} tone="danger" />
       </nav>
 
-      <SlipLookup open={slipOpen} onClose={() => setSlipOpen(false)} />
-      <DemoToolbar />
+      <UrgentHelp />
+      <ListenButton text={spoken} label={t.listenPage} />
     </Layout>
   )
 }

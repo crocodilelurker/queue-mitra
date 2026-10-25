@@ -1,63 +1,76 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { api } from '../api/client.js'
 import { useDepartments } from '../api/departments.js'
+import Layout from '../components/Layout.jsx'
+import ShowStaff from '../components/ShowStaff.jsx'
 import ListenButton from '../components/common/ListenButton.jsx'
 import Modal from '../components/common/Modal.jsx'
 import { ErrorNote, Loading } from '../components/common/Status.jsx'
 import Toggle from '../components/common/Toggle.jsx'
-import Layout from '../components/Layout.jsx'
-import FloorMap from '../components/map/FloorMap.jsx'
-import { findRoomPlace } from '../components/map/placeIcons.js'
-import RouteSteps, { useStepText } from '../components/map/RouteSteps.jsx'
+import { Icon } from '../components/common/Icons.jsx'
+import FloorPlan from '../components/map/FloorPlan.jsx'
+import { findRoomPlace, placeIconName } from '../components/map/placeIcons.js'
+import RouteSteps, { useRouteSentences } from '../components/map/RouteSteps.jsx'
 import { useAccess } from '../context/Access.jsx'
 import { useAsync } from '../hooks/useAsync.js'
+import en from '../i18n/en.js'
 import { useI18n } from '../i18n/index.jsx'
+import { placeNameFor } from '../i18n/places.js'
 import { useLocation } from '../router.jsx'
-import { Icon } from '../components/common/Icons.jsx'
 
 const DEFAULT_START = 'main_entrance_0'
 const FLOORS = [0, 1, 2]
 
+// Quick picks: [key in the dictionaries, test]
+const GROUPS = [
+  ['groupDoctors', (p) => p.category === 'opd_room'],
+  ['groupToilets', (p) => p.id.startsWith('toilets') || p.id.startsWith('drinking_water')],
+  ['groupMedicines', (p) => p.category === 'pharmacy'],
+  ['groupTests', (p) => p.category === 'lab'],
+  ['groupHelp', (p) => p.category === 'helpdesk' || p.category === 'counter'],
+  ['groupWards', (p) => p.category === 'ward' || p.category === 'waiting_area'],
+]
+
 export default function NavigationMap() {
-  const { t, f, lang, pick, placeName, checkpointName } = useI18n()
+  const { t, f, lang, placeName, floorName } = useI18n()
   const { prefs, setPref } = useAccess()
-  useDepartments()
+  const { list: departments } = useDepartments()
   const { search } = useLocation()
   const query = useMemo(() => new URLSearchParams(search), [search])
-  const stepText = useStepText()
+  const sentences = useRouteSentences()
 
   const { data: map, error: mapError, loading, reload } = useAsync(() => api.map(), [])
-  const { data: cps } = useAsync(() => api.checkpoints(), [])
 
   const [from, setFrom] = useState(query.get('from') || DEFAULT_START)
   const [to, setTo] = useState('')
-  const [avoid, setAvoid] = useState(query.get('avoidStairs') === '1' || prefs.avoidStairs)
+  const [avoid, setAvoid] = useState(query.get('avoidStairs') === '1' || prefs.avoidStairs || prefs.assisted)
   const [route, setRoute] = useState(null)
   const [floor, setFloor] = useState(0)
   const [busy, setBusy] = useState(false)
   const [routeError, setRouteError] = useState(null)
-  const [cpId, setCpId] = useState('')
+  const [filter, setFilter] = useState('')
+  const [group, setGroup] = useState(null)
   const [lostOpen, setLostOpen] = useState(false)
-  const [lostFloor, setLostFloor] = useState(0)
+  const [lostFloor, setLostFloor] = useState(null)
   const [lost, setLost] = useState(null)
   const [lostError, setLostError] = useState(null)
-  const handledSearch = useRef(null)
+  const [staffCard, setStaffCard] = useState(false)
+  const planRef = useRef(null)
+  const handled = useRef(null)
 
-  const places = map?.places ?? []
-  const destinations = useMemo(() => places.filter((p) => p.category !== 'vertical_transport'), [places])
+  const places = useMemo(() => map?.places ?? [], [map])
+  const byId = useMemo(() => Object.fromEntries(places.map((p) => [p.id, p])), [places])
+  const destinations = useMemo(() => places.filter((p) => p.category !== 'vertical_transport' || p.id === 'ramp_0'), [places])
 
   const compute = useCallback(
-    async ({ start = from, end = to, avoidStairs = avoid, checkpoint } = {}) => {
-      if (!end) return setRouteError({ status: 400, message: 'destination' })
+    async (end, { start = from, avoidStairs = avoid } = {}) => {
+      if (!end) return
       setBusy(true)
       setRouteError(null)
       try {
-        const result = checkpoint
-          ? await api.fromCheckpoint({ checkpointId: checkpoint, to: end, avoidStairs, language: lang })
-          : await api.route({ from: start, to: end, avoidStairs, language: lang })
+        const result = await api.route({ from: start, to: end, avoidStairs, language: lang })
         setRoute(result)
-        setFloor(result.start.floor)
-        if (checkpoint) setFrom(result.start.id)
+        setFloor(result.pathNodes?.[0]?.floor ?? byId[start]?.floor ?? 0)
       } catch (err) {
         setRoute(null)
         setRouteError(err)
@@ -65,206 +78,266 @@ export default function NavigationMap() {
         setBusy(false)
       }
     },
-    [from, to, avoid, lang]
+    [from, avoid, lang, byId]
   )
 
+  // Arriving with ?to=place, or ?room=Room 3&dept=CHD from a slip.
   useEffect(() => {
-    if (!map || handledSearch.current === search) return
-    handledSearch.current = search
-    const target = query.get('to') || findRoomPlace(map.places, query.get('room'), query.get('dept'))?.id
-    if (!target) return
-    const start = query.get('from') || from
-    const avoidStairs = query.get('avoidStairs') === '1' ? true : avoid
-    setTo(target)
-    setFrom(start)
-    setAvoid(avoidStairs)
-    compute({ start, end: target, avoidStairs })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [map, search])
-
-  const firstLang = useRef(lang)
-  useEffect(() => {
-    if (firstLang.current === lang) return
-    firstLang.current = lang
-    if (route && to) compute({ start: route.start.id, end: to })
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [lang])
-
-  const openLost = async (nextFloor = floor) => {
-    setLostOpen(true)
-    setLostFloor(nextFloor)
-    setLost(null)
-    setLostError(null)
-    try {
-      setLost(await api.lost({ currentFloor: nextFloor, destinationPlaceId: to || undefined, language: lang }))
-    } catch (err) {
-      setLostError(err)
+    if (!map || handled.current === search) return
+    handled.current = search
+    const target = query.get('to') || findRoomPlace(places, query.get('room'), query.get('dept'), departments)?.id
+    if (target && byId[target]) {
+      setTo(target)
+      compute(target)
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [map, search, departments.length])
+
+  const pick = (id) => {
+    setTo(id)
+    compute(id)
+    requestAnimationFrame(() => planRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' }))
+  }
+
+  const changeStart = (id) => {
+    setFrom(id)
+    if (to) compute(to, { start: id })
   }
 
   const toggleAvoid = (value) => {
     setAvoid(value)
     setPref('avoidStairs', value)
-    if (route && to) compute({ start: route.start.id, end: to, avoidStairs: value })
+    if (to) compute(to, { avoidStairs: value })
+  }
+
+  const openLost = async (fl) => {
+    setLostFloor(fl)
+    setLost(null)
+    setLostError(null)
+    try {
+      setLost(await api.lost({ currentFloor: fl, destinationPlaceId: to || undefined, language: lang }))
+    } catch (err) {
+      setLostError(err)
+    }
   }
 
   if (loading) return <Layout><Loading /></Layout>
   if (mapError) return <Layout><ErrorNote error={mapError} onRetry={reload} /></Layout>
 
-  const startPlace = places.find((p) => p.id === (route?.start.id ?? from))
-  const listenText = route ? route.steps.map((s, i) => `${stepText(s, route.steps[i - 1], places)}. ${s.landmark}`).join(' ') : ''
-  const routeFloors = route ? new Set(route.pathNodes.map((p) => p.floor)) : new Set()
+  const dest = byId[to]
+  const routeFloors = route ? [...new Set(route.pathNodes.map((p) => p.floor))] : []
+  const nextFloorAfter = (fl) => {
+    const i = routeFloors.indexOf(fl)
+    return i >= 0 && i < routeFloors.length - 1 ? routeFloors[i + 1] : null
+  }
+  const nextFloor = nextFloorAfter(floor)
+  const allSteps = route ? sentences(route.steps, places) : []
+  const listenAll = allSteps.map((s) => `${s.text}. ${s.landmark}`).join(' ')
 
-  const byFloor = (list) =>
-    FLOORS.map((fl) => (
-      <optgroup key={fl} label={f('floorN', { n: fl })}>
-        {list.filter((p) => p.floor === fl).map((p) => (
-          <option key={p.id} value={p.id}>
-            {placeName(p)}
-          </option>
-        ))}
-      </optgroup>
-    ))
+  const needle = filter.trim().toLowerCase()
+  const matches = destinations.filter((p) => {
+    if (group !== null && !GROUPS[group][1](p)) return false
+    if (!needle) return true
+    return [placeName(p), placeNameFor(p, 'en'), p.name].some((s) => String(s).toLowerCase().includes(needle))
+  })
+
+  const destLabel = dest ? placeName(dest) : ''
+  const destEn = dest ? placeNameFor(dest, 'en') : ''
 
   return (
     <Layout wide className="main--map">
-      <div className="page-header">
-        <h1 className="page-header__title">{t.mapTitle}</h1>
-        <p className="page-header__sub">Step-by-step indoor wayfinding with landmark guidance and elevator routing</p>
-      </div>
+      <h1 className="page-title">{t.mapTitle}</h1>
 
-      <div className="map-layout">
-        <section className="card panel map-controls">
-          <div className="map-controls__header">
-            <Icon name="navigation" size={18} />
-            <h2 className="panel__title">Route Planner</h2>
+      {dest ? (
+        <section className="dest-card" aria-live="polite">
+          <span className="dest-card__icon" aria-hidden="true">
+            <Icon name={placeIconName(dest)} size={28} />
+          </span>
+          <div className="dest-card__text">
+            <p className="muted small">{t.goingTo}</p>
+            <p className="dest-card__name">{destLabel}</p>
+            <p className="muted">{floorName(dest.floor)}</p>
           </div>
-
-          <label className="field__label" htmlFor="map-from">
-            {t.from}
-          </label>
-          <select id="map-from" className="field__control" value={from} onChange={(e) => setFrom(e.target.value)}>
-            {byFloor(places)}
-          </select>
-
-          <label className="field__label" htmlFor="map-to">
-            {t.to}
-          </label>
-          <select id="map-to" className="field__control" value={to} onChange={(e) => setTo(e.target.value)}>
-            <option value="">{t.chooseDest}</option>
-            {byFloor(destinations)}
-          </select>
-
-          <Toggle iconName="map" label={t.avoidStairs} hint={t.avoidStairsHint} checked={avoid} onChange={toggleAvoid} />
-
-          <button type="button" className="btn btn--primary btn--block" disabled={busy || !to} onClick={() => compute()}>
-            <Icon name="compass" size={18} />
-            <span>{busy ? t.loading : t.showWay}</span>
-          </button>
-
-          {routeError && (
-            <div className="status status--error" role="alert">
-              <p>{routeError.status === 400 ? (routeError.message === 'destination' ? t.chooseDestFirst : t.noRoute) : routeError.status === 0 ? t.errNetwork : t.errGeneric}</p>
-            </div>
-          )}
-
-          <div className="checkpoint-divider">
-            <span className="checkpoint-divider__text">OR SCAN POSTER</span>
-          </div>
-
-          <p className="field__hint">{t.checkpointHint}</p>
-          <select className="field__control" aria-label={t.checkpointTitle} value={cpId} onChange={(e) => setCpId(e.target.value)}>
-            <option value="">{t.chooseCheckpoint}</option>
-            {cps?.checkpoints.map((c) => (
-              <option key={c.id} value={c.id}>
-                {checkpointName(c)}
-              </option>
-            ))}
-          </select>
-          <button type="button" className="btn btn--outline btn--block" disabled={busy || !cpId || !to} onClick={() => compute({ checkpoint: cpId })}>
-            <Icon name="camera" size={18} />
-            <span>{t.scanPoster}</span>
-          </button>
-
-          <button type="button" className="btn btn--danger btn--block" onClick={() => openLost()}>
-            <Icon name="emergency" size={18} />
-            <span>{t.imLost}</span>
+          <button
+            type="button"
+            className="btn btn--ghost btn--small"
+            onClick={() => {
+              setTo('')
+              setRoute(null)
+            }}
+          >
+            <Icon name="edit" size={18} />
+            <span>{t.change}</span>
           </button>
         </section>
-
-        <section className="map-view">
-          <div className="floor-tabs" role="tablist" aria-label={t.floors}>
-            {FLOORS.map((fl) => (
-              <button key={fl} type="button" role="tab" aria-selected={floor === fl} className="floor-tabs__tab" onClick={() => setFloor(fl)}>
-                {f('floorN', { n: fl })}
-                {routeFloors.has(fl) && <span className="floor-tabs__dot" aria-label={t.onRoute} />}
+      ) : (
+        <section className="place-picker">
+          <label className="question__label" htmlFor="place-search">
+            {t.whereTo}
+          </label>
+          <div className="search-box">
+            <Icon name="search" size={22} />
+            <input id="place-search" className="field__control" type="search" value={filter} placeholder={t.searchPlaces} onChange={(e) => setFilter(e.target.value)} />
+          </div>
+          <div className="chips" role="group" aria-label={t.whereTo}>
+            {GROUPS.map(([key], i) => (
+              <button key={key} type="button" className="chip" aria-pressed={group === i} onClick={() => setGroup(group === i ? null : i)}>
+                {t[key]}
               </button>
             ))}
           </div>
+          <ul className="place-list">
+            {matches.map((p) => (
+              <li key={p.id}>
+                <button type="button" className={`place-list__btn${p.category === 'emergency' ? ' is-emergency' : ''}`} onClick={() => pick(p.id)}>
+                  <Icon name={placeIconName(p)} size={24} />
+                  <span className="place-list__name">{placeName(p)}</span>
+                  <span className="place-list__floor">{floorName(p.floor)}</span>
+                </button>
+              </li>
+            ))}
+            {matches.length === 0 && <li className="muted">{t.noPlaces}</li>}
+          </ul>
+        </section>
+      )}
 
-          <div className="card map-box">
-            <FloorMap places={places} edges={map.edges} floor={floor} route={route} startId={startPlace?.id} endId={to} onPick={(p) => setTo(p.id)} />
-          </div>
-
-          {route && (
-            <div className="card panel route-summary-panel">
-              <div className="route-summary-panel__header">
-                <div>
-                  <h2 className="panel__title">{t.directions}</h2>
-                  <p className="field__hint">{f('routeSummary', { m: route.totalDistanceMeters, n: route.estimatedWalkMinutes })}</p>
-                </div>
-                {route.avoidStairsUsed && (
-                  <span className="badge badge--ok">
-                    <Icon name="check" size={13} />
-                    <span>{t.routeNoStairs}</span>
+      <div className="map-layout">
+        <div className="map-main" ref={planRef}>
+          <div className="floor-tabs" role="tablist" aria-label={t.floors}>
+            {FLOORS.map((fl) => (
+              <button key={fl} type="button" role="tab" aria-selected={floor === fl} className="floor-tabs__tab" onClick={() => setFloor(fl)}>
+                <span>{floorName(fl)}</span>
+                {routeFloors.includes(fl) && (
+                  <span className="floor-tabs__route">
+                    <Icon name="navigation" size={14} />
+                    <span className="sr-only">{t.onRoute}</span>
                   </span>
                 )}
-              </div>
-              <RouteSteps steps={route.steps} places={places} />
-              <ListenButton text={listenText} />
-            </div>
+              </button>
+            ))}
+          </div>
+          <div className="plan-box">
+            <FloorPlan places={places} floor={floor} route={route} startId={route?.start?.id ?? from} endId={to} nextFloor={nextFloor} onPick={(p) => pick(p.id)} />
+          </div>
+          {route && (
+            <p className="plan-legend">
+              <span className="plan-legend__item plan-legend__item--start">
+                <Icon name="user" size={14} />
+              </span>
+              {t.legendStart}
+              <span className="plan-legend__item plan-legend__item--end">
+                <Icon name="flag" size={14} />
+              </span>
+              {t.legendEnd}
+            </p>
           )}
-        </section>
+          {nextFloor !== null && (
+            <button type="button" className="btn btn--primary btn--block" onClick={() => setFloor(nextFloor)}>
+              <Icon name="arrow-right" size={22} />
+              <span>{f('continueOn', { floor: floorName(nextFloor) })}</span>
+            </button>
+          )}
+        </div>
+        <div className="map-side">
+          <div className="field">
+            <label className="field__label" htmlFor="map-from">
+              {t.youAreAt}
+            </label>
+            <select id="map-from" className="field__control" value={from} onChange={(e) => changeStart(e.target.value)}>
+              {FLOORS.map((fl) => (
+                <optgroup key={fl} label={floorName(fl)}>
+                  {places
+                    .filter((p) => p.floor === fl)
+                    .map((p) => (
+                      <option key={p.id} value={p.id}>
+                        {placeName(p)}
+                      </option>
+                    ))}
+                </optgroup>
+              ))}
+            </select>
+          </div>
+          <Toggle iconName="accessibility" label={t.avoidStairs} hint={t.avoidStairsHint} checked={avoid} onChange={toggleAvoid} />
+
+          {busy && <Loading />}
+          {routeError && (
+            <p className="status status--error" role="alert">
+              {routeError.status === 400 ? t.noRoute : routeError.status === 0 ? t.errNetwork : t.errGeneric}
+            </p>
+          )}
+
+          {route && (
+            <section className="route-panel" aria-labelledby="route-title">
+              <div className="route-panel__head">
+                <h2 id="route-title" className="section-title">
+                  {t.directions}
+                </h2>
+                <p className="muted">
+                  {f('routeSummary', { m: route.totalDistanceMeters, n: route.estimatedWalkMinutes })}
+                  {route.avoidStairsUsed && ` · ${t.routeNoStairs}`}
+                </p>
+              </div>
+              <ListenButton text={listenAll} label={t.listenAll} className="btn btn--secondary btn--block" />
+              <RouteSteps steps={route.steps} places={places} activeFloor={floor} onPickFloor={setFloor} />
+            </section>
+          )}
+        </div>
+
       </div>
 
-      <Modal open={lostOpen} onClose={() => setLostOpen(false)} title={t.lostTitle} variant="lost">
+      <button
+        type="button"
+        className="btn btn--urgent btn--block"
+        onClick={() => {
+          setLostOpen(true)
+          setLost(null)
+          setLostFloor(null)
+        }}
+      >
+        <Icon name="help" size={24} />
+        <span>{t.imLost}</span>
+      </button>
+
+      <Modal open={lostOpen} onClose={() => setLostOpen(false)} title={t.lostTitle}>
+        <p className="modal__lead">{t.lostCalm}</p>
         <p className="field__label">{t.whichFloor}</p>
-        <div className="floor-tabs">
+        <div className="floor-pick">
           {FLOORS.map((fl) => (
-            <button key={fl} type="button" className="floor-tabs__tab" aria-pressed={lostFloor === fl} onClick={() => openLost(fl)}>
-              {f('floorN', { n: fl })}
+            <button key={fl} type="button" className="btn btn--outline" aria-pressed={lostFloor === fl} onClick={() => openLost(fl)}>
+              <Icon name="layers" size={20} />
+              <span>{floorName(fl)}</span>
             </button>
           ))}
         </div>
         {lostError && <ErrorNote error={lostError} onRetry={() => openLost(lostFloor)} />}
-        {!lost && !lostError && <Loading />}
-        {lost && (
+        {lostFloor !== null && !lost && !lostError && <Loading />}
+        {lost?.nearestHelpDesk && (
           <>
-            <section className="staff-card" aria-label={t.staffCardTitle}>
-              <p className="staff-card__title">{t.staffCardTitle}</p>
-              <p className="staff-card__dest">
-                {t.iNeedGo}: {(() => {
-                  const dest = places.find((p) => p.id === to)
-                  return dest ? placeName(dest) : lost.staffCard.destinationNameEn
-                })()}
-              </p>
-              <p className="staff-card__dest staff-card__dest--en">I need to go to: {lost.staffCard.destinationNameEn} · Floor {lost.staffCard.destinationFloor}</p>
-              <p>{pick(lost.staffCard.instructions, 'lostCardHelp')}</p>
-              {lang !== 'en' && <p lang="en">{lost.staffCard.instructions.en}</p>}
-            </section>
-            {lost.nearestHelpDesk && (
-              <>
-                <h3 className="modal__sub">{f('nearestHelp', { name: placeName(lost.nearestHelpDesk) })}</h3>
-                <RouteSteps steps={lost.routeToHelpDesk.steps} places={places} />
-              </>
-            )}
+            <h3 className="section-title">{f('nearestHelp', { name: placeName(lost.nearestHelpDesk) })}</h3>
+            {lost.routeToHelpDesk?.steps && <RouteSteps steps={lost.routeToHelpDesk.steps} places={places} />}
           </>
         )}
-        <button type="button" className="btn btn--outline modal__close" onClick={() => setLostOpen(false)}>
-          <Icon name="close" size={16} />
+        <button type="button" className="btn btn--primary btn--block" onClick={() => setStaffCard(true)}>
+          <Icon name="maximize" size={22} />
+          <span>{t.showStaffCard}</span>
+        </button>
+        <button type="button" className="btn btn--ghost btn--block" onClick={() => setLostOpen(false)}>
+          <Icon name="close" size={20} />
           <span>{t.close}</span>
         </button>
       </Modal>
+
+      <ShowStaff
+        open={staffCard}
+        onClose={() => setStaffCard(false)}
+        title={t.staffCardTitle}
+        titleEn={en.staffCardTitle}
+        big={dest ? destLabel : null}
+        lines={[
+          ...(dest ? [{ label: t.iNeedGo, value: `${destLabel}, ${floorName(dest.floor)}`, valueEn: `${destEn}, ${en[`floor${dest.floor}`] || ''}` }] : [{ label: t.iNeedGo, value: t.helpDeskPlease, valueEn: en.helpDeskPlease }]),
+          { label: t.pleaseHelp, value: t.staffCardHelp, valueEn: en.staffCardHelp },
+        ]}
+      />
     </Layout>
   )
 }

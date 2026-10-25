@@ -1,7 +1,8 @@
 import mongoose from "mongoose";
 import bcrypt from "bcryptjs";
 
-export const ROLES = ["doctor", "staff", "admin", "superadmin", "user"];
+export const ROLES = ["doctor", "staff", "admin", "superadmin"];
+export const STAFF_ROLES = ["staff", "admin", "superadmin"];
 export const DOCTOR_STATES = ["available", "on_break", "running_late", "offline"];
 
 const doctorStatusSchema = new mongoose.Schema(
@@ -17,17 +18,18 @@ const doctorStatusSchema = new mongoose.Schema(
 
 const userSchema = new mongoose.Schema(
   {
-    name: { type: String, required: true, trim: true },
-    email: { type: String, required: true, unique: true, lowercase: true, trim: true },
-    password: { type: String, required: true, minlength: 6, select: false },
-    role: { type: String, enum: ROLES, default: "user" },
+    name: { type: String, required: true, trim: true, maxlength: 80 },
+    email: { type: String, required: true, unique: true, lowercase: true, trim: true, maxlength: 120 },
+    password: { type: String, required: true, minlength: 8, select: false },
+    role: { type: String, enum: ROLES, required: true },
+    hospital: { type: mongoose.Schema.Types.ObjectId, ref: "Hospital" },
+    // The shared counter account behind staff-PIN login (hidden from the staff list).
+    isKiosk: { type: Boolean, default: false },
 
     // Doctor-only fields
-    hospital: { type: mongoose.Schema.Types.ObjectId, ref: "Hospital" },
-    department: { type: mongoose.Schema.Types.ObjectId, ref: "Department" },
-    room: { type: String, trim: true },
-    specialty: { type: String, trim: true, default: "General Medicine" },
-    consultationFee: { type: Number, default: 20 },
+    department: { type: mongoose.Schema.Types.ObjectId, ref: "Department", default: null },
+    room: { type: String, trim: true, default: null },
+    specialty: { type: String, trim: true, maxlength: 80 },
     status: { type: doctorStatusSchema, default: () => ({}) },
 
     // Bumped on logout so every previously issued JWT stops working.

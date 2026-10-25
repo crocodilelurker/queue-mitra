@@ -1,38 +1,30 @@
 import { Router } from "express";
-import {
-  handleGetOverview,
-  handleListDoctors,
-  handleCreateDoctor,
-  handleUpdateDoctor,
-  handleUpdateDoctorStatus,
-  handleDeleteDoctor,
-  handleListStaff,
-  handleCreateStaff,
-  handleUpdateStaff,
-  handleDeleteStaff,
-  handleResetMockData,
-} from "../controllers/adminController.js";
+import * as admin from "../controllers/adminController.js";
+import { ADMIN_ROLES, protect, requireRole } from "../middleware/auth.js";
 
 const router = Router();
 
-// MediFlow Overview
-router.get("/overview", handleGetOverview);
+router.use(protect, requireRole(...ADMIN_ROLES));
 
-// Doctor Management
-router.get("/doctors", handleListDoctors);
-router.post("/doctors", handleCreateDoctor);
-router.patch("/doctors/:id", handleUpdateDoctor);
-router.patch("/doctors/:id/status", handleUpdateDoctorStatus);
-router.delete("/doctors/:id", handleDeleteDoctor);
+router.get("/overview", admin.getOverview);
+router.patch("/hospital", admin.updateHospital);
 
-// Staff Management
-router.get("/staff", handleListStaff);
-router.post("/staff", handleCreateStaff);
-router.patch("/staff/:id", handleUpdateStaff);
-router.delete("/staff/:id", handleDeleteStaff);
+router.get("/departments", admin.listDepartments);
+router.post("/departments", admin.createDepartment);
+router.patch("/departments/:id", admin.updateDepartment);
+router.delete("/departments/:id", admin.deleteDepartment);
 
-// Purge / Reset Mock Data
-router.post("/purge-mock-data", handleResetMockData);
-router.post("/reset-data", handleResetMockData);
+router.get("/doctors", admin.listDoctors);
+router.post("/doctors", admin.createDoctor);
+router.patch("/doctors/:id", admin.updateDoctor);
+router.delete("/doctors/:id", admin.deleteDoctor);
+
+router.get("/staff", admin.listStaff);
+router.post("/staff", admin.createStaff);
+router.patch("/staff/:id", admin.updateStaff);
+router.delete("/staff/:id", admin.deleteStaff);
+
+router.post("/reset-queue", admin.resetQueue);
+router.post("/factory-reset", requireRole("superadmin"), admin.factoryReset);
 
 export default router;

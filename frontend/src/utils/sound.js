@@ -33,7 +33,8 @@ export function chime() {
 }
 
 export function vibrate(pattern = [200, 100, 200]) {
-  if (navigator.vibrate) navigator.vibrate(pattern)
+  // Browsers block vibration until the person has tapped the page once.
+  if (navigator.vibrate && navigator.userActivation?.hasBeenActive !== false) navigator.vibrate(pattern)
 }
 
 /** Repeating two-tone siren for urgent staff alerts, until stopSiren(). */

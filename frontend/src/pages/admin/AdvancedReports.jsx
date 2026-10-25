@@ -1,326 +1,324 @@
-import { useState } from 'react'
-import AdminLayout from './AdminLayout.jsx'
+import { useCallback, useEffect, useState } from 'react'
 import { api } from '../../api/client.js'
-import { useAsync } from '../../hooks/useAsync.js'
-import { Loading, ErrorNote } from '../../components/common/Status.jsx'
+import { Link } from '../../router.jsx'
 import { Icon } from '../../components/common/Icons.jsx'
+import StaffShell, { useLiveRefetch, useStaffLive } from '../../components/staff/StaffShell.jsx'
+import { Button, Card, EmptyState, InlineError, LANG_SHORT, PageHeader, Skeleton, Stat, formatWait } from '../../components/staff/ui.jsx'
+import './admin-pages.css'
 
-export default function AdvancedReports() {
-  const [selectedDept, setSelectedDept] = useState('')
-  const [selectedRange, setSelectedRange] = useState('all')
+const num = (v) => (Number.isFinite(Number(v)) ? Number(v) : 0)
+const pct = (part, whole) => (whole ? Math.round((part / whole) * 100) : 0)
+const pick = (obj, ...keys) => {
+  for (const k of keys) if (obj?.[k] !== undefined && obj?.[k] !== null) return obj[k]
+  return undefined
+}
 
-  const { data: overview, loading, error, reload } = useAsync(() => api.adminOverview(), [])
-  const { data: bills } = useAsync(() => api.billing(), [])
-  const { data: appointments } = useAsync(() => api.appointments(), [])
+function formatSeconds(s) {
+  if (!s) return '—'
+  if (s < 60) return `${Math.round(s)} s`
+  const m = Math.floor(s / 60)
+  const r = Math.round(s % 60)
+  return r ? `${m} min ${r} s` : `${m} min`
+}
 
-  if (loading) {
-    return (
-      <AdminLayout>
-        <Loading message="Generating analytics reports..." />
-      </AdminLayout>
-    )
-  }
+/** Accepts the current analytics shape and the rebuilt backend's likely variants. */
+function normalise(raw, liveDepartments = []) {
+  const o = raw?.overview || raw?.totals || {}
+  const total = num(pick(o, 'totalPatientsToday', 'registeredToday', 'registered', 'total'))
+  const completed = num(pick(o, 'completedToday', 'completed'))
+  const noShow = num(pick(o, 'noShowCount', 'noShow', 'noShows'))
+  const waiting = num(pick(o, 'currentlyWaiting', 'waiting'))
+  const serving = num(pick(o, 'inConsultation', 'serving', 'called'))
+  const assisted = num(pick(o, 'assistedCount', 'assisted'))
 
-  if (error) {
-    return (
-      <AdminLayout>
-        <ErrorNote error={error} onRetry={reload} />
-      </AdminLayout>
-    )
-  }
+  const sla = raw?.emergencySLA || raw?.urgent || {}
+  const urgentRaised = num(pick(sla, 'totalUrgentFlagsRaised', 'raised', 'total'))
+  const urgentResolved = num(pick(sla, 'flagsResolved', 'resolved', 'seen'))
+  const urgentAvg = num(pick(sla, 'averageResponseTimeSeconds', 'avgResponseSeconds', 'averageSeconds'))
+  const urgentTarget = num(pick(sla, 'targetSlaSeconds', 'targetSeconds')) || 60
 
-  const { kpis, liveQueueMatrix, doctors, financialSummary } = overview || {}
-  const aptList = Array.isArray(appointments) ? appointments : appointments?.appointments || []
+  const langSrc = raw?.languages || raw?.languageMix || {}
+  const languages = (Array.isArray(langSrc) ? langSrc.map((l) => [l.code || l.language, l.count]) : Object.entries(langSrc))
+    .map(([code, count]) => ({ code, label: LANG_SHORT[code] || (code === 'other' ? 'Other' : code), count: num(count) }))
+    .sort((a, b) => b.count - a.count)
 
-  // Compute departmental volumes from appointments
-  const deptCounts = {}
-  aptList.forEach((apt) => {
-    const code = apt.departmentCode || 'general'
-    deptCounts[code] = (deptCounts[code] || 0) + 1
-  })
+  const hourSrc = raw?.hourlyTraffic || raw?.hourly || raw?.hourlyRegistrations || {}
+  const hourly = (Array.isArray(hourSrc) ? hourSrc.map((h) => [h.hour ?? h.label, h.count]) : Object.entries(hourSrc))
+    .map(([hour, count]) => ({ hour: String(typeof hour === 'number' ? `${String(hour).padStart(2, '0')}:00` : hour), count: num(count) }))
+    .sort((a, b) => a.hour.localeCompare(b.hour))
 
-  const totalConsultations = aptList.length || 1
-
-  // Compute common diagnoses
-  const diagnosisCounts = {}
-  aptList.forEach((apt) => {
-    if (apt.diagnosis) {
-      diagnosisCounts[apt.diagnosis] = (diagnosisCounts[apt.diagnosis] || 0) + 1
+  const liveByCode = Object.fromEntries(liveDepartments.map((d) => [d.code, d]))
+  const deptSrc = raw?.departmentHeatmap || raw?.departments || []
+  const departments = deptSrc.map((d) => {
+    const live = liveByCode[d.code] || {}
+    return {
+      code: d.code,
+      name: d.name,
+      completed: num(pick(d, 'completedCount', 'completed', 'throughput')),
+      waiting: num(pick(d, 'waitingCount', 'waiting') ?? live.waitingCount),
+      noShow: num(pick(d, 'noShowCount', 'noShow', 'noShows')),
+      avgConsult: pick(d, 'avgConsultMinutes', 'averageConsultMinutes') ?? live.avgConsultMinutes,
+      avgWait: pick(d, 'averageWaitMinutes', 'avgWaitMinutes', 'avgWait'),
+      estWait: live.estimatedWaitMinutes,
     }
   })
+  // Departments the analytics endpoint doesn't list yet but the live overview does.
+  liveDepartments.forEach((l) => {
+    if (!departments.some((d) => d.code === l.code))
+      departments.push({ code: l.code, name: l.name, completed: 0, waiting: num(l.waitingCount), noShow: 0, avgConsult: l.avgConsultMinutes, estWait: l.estimatedWaitMinutes })
+  })
 
-  // Export report to CSV
-  const handleExportCSV = () => {
-    const rows = [
-      ['Metric', 'Value'],
-      ['Total Patients Registered', kpis?.totalPatients || 0],
-      ['Total Consultations', appointments?.length || 0],
-      ['Total Revenue Invoiced (INR)', financialSummary?.totalBilled || 0],
-      ['Total Revenue Collected (INR)', financialSummary?.totalCollected || 0],
-      ['Total Government Waivers (INR)', financialSummary?.totalWaived || 0],
-      ['Pending Bills (INR)', financialSummary?.totalPending || 0],
-      [],
-      ['Department', 'Consultations Count'],
-      ...Object.entries(deptCounts).map(([dept, count]) => [dept, count]),
-    ]
+  return { total, completed, noShow, waiting, serving, assisted, urgentRaised, urgentResolved, urgentAvg, urgentTarget, languages, hourly, departments }
+}
 
-    const csvContent = 'data:text/csv;charset=utf-8,' + rows.map((e) => e.join(',')).join('\n')
-    const encodedUri = encodeURI(csvContent)
-    const link = document.createElement('a')
-    link.setAttribute('href', encodedUri)
-    link.setAttribute('download', `opd_report_${new Date().toISOString().split('T')[0]}.csv`)
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
-  }
+function HourlyChart({ hourly }) {
+  const max = Math.max(1, ...hourly.map((h) => h.count))
+  const nowHour = `${String(new Date().getHours()).padStart(2, '0')}:00`
+  const total = hourly.reduce((s, h) => s + h.count, 0)
+  return (
+    <figure style={{ margin: 0 }}>
+      <div className="ap-cols" role="img" aria-label={`Registrations by hour: ${hourly.map((h) => `${h.hour} ${h.count}`).join(', ')}`}>
+        {hourly.map((h) => (
+          <div key={h.hour} className="ap-col">
+            <span className="ap-col__value">{h.count}</span>
+            <span
+              className={`ap-col__bar${h.count === 0 ? ' ap-col__bar--zero' : h.hour === nowHour ? ' ap-col__bar--now' : ''}`}
+              style={{ height: `${Math.max(1, (h.count / max) * 100)}%` }}
+            />
+          </div>
+        ))}
+      </div>
+      <div className="ap-cols-labels" aria-hidden="true">
+        {hourly.map((h) => (
+          <span key={h.hour}>{h.hour.slice(0, 2)}</span>
+        ))}
+      </div>
+      <figcaption className="sx-small sx-muted" style={{ marginTop: 8 }}>
+        {total} registration{total === 1 ? '' : 's'} today · hour of day (24-hour clock)
+      </figcaption>
+    </figure>
+  )
+}
+
+function Bars({ rows, unit = '' }) {
+  const max = Math.max(1, ...rows.map((r) => r.value))
+  return (
+    <div className="sx-bars">
+      {rows.map((r) => (
+        <div key={r.key} className="sx-bar">
+          <span>{r.label}</span>
+          <span className="sx-bar__track" aria-hidden="true">
+            <span className="sx-bar__fill" style={{ width: `${(r.value / max) * 100}%`, display: 'block' }} />
+          </span>
+          <span className="sx-bar__value">
+            {r.display ?? r.value}
+            {unit}
+          </span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+function Throughput({ departments }) {
+  const max = Math.max(1, ...departments.map((d) => d.completed + d.waiting + d.noShow))
+  return (
+    <div className="ap-dept-rows">
+      <div className="ap-legend" aria-hidden="true">
+        <span>
+          <i style={{ background: 'var(--primary)' }} /> Seen
+        </span>
+        <span>
+          <i style={{ background: '#e9a23b' }} /> Waiting
+        </span>
+        <span>
+          <i style={{ background: '#b9c6c2' }} /> No-show
+        </span>
+      </div>
+      {departments.map((d) => {
+        const sum = d.completed + d.waiting + d.noShow
+        return (
+          <div key={d.code} className="ap-dept-row">
+            <div className="ap-dept-row__head">
+              <strong>{d.name}</strong>
+              <span className="ap-dept-row__nums">
+                {d.completed} seen · {d.waiting} waiting · {d.noShow} no-show
+              </span>
+            </div>
+            <div className="ap-split" style={{ width: `${Math.max(2, (sum / max) * 100)}%` }} aria-hidden="true">
+              {d.completed > 0 && <span className="ap-split__a" style={{ flex: d.completed }} />}
+              {d.waiting > 0 && <span className="ap-split__b" style={{ flex: d.waiting }} />}
+              {d.noShow > 0 && <span className="ap-split__c" style={{ flex: d.noShow }} />}
+            </div>
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+function ReportsSkeleton() {
+  return (
+    <div className="sx-grid" role="status" aria-label="Loading reports">
+      <div className="sx-stats">
+        {[1, 2, 3, 4, 5].map((i) => (
+          <Skeleton key={i} height={92} style={{ borderRadius: 12 }} />
+        ))}
+      </div>
+      <div className="sx-grid sx-grid--2">
+        <Skeleton height={300} style={{ borderRadius: 12 }} />
+        <Skeleton height={300} style={{ borderRadius: 12 }} />
+      </div>
+    </div>
+  )
+}
+
+function Reports() {
+  const live = useStaffLive()
+  const [state, setState] = useState({ data: null, error: null, loading: true })
+
+  const load = useCallback(async (quiet) => {
+    if (!quiet) setState((s) => ({ ...s, loading: true, error: null }))
+    try {
+      const data = await api.analytics()
+      setState({ data, error: null, loading: false })
+    } catch (error) {
+      setState((s) => ({ data: quiet ? s.data : null, error, loading: false }))
+    }
+  }, [])
+
+  useEffect(() => {
+    document.title = 'Reports · Queue Mitra'
+    load()
+  }, [load])
+  useLiveRefetch(() => load(true))
+
+  const r = state.data ? normalise(state.data, live?.overview?.departments || []) : null
+  const updated = state.data?.updatedAt ? new Date(state.data.updatedAt).toLocaleTimeString('en-IN', { hour: 'numeric', minute: '2-digit' }) : null
 
   return (
-    <AdminLayout>
-      <div className="admin-section-header">
-        <div>
-          <h2>
-            <Icon name="chart" size={22} color="var(--primary)" />
-            <span>OPD Clinical & Financial Analytics</span>
-          </h2>
-          <div style={{ fontSize: '0.85rem', color: 'var(--ink-muted)' }}>
-            Hospital volume insights, subsidy allocations, and doctor performance metrics
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', gap: '0.5rem' }}>
-          <button type="button" className="btn btn--subtle" onClick={() => window.print()}>
-            <Icon name="print" size={16} />
-            <span>Print Report</span>
-          </button>
-          <button type="button" className="btn btn--primary" onClick={handleExportCSV}>
-            <Icon name="clipboard" size={16} />
-            <span>Export CSV</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Multi-Filter Controls */}
-      <div className="card panel" style={{ marginBottom: '1.5rem', background: '#f8fafc' }}>
-        <div style={{ display: 'flex', gap: '1rem', flexWrap: 'wrap', alignItems: 'center' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <Icon name="filter" size={16} color="var(--ink-muted)" />
-            <strong style={{ fontSize: '0.85rem', color: 'var(--ink)' }}>Report Filters:</strong>
-          </div>
-
-          <div className="form-group" style={{ minWidth: 160 }}>
-            <select
-              className="form-control"
-              style={{ fontSize: '0.85rem', padding: '0.35rem 0.6rem' }}
-              value={selectedRange}
-              onChange={(e) => setSelectedRange(e.target.value)}
-            >
-              <option value="all">Timeframe: All Recorded</option>
-              <option value="today">Timeframe: Today's OPD</option>
-              <option value="week">Timeframe: Last 7 Days</option>
-              <option value="month">Timeframe: This Month</option>
-            </select>
+    <>
+      <PageHeader
+        title="Reports"
+        subtitle={`Today’s patient flow, updated live as patients register and are seen.${updated ? ` Last calculated at ${updated}.` : ''}`}
+        actions={
+          <Button icon="refresh" onClick={() => load()} busy={state.loading && Boolean(state.data)}>
+            Refresh
+          </Button>
+        }
+      />
+      {state.loading && !state.data && <ReportsSkeleton />}
+      {state.error && !state.data && <InlineError error={state.error} onRetry={() => load()} />}
+      {r && r.total === 0 && (
+        <Card>
+          <EmptyState
+            icon="chart"
+            title="No registrations yet today"
+            action={
+              <Link to="/admin/counter" className="sx-btn sx-btn--primary">
+                <Icon name="user-plus" size={18} /> Open the registration counter
+              </Link>
+            }
+          >
+            Reports fill in as patients register — on their phones or at the counter. Throughput, waiting times, languages and urgent response times will appear here.
+          </EmptyState>
+        </Card>
+      )}
+      {r && r.total > 0 && (
+        <>
+          <div className="sx-stats">
+            <Stat icon="users" label="Registered today" value={r.total} hint={`${r.waiting} waiting · ${r.serving} with a doctor`} />
+            <Stat icon="check-circle" label="Seen by a doctor" value={r.completed} hint={`${pct(r.completed, r.total)}% of today’s patients`} />
+            <Stat icon="no-show" label="No-show rate" value={`${pct(r.noShow, r.total)}%`} hint={`${r.noShow} did not come when called`} />
+            <Stat icon="accessibility" label="Assisted registrations" value={`${pct(r.assisted, r.total)}%`} hint={`${r.assisted} helped by staff or family`} />
+            <Stat
+              icon="alert"
+              label="Urgent response (average)"
+              value={formatSeconds(r.urgentAvg)}
+              hint={r.urgentRaised ? `${r.urgentResolved} of ${r.urgentRaised} flags seen` : 'No urgent flags today'}
+              alert={r.urgentAvg > r.urgentTarget}
+            />
           </div>
 
-          <div className="form-group" style={{ minWidth: 180 }}>
-            <select
-              className="form-control"
-              style={{ fontSize: '0.85rem', padding: '0.35rem 0.6rem' }}
-              value={selectedDept}
-              onChange={(e) => setSelectedDept(e.target.value)}
-            >
-              <option value="">Department: All Clinical Units</option>
-              <option value="medicine">General Medicine</option>
-              <option value="pediatrics">Pediatrics</option>
-              <option value="orthopedics">Orthopedics</option>
-              <option value="ent">ENT</option>
-              <option value="gynecology">Gynecology</option>
-              <option value="dermatology">Dermatology</option>
-              <option value="ophthalmology">Ophthalmology</option>
-            </select>
-          </div>
-        </div>
-      </div>
-
-      {/* 2-Column Analytics Visual Grids */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(340px, 1fr))', gap: '1.5rem', marginBottom: '2rem' }}>
-        {/* Department Consultation Volume Breakdown */}
-        <div className="card panel">
-          <div className="panel__title">
-            <Icon name="hospital-building" size={18} color="var(--primary)" />
-            <span>OPD Volume by Department</span>
+          <div className="sx-grid sx-grid--2">
+            <Card title="Registrations by hour" icon="clock">
+              {r.hourly.length ? <HourlyChart hourly={r.hourly} /> : <p className="sx-muted">No hourly data yet.</p>}
+            </Card>
+            <Card title="Throughput by department" icon="layers">
+              {r.departments.length ? <Throughput departments={r.departments} /> : <p className="sx-muted">No departments yet.</p>}
+            </Card>
           </div>
 
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '0.5rem' }}>
-            {liveQueueMatrix?.map((dept) => {
-              const count = deptCounts[dept.code] || 0
-              const pct = Math.round((count / totalConsultations) * 100)
-              return (
-                <div key={dept.code}>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: '0.85rem', marginBottom: '0.25rem' }}>
-                    <span style={{ fontWeight: 600 }}>{dept.name} ({dept.nameHi})</span>
-                    <span><strong>{count}</strong> visits ({pct}%)</span>
+          <div className="sx-grid sx-grid--2">
+            <Card title="Waiting time by department" icon="clock">
+              {r.departments.length ? (
+                <div className="sx-table-wrap">
+                  <table className="sx-table">
+                    <thead>
+                      <tr>
+                        <th scope="col">Department</th>
+                        <th scope="col">Avg. consult</th>
+                        <th scope="col">Avg. wait</th>
+                        <th scope="col">Wait if joining now</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {r.departments.map((d) => (
+                        <tr key={d.code}>
+                          <td>
+                            <strong>{d.name}</strong>
+                          </td>
+                          <td>{d.avgConsult ? `${Math.round(d.avgConsult)} min` : '—'}</td>
+                          <td>{d.avgWait !== undefined && d.avgWait !== null ? formatWait(Math.round(d.avgWait)) : '—'}</td>
+                          <td>{d.estWait !== undefined ? (d.estWait ? `about ${formatWait(d.estWait)}` : 'No wait') : '—'}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              ) : (
+                <p className="sx-muted">No departments yet.</p>
+              )}
+              <p className="sx-small sx-muted" style={{ marginTop: 10 }}>
+                Estimated wait = people ahead × average of the last 10 consultations in that department + any doctor delay, rounded to 5 minutes.
+              </p>
+            </Card>
+            <div className="sx-grid">
+              <Card title="Language used to register" icon="message">
+                {r.languages.some((l) => l.count) ? (
+                  <Bars rows={r.languages.filter((l) => l.count).map((l) => ({ key: l.code, label: l.label, value: l.count, display: `${l.count} · ${pct(l.count, r.total)}%` }))} />
+                ) : (
+                  <p className="sx-muted">No language data yet.</p>
+                )}
+              </Card>
+              <Card title="Urgent help requests" icon="alert">
+                <div className="ap-pair">
+                  <div>
+                    <span className="ap-big">{formatSeconds(r.urgentAvg)}</span>
+                    <p className="sx-small sx-muted">average time until a staff member marked the flag as seen</p>
                   </div>
-                  <div style={{ height: '8px', background: 'var(--surface-subtle)', borderRadius: '4px', overflow: 'hidden' }}>
-                    <div
-                      style={{
-                        height: '100%',
-                        width: `${pct}%`,
-                        background: 'linear-gradient(90deg, var(--primary) 0%, #38bdf8 100%)',
-                        borderRadius: '4px',
-                        transition: 'width 0.5s ease',
-                      }}
-                    />
+                  <div>
+                    <span className="ap-big">{r.urgentRaised}</span>
+                    <p className="sx-small sx-muted">raised today · {r.urgentResolved} seen</p>
                   </div>
                 </div>
-              )
-            })}
-          </div>
-        </div>
-
-        {/* Financial Collection vs Subsidy Allocation */}
-        <div className="card panel">
-          <div className="panel__title">
-            <Icon name="currency-inr" size={18} color="var(--ok)" />
-            <span>Financial & Subsidy Allocation</span>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem', marginTop: '0.5rem' }}>
-            <div style={{ background: '#f8fafc', padding: '1rem', borderRadius: 'var(--radius-sm)' }}>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.85rem', color: 'var(--ink-soft)' }}>Total Revenue Collected:</span>
-                <strong style={{ color: 'var(--ok)', fontSize: '1.1rem' }}>₹{financialSummary?.totalCollected || 0}</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '0.5rem' }}>
-                <span style={{ fontSize: '0.85rem', color: 'var(--ink-soft)' }}>Govt Waivers (Ayushman Bharat / 108):</span>
-                <strong style={{ color: '#7c3aed', fontSize: '1.1rem' }}>₹{financialSummary?.totalWaived || 0}</strong>
-              </div>
-              <div style={{ display: 'flex', justifyContent: 'space-between' }}>
-                <span style={{ fontSize: '0.85rem', color: 'var(--ink-soft)' }}>Pending Counter Invoices:</span>
-                <strong style={{ color: 'var(--warn)', fontSize: '1.1rem' }}>₹{financialSummary?.totalPending || 0}</strong>
-              </div>
-            </div>
-
-            <div>
-              <div style={{ fontSize: '0.8rem', fontWeight: 600, color: 'var(--ink-muted)', marginBottom: '0.5rem', textTransform: 'uppercase' }}>
-                Subsidy Coverage Ratio
-              </div>
-              <div style={{ display: 'flex', height: '14px', borderRadius: '7px', overflow: 'hidden', background: '#e2e8f0' }}>
-                <div
-                  style={{
-                    width: `${Math.round(((financialSummary?.totalCollected || 1) / ((financialSummary?.totalBilled || 1) || 1)) * 100)}%`,
-                    background: 'var(--ok)',
-                  }}
-                  title="Collected"
-                />
-                <div
-                  style={{
-                    width: `${Math.round(((financialSummary?.totalWaived || 0) / ((financialSummary?.totalBilled || 1) || 1)) * 100)}%`,
-                    background: '#8b5cf6',
-                  }}
-                  title="Waived / Subsidized"
-                />
-                <div
-                  style={{
-                    width: `${Math.round(((financialSummary?.totalPending || 0) / ((financialSummary?.totalBilled || 1) || 1)) * 100)}%`,
-                    background: 'var(--warn)',
-                  }}
-                  title="Pending"
-                />
-              </div>
-              <div style={{ display: 'flex', gap: '1rem', marginTop: '0.5rem', fontSize: '0.75rem' }}>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--ok)' }} />
-                  Cash/UPI ({Math.round(((financialSummary?.totalCollected || 0) / ((financialSummary?.totalBilled || 1) || 1)) * 100)}%)
-                </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: '#8b5cf6' }} />
-                  Waivers ({Math.round(((financialSummary?.totalWaived || 0) / ((financialSummary?.totalBilled || 1) || 1)) * 100)}%)
-                </span>
-                <span style={{ display: 'flex', alignItems: 'center', gap: '0.3rem' }}>
-                  <span style={{ width: 8, height: 8, borderRadius: '50%', background: 'var(--warn)' }} />
-                  Pending ({Math.round(((financialSummary?.totalPending || 0) / ((financialSummary?.totalBilled || 1) || 1)) * 100)}%)
-                </span>
-              </div>
+                <p className="sx-small sx-muted" style={{ marginTop: 10 }}>
+                  Target: within {formatSeconds(r.urgentTarget)}.{' '}
+                  {r.urgentRaised === 0 ? 'No flags raised yet.' : r.urgentAvg && r.urgentAvg <= r.urgentTarget ? 'On target.' : r.urgentAvg ? 'Slower than target — keep the queue console open at the help desk.' : 'Waiting for the first response.'}
+                </p>
+              </Card>
             </div>
           </div>
-        </div>
-      </div>
+        </>
+      )}
+    </>
+  )
+}
 
-      {/* Clinical Disease & Diagnosis Insights */}
-      <section className="card panel" style={{ marginBottom: '2rem' }}>
-        <div className="panel__title">
-          <Icon name="med" size={18} color="var(--indigo)" />
-          <span>Clinical Diagnosis & Disease Prevalency Insights</span>
-        </div>
-
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(220px, 1fr))', gap: '1rem', marginTop: '0.5rem' }}>
-          {Object.entries(diagnosisCounts).length === 0 ? (
-            <p style={{ color: 'var(--ink-muted)', fontSize: '0.85rem' }}>
-              No diagnoses recorded yet today. Complete consultations to populate clinical insight statistics.
-            </p>
-          ) : (
-            Object.entries(diagnosisCounts).map(([diagnosis, count]) => (
-              <div
-                key={diagnosis}
-                style={{
-                  background: 'var(--surface-subtle)',
-                  padding: '0.85rem',
-                  borderRadius: 'var(--radius-sm)',
-                  border: '1px solid var(--border-color)',
-                }}
-              >
-                <div style={{ fontSize: '0.78rem', color: 'var(--ink-muted)', textTransform: 'uppercase' }}>
-                  Condition Recorded
-                </div>
-                <strong style={{ fontSize: '0.95rem', color: 'var(--ink)' }}>{diagnosis}</strong>
-                <div style={{ fontSize: '0.8rem', color: 'var(--primary)', fontWeight: 600, marginTop: '0.2rem' }}>
-                  {count} Case{count !== 1 ? 's' : ''} Today
-                </div>
-              </div>
-            ))
-          )}
-        </div>
-      </section>
-
-      {/* Doctor Consultation Volume Performance */}
-      <section className="admin-table-container">
-        <div className="admin-table-toolbar">
-          <strong style={{ fontSize: '0.95rem', color: 'var(--ink)' }}>
-            Doctor Throughput & Performance
-          </strong>
-        </div>
-
-        <table className="admin-table">
-          <thead>
-            <tr>
-              <th>Doctor Name</th>
-              <th>Department</th>
-              <th>Current Status</th>
-              <th>Chamber</th>
-              <th>Standard Fee</th>
-            </tr>
-          </thead>
-          <tbody>
-            {doctors?.map((doc) => (
-              <tr key={doc._id}>
-                <td>
-                  <strong>{doc.name}</strong>
-                </td>
-                <td>
-                  <span style={{ textTransform: 'capitalize' }}>{doc.specialty || 'General'}</span>
-                </td>
-                <td>
-                  <span className={`status-pill status-pill--${doc.status}`}>
-                    {doc.status?.replace('_', ' ')}
-                  </span>
-                </td>
-                <td>{doc.room || 'OPD-1'}</td>
-                <td>₹{doc.consultationFee ?? 20}</td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </section>
-    </AdminLayout>
+export default function AdvancedReports() {
+  return (
+    <StaffShell>
+      <Reports />
+    </StaffShell>
   )
 }

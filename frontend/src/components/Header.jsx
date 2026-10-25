@@ -1,74 +1,39 @@
-import { useAccess } from '../context/Access.jsx'
-import { useEmergency } from '../context/Emergency.jsx'
-import { useInstallPrompt } from '../hooks/useInstallPrompt.js'
+import { useHospital } from '../context/Hospital.jsx'
 import { useI18n } from '../i18n/index.jsx'
-import { Link } from '../router.jsx'
+import { Link, useLocation } from '../router.jsx'
 import { Icon } from './common/Icons.jsx'
-import LanguageSwitch from './LanguageSwitch.jsx'
 
-/** Modern top bar on every screen: brand with medical crest, fast Emergency access, accessibility & language pills. */
-export default function Header({ hideEmergency = false, emergencyTo = null }) {
+/** Patient top bar: logo and hospital name, Settings, and the red Emergency button on every screen. */
+export default function Header() {
   const { t } = useI18n()
-  const { prefs, setPref } = useAccess()
-  const { openEmergency } = useEmergency()
-  const { canInstall, install } = useInstallPrompt()
+  const { hospital } = useHospital() || {}
+  const { pathname } = useLocation()
 
   return (
-    <header className="header">
-      <div className="header__inner">
-        <Link to="/" className="header__brand" aria-label="Queue Mitra Home">
-          <span className="brand-crest">
-            <Icon name="cross" size={18} color="#ffffff" />
+    <header className="topbar">
+      <div className="topbar__inner">
+        <Link to="/" className="brand" aria-label={`${t.appName}${hospital?.name ? `, ${hospital.name}` : ''}. ${t.home}`}>
+          <span className="brand__mark" aria-hidden="true">
+            <svg viewBox="0 0 32 32" width="32" height="32">
+              <rect width="32" height="32" rx="8" fill="currentColor" />
+              <path d="M13 7h6v6h6v6h-6v6h-6v-6H7v-6h6z" fill="#fff" />
+            </svg>
           </span>
-          <div className="brand-copy">
-            <span className="brand-title">{t.appName}</span>
-            <span className="brand-sub">OPD & Smart Queue</span>
-          </div>
+          <span className="brand__text">
+            <span className="brand__name">{t.appName}</span>
+            {hospital?.name && <span className="brand__hospital">{hospital.name}</span>}
+          </span>
         </Link>
-
-        <div className="header__actions">
-          {!hideEmergency &&
-            (emergencyTo ? (
-              <Link to={emergencyTo} className="btn-emergency">
-                <span className="btn-emergency__pulse" aria-hidden="true" />
-                <Icon name="emergency" size={18} />
-                <span>{t.emergency}</span>
-              </Link>
-            ) : (
-              <button type="button" className="btn-emergency" onClick={() => openEmergency()}>
-                <span className="btn-emergency__pulse" aria-hidden="true" />
-                <Icon name="emergency" size={18} />
-                <span>{t.emergency}</span>
-              </button>
-            ))}
-
-          <div className="header__tools">
-            <Link to="/admin" className="pill-btn" title="Open Mediflow OPD Admin Desk">
-              <Icon name="hospital-building" size={15} />
-              <span className="pill-btn__label">Admin Desk</span>
-            </Link>
-
-            <button
-              type="button"
-              className={`pill-btn ${prefs.largeText ? 'pill-btn--active' : ''}`}
-              aria-pressed={prefs.largeText}
-              onClick={() => setPref('largeText', !prefs.largeText)}
-              title={t.textSize}
-            >
-              <span className="pill-btn__text-glyph">Aa</span>
-              <span className="pill-btn__label">{t.textSize}</span>
-            </button>
-
-            <LanguageSwitch />
-
-            {canInstall && (
-              <button type="button" className="pill-btn" onClick={install} title={t.install}>
-                <Icon name="arrow-right" size={15} style={{ transform: 'rotate(90deg)' }} />
-                <span className="pill-btn__label">{t.install}</span>
-              </button>
-            )}
-          </div>
-        </div>
+        <nav className="topbar__actions" aria-label={t.mainMenu}>
+          <Link to="/settings" className="topbar__btn" aria-current={pathname === '/settings' ? 'page' : undefined}>
+            <Icon name="settings" size={20} />
+            <span>{t.settings}</span>
+          </Link>
+          <Link to="/emergency" className="topbar__sos" aria-current={pathname === '/emergency' ? 'page' : undefined}>
+            <Icon name="emergency" size={20} />
+            <span>{t.emergency}</span>
+          </Link>
+        </nav>
       </div>
     </header>
   )

@@ -1,271 +1,244 @@
-# Queue Mitra: Backend Architecture & API Specification
+# Queue Mitra backend
 
-Comprehensive, production-ready backend for **Queue Mitra** — built for the Hackcache 48-Hour Hackathon ([p2.pdf](../p2.pdf)).
+Express 5 + MongoDB (Mongoose 9) + Socket.io 4 API for **Queue Mitra**: smart OPD queues and accessible
+in-hospital navigation for government hospitals (Hackcache PS2, see `../p2.pdf`).
 
-Engineered with **Node.js (>=22)**, **Express 5**, **MongoDB (Mongoose 9)**, and **Socket.io 4**.
+**The database starts empty.** Nothing is seeded: no hospital, departments, accounts, patients or tickets.
+The first person to open the app runs the setup wizard (`POST /api/setup`), which creates the hospital and its
+main administrator. Everything else is added live by staff. The only built-in data is:
 
----
-
-## 1. Architecture & Design Principles
-
-The backend is built with strict modular separation of concerns:
+- the sample building layout and navigation graph (`src/data/hospitalMapData.js`), and
+- a catalog of department templates the admin can pick from (`src/data/departmentCatalog.js`: names,
+  descriptions, Hindi/Telugu/Tamil translations, icon key, suggested room).
 
 ```
-backend/src/
-├── config/             # Environment variables, database connection
-├── models/             # Mongoose schemas (Hospital, Department, User, Ticket, Counter, Notification)
-├── services/           # Pure business logic, queue engine, Dijkstra pathfinder, triage, analytics
-│   ├── authService.js         # JWT & Staff PIN authentication
-│   ├── hospitalService.js     # Hospital & department resolution
-│   ├── queueService.js        # Atomic ticket matching, wait calculation, transfers, preferences
-│   ├── navigationService.js   # Dijkstra shortest path, avoid-stairs, landmark QR checkpoints
-│   ├── triageService.js       # Emergency red-flag detection & safe department suggestion
-│   ├── notificationService.js # Simulated SMS alerts, 3-ahead triggers, delivery logs
-│   ├── analyticsService.js    # Overcrowding heatmap, emergency response SLA, hourly traffic
-│   └── demoService.js         # 10x auto-simulation runner, sample patient seeding & reset
-├── controllers/        # Express request validation and response handling
-│   ├── authController.js
-│   ├── hospitalController.js
-│   ├── ticketController.js
-│   ├── doctorController.js
-│   ├── navigationController.js
-│   ├── triageController.js
-│   ├── boardController.js
-│   ├── notificationController.js
-│   ├── analyticsController.js
-│   └── demoController.js
-├── routes/             # Clean REST route bindings
-│   ├── auth.js
-│   ├── hospitals.js
-│   ├── tickets.js
-│   ├── doctor.js
-│   ├── navigation.js
-│   ├── triage.js
-│   ├── board.js
-│   ├── notifications.js
-│   ├── analytics.js
-│   ├── demo.js
-│   └── health.js
-├── socket/             # Real-time WebSocket rooms and broadcast handlers
-├── data/               # Spatial layout, floor coordinates, landmarks & navigation graph
-│   └── hospitalMapData.js
-├── middleware/         # JWT protection, role guards, global error handling
-├── utils/              # ApiError, date/time formatting
-└── scripts/
-    └── seed.js         # Hospital, department translations, seating & doctor seeding
+src/
+  app.js              Express app: security headers, CORS, rate limits, routes, SPA hosting in production
+  server.js           HTTP + Socket.io server, DB connection, graceful shutdown
+  config/             env.js (validated config), db.js (MongoDB connection), cors.js
+  data/               hospitalMapData.js (building graph), departmentCatalog.js (templates + OPD rooms)
+  models/             Hospital, Department, User, Ticket, Counter, Notification, UrgentFlag
+  services/           queueService (matching engine, wait estimate, urgent flags), overviewService (staff console),
+                      authService, navigationService (Dijkstra), triageService, notificationService (simulated SMS),
+                      analyticsService, demoService (auto-simulation on real queues)
+  controllers/ routes/ middleware/ (auth, rate limits, errors) socket/ utils/ (validation)
+  scripts/resetDb.js  wipe the whole database
 ```
 
----
-
-## 2. Implemented Features (Phase-by-Phase)
-
-### Phase 1: Core Ticket Matching & Queue Management Engine
-- **Atomic Daily Tokens**: Scoped per-hospital, per-department, per-day (e.g. `MED-001`, `ENT-042`).
-- **Atomic Matching Engine**: `POST /api/doctor/call-next` uses `findOneAndUpdate` with concurrency locking to guarantee that multiple doctors calling at the exact same millisecond never get assigned the same patient.
-- **Dynamic Estimated Wait Time**:
-  $$\text{Wait Minutes} = \operatorname{round5}\left(\left\lceil\frac{\text{peopleAhead}}{\text{doctorsOnDuty}}\right\rceil \times \text{avgConsultMinutes} + \text{doctorDelay}\right)$$
-  - Uses the moving average of the last 10 completed consultations in that department.
-  - Automatically incorporates doctor breaks or running-late delays.
-- **Requeue to Tail**: `POST /api/doctor/tickets/:ticketId/requeue` sends a patient who stepped out to the end of the line with a fresh sequence number.
-- **Department Transfer**: `POST /api/doctor/tickets/:ticketId/transfer` moves a patient to another OPD department, generating a new department token and recalculating queues atomically.
-- **Overcrowding Indicators**: Evaluates waiting room load against seating capacity:
-  - **Green** (Normal, `<70%` capacity)
-  - **Amber** (Busy, `70% - 100%` capacity)
-  - **Red** (Overcrowded, `>100%` capacity)
-- **Staff Quick PIN Login**: `POST /api/auth/staff-pin` provides instant counter/kiosk authentication (default PIN: `1234`).
-- **Assisted Registration & Walk-in Counter**:
-  - `POST /api/tickets/counter` enables hospital counter staff to register patients without smartphones in one click, immediately issuing a printed slip.
-
-### Phase 2: Hospital Navigation & Graph Engine (Dijkstra)
-- **Accurate Spatial Graph**: Models City District Hospital (CDH) across 3 floors:
-  - **Ground Floor (Floor 0)**: Main entrance, registration counters, help desk, emergency (casualty), pharmacy, blood test lab, X-ray, drinking water, accessible toilets, wheelchair point, lift, stairs, ramp.
-  - **First Floor (Floor 1)**: OPD consultation rooms 1 to 8 (General Medicine 1 & 2, Children 3, Women & Pregnancy 4, Bones & Joints 5, ENT 6, Eyes 7, Skin 8), Waiting Hall A, enquiry desk, lift, stairs, toilets.
-  - **Second Floor (Floor 2)**: Inpatient Wards 4 (Medicine), 5 (Surgery), 6 (Children), Central Nurses' Station, lift, stairs.
-- **Dijkstra Shortest Path Pathfinder**:
-  - Computes the shortest walking path and estimates walking time.
-  - **"Avoid Stairs" Filter**: Dropping stair edges *before* graph traversal so elderly and wheelchair users are routed exclusively through lifts and ramps.
-- **Physical Landmark QR Checkpoints**:
-  - Wall poster checkpoints across the hospital (`CP_MAIN_ENTRANCE`, `CP_HELP_DESK`, `CP_LIFT_G`, `CP_PHARMACY`, `CP_WAITING_HALL_A`, `CP_WATER_COOLER_1`, `CP_NURSES_STATION_2`).
-  - Scanning a QR checkpoint calculates the route directly from that exact wall location (`POST /api/navigation/from-checkpoint`).
-- **Landmark-Guided Directions**: Generates accessible instructions in **English, Hindi, and Tamil** referencing visible landmarks (*"Opposite the blue chairs"*, *"Next to drinking water cooler"*).
-- **"I'm Lost" Patient Assistance**:
-  - Automatically locates the nearest Help Desk or Nurses' Station using shortest path.
-  - Generates a high-contrast **"Show to Staff"** card in the patient's language + English.
-
-### Phase 3: Emergency-Safe AI Symptom Triage Engine
-- **Strict Hackathon Safety Compliance**: The app **never** triages an emergency as "safe" or makes urgent cases wait for a token.
-- **Red-Flag Warning Signs Detection**: Scans symptom descriptions in English, Hindi, and Tamil for:
-  - Severe chest pain / cardiac symptoms
-  - Acute breathing trouble
-  - Heavy bleeding / profuse blood loss
-  - Unconsciousness / fainting
-  - Sudden facial drooping / stroke symptoms
-  - Severe injury / trauma
-  - Maternal distress / pregnancy bleeding
-  - Critically unwell infants or children
-- **Emergency Directive**: Immediately returns 112/108 numbers and route to Casualty.
-- **Safe OPD Suggestion**: Matches non-emergency symptoms to the 7 seeded OPD departments with confidence scores, plain-language reasoning, and safe non-clinical comforting advice (stay seated, hydrate, notify help desk).
-
-### Phase 4: Public Waiting-Room TV Board API
-- **Live Board Endpoint**: `GET /api/board/:hospitalCode` aggregates all rooms, currently called tokens, next 3 tokens in line, and doctor delays.
-- **Bilingual Spoken Announcements**: Formats announcement payloads for speech synthesis:
-  - English: *"Token MED-042, please proceed to Room 1 (General Medicine) on Floor 1."*
-  - Hindi: *"टोकन MED-042, कृपया पहली मंजिल पर Room 1 (सामान्य चिकित्सा) में जाएं।"*
-  - Tamil: *"டோக்கன் MED-042, தயவுசெய்து தளம் 1-ல் உள்ள Room 1-க்கு செல்லவும்."*
-
-### Phase 5: Simulated SMS & Notification Alert Engine
-- **Simulated SMS Alerts**: Automatically dispatches and records SMS messages when:
-  - Patient registers (`registered`)
-  - 3 people ahead in queue (`near_turn`)
-  - Called by doctor (`called`)
-  - Doctor delay announced (`doctor_delay`)
-  - Transferred to another department (`transferred`)
-- **Simulated Inbox API**: `GET /api/notifications/:identifier` allows the frontend to show an animated incoming SMS modal or phone notification tray.
-
-### Phase 6: Hospital Staff Analytics & Overcrowding Heatmap
-- **Administrative Command Center**: `GET /api/analytics/:hospitalCode`
-  - Real-time patient flow (total registered, waiting, in consultation, completed, no-show).
-  - Department-by-department overcrowding heatmap (`green`, `amber`, `red`).
-  - Emergency response SLA compliance (average seconds from "I need urgent help" to doctor acknowledgment).
-  - Hourly registration traffic distribution (09:00 to 14:00).
-  - Language breakdown (English, Hindi, Tamil) and assisted registration percentage.
-
-### Phase 7: Hackathon 10x Auto-Simulation & Demo Controls
-- **10x Live Simulation Runner**:
-  - `POST /api/demo/auto-simulate/start`: Periodically progresses the queue (calls next patient, updates wait times) every few seconds so judges watch real-time screen transitions and board updates without manual clicking.
-  - `POST /api/demo/auto-simulate/stop`: Halts the runner.
-  - `GET /api/demo/auto-simulate/status`: Returns current status.
-- **Seed & Reset**:
-  - `POST /api/demo/seed-patients`: Seeds 20 realistic patients distributed across all 7 departments with live queue broadcasts.
-  - `POST /api/demo/reset`: Atomically flushes tickets, resets daily counters, and sets doctor delays back to zero.
-
----
-
-## 3. REST API Reference
-
-### Public & Patient Endpoints
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/health` | Server and MongoDB connection health check |
-| `GET` | `/api/hospitals` | List of active hospitals |
-| `GET` | `/api/hospitals/:code` | Single hospital details (e.g. `/api/hospitals/CDH`) |
-| `GET` | `/api/hospitals/:code/departments` | List of departments with multilingual names & picture card info |
-| `GET` | `/api/hospitals/:code/departments/:deptCode/queue` | Live department queue snapshot |
-| `POST` | `/api/tickets` | Patient registration: `{ hospitalCode, departmentCode, firstName, age, gender, mobile?, language?, isAssisted?, accessibility?, emergency?, complaint? }`. With `emergency: true` the ticket is placed in front of every waiting normal ticket (behind earlier emergencies) and an urgent alert is raised for staff at once. `complaint` is optional text up to 200 characters (what the patient says the problem is). |
-| `POST` | `/api/tickets/counter` | Walk-in counter registration by hospital staff (generates slip directly) |
-| `GET` | `/api/tickets/:publicId` | Patient "My Turn" status, people ahead, estimated wait time |
-| `GET` | `/api/tickets/:publicId/slip` | Full printable/downloadable OPD slip data (QR URL, room, floor, disclaimer) |
-| `PATCH` | `/api/tickets/:publicId/preferences` | Save patient accessibility & language preferences (`avoidStairs`, `largeText`, `readAloud`, `highContrast`) |
-| `GET` | `/api/tickets/lookup/:tokenNumber` | "I have my slip" lookup by token (e.g. `/api/tickets/lookup/MED-001?hospitalCode=CDH`) |
-| `POST` | `/api/tickets/:publicId/urgent` | "I need urgent help" button (pins urgent alert to all staff screens) |
-| `POST` | `/api/tickets/sync` | PWA offline batch sync: `{ tickets: [ { clientTempId, ... } ] }` |
-
-### Navigation & Map Endpoints
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/navigation/map` | Complete hospital layout: floors, place nodes, coordinates, landmarks, and graph edges |
-| `GET` | `/api/navigation/places` | Filter places by floor, category, or search query (`?floor=1&q=medicine`) |
-| `GET` | `/api/navigation/checkpoints` | List of physical QR checkpoints posted on walls and pillars |
-| `POST` | `/api/navigation/route` | Dijkstra routing: `{ from, to, avoidStairs: boolean, language: "en"\|"hi"\|"ta", departmentCode?, room? }` |
-| `POST` | `/api/navigation/from-checkpoint` | Route from scanned wall checkpoint: `{ checkpointId: "CP_LIFT_G", to, room, departmentCode }` |
-| `POST` | `/api/navigation/lost` | "I'm lost" assistance: `{ currentFloor, destinationPlaceId, language }` |
-
-### Symptom Triage Endpoints
-
-| Method | Path | Description |
-|---|---|---|
-| `POST` | `/api/triage/suggest` | Analyze symptoms: `{ text, age, gender, language }` -> emergency directive or suggested department |
-| `GET` | `/api/triage/warning-signs` | Emergency warning signs list for the registration screen (`?language=hi`) |
-
-### TV Waiting-Room Board
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/board/:hospitalCode` | Aggregated room-by-room feed with active tokens, next 3, and spoken announcements |
-
-### Simulated SMS & Notifications
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/notifications/:identifier` | Get simulated SMS notifications for a patient (`publicId` or `mobile`) |
-
-### Staff Analytics & Administration
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/analytics/:hospitalCode` | Live hospital patient flow, overcrowding heatmap, emergency response SLA, hourly traffic |
-
-### Staff & Doctor Authentication
-
-| Method | Path | Description |
-|---|---|---|
-| `POST` | `/api/auth/register/doctor` | Register doctor: `{ name, email, password, hospitalCode, departmentCode, room }` |
-| `POST` | `/api/auth/login` | Doctor login with email and password -> returns JWT + httpOnly cookie |
-| `POST` | `/api/auth/staff-pin` | Quick staff/kiosk login: `{ hospitalCode: "CDH", pin: "1234" }` |
-| `POST` | `/api/auth/logout` | Invalidate all session tokens |
-| `GET` | `/api/auth/me` | Current authenticated user profile |
-
-### Doctor & Staff Management (`doctor` or `staff` role)
-
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/api/doctor/dashboard` | Doctor's department queue, current active patient, next 20 waiting |
-| `POST` | `/api/doctor/call-next` | Atomically completes previous patient and assigns the next waiting ticket |
-| `POST` | `/api/doctor/tickets/:ticketId/complete` | Complete patient consultation without calling next |
-| `POST` | `/api/doctor/tickets/:ticketId/no-show` | Mark called patient as no-show |
-| `POST` | `/api/doctor/tickets/:ticketId/requeue` | Send patient to the end of the line with fresh sequence |
-| `POST` | `/api/doctor/tickets/:ticketId/transfer` | Move patient to another department: `{ departmentCode: "ENT" }` |
-| `PATCH` | `/api/doctor/status` | Update state: `{ state: "available" }`, `{ state: "on_break", until }`, `{ state: "running_late", delayMinutes }` |
-| `GET` | `/api/doctor/urgent` | List unseen urgent flags in this hospital |
-| `POST` | `/api/doctor/urgent/:ticketId/seen` | Acknowledge and dismiss an urgent flag (records response SLA) |
-
-### Hackathon Demo Controls
-
-| Method | Path | Description |
-|---|---|---|
-| `POST` | `/api/demo/seed-patients` | Seed 20 realistic patients across all OPD departments for live demos |
-| `POST` | `/api/demo/reset` | Flush all tickets, counters, and doctor delays back to clean state |
-| `POST` | `/api/demo/auto-simulate/start` | Start 10x queue auto-progression: `{ intervalMs: 3000 }` |
-| `POST` | `/api/demo/auto-simulate/stop` | Stop auto-simulation |
-| `GET` | `/api/demo/auto-simulate/status` | Get auto-simulation status and tick count |
-
----
-
-## 4. Socket.io Real-Time Event Protocol
-
-Connect with:
-```javascript
-import { io } from "socket.io-client";
-const socket = io("http://localhost:5000", { withCredentials: true });
-```
-
-### Client -> Server Join Events
-- `socket.emit("ticket:join", publicId)`: Patient screen watching their own ticket.
-- `socket.emit("department:join", departmentId)`: Screen watching one department queue.
-- `socket.emit("board:join", hospitalId)`: Waiting-room TV display.
-
-### Server -> Client Push Events
-- `ticket:position`: `{ publicId, tokenNumber, peopleAhead, estimatedWaitMinutes, nowServing, updatedAt }`
-  *(Trigger "3 ahead" alert when `peopleAhead === 3`)*
-- `ticket:called`: `{ publicId, tokenNumber, room, floor, department, doctorName, calledAt }`
-- `ticket:sms`: `{ id, type, tokenNumber, message: { en, hi, ta }, sentAt }` *(Simulated SMS arrival)*
-- `ticket:transferred`: `{ publicId, newTokenNumber, newDepartment: { code, name, floor } }`
-- `ticket:updated`: `{ publicId, status, urgentSeen }`
-- `queue:updated`: Fresh department queue snapshot with overcrowding indicators.
-- `token:called`: Board announcement event (`{ tokenNumber, room, department }`).
-- `urgent:raised`: Broadcast to all staff screens with audio chime (`{ tokenNumber, firstName, department, raisedAt }`).
-- `urgent:seen`: Dismisses urgent alarm banner (`{ seenBy, responseTimeSeconds }`).
-
----
-
-## 5. Running the Backend
+## Running locally
 
 ```bash
 cd backend
-cp .env.example .env     # Configure MONGODB_URI and JWT_SECRET
+cp .env.example .env        # then edit JWT_SECRET
 npm install
-npm run seed             # Seeds CDH hospital, 7 departments, 8 doctors, staff PIN
-npm run dev              # Starts Express + Socket.io server on http://localhost:5000
+npm run dev                 # node --watch, restarts on file changes
 ```
+
+- If `MONGODB_URI` points at localhost and no MongoDB server is running, development mode starts a local
+  `mongod` (via `mongodb-memory-server`) that **stores its files in `backend/.data/db`**, so data survives
+  restarts. `.data/` is git-ignored. Production never does this.
+- Frontend dev server (port 5180) proxies `/api` and `/socket.io` to this server.
+- `npm run reset-db -- --yes` empties the whole database (works while the dev server is running).
+  Reload the app afterwards: it opens the setup wizard.
+
+### Wait-time estimate
+
+`round5( ceil(peopleAhead / doctorsOnDuty) * avgConsultMinutes + doctorDelay )`, where `avgConsultMinutes` is
+the moving average of the department's last 10 consultations (falls back to the department's setting), and
+`doctorDelay` is the smallest current delay among doctors on duty (rest of a break, or minutes running late).
+
+### Crowding
+
+`waitingCount / seatingCapacity`: **green** below 70%, **amber** 70-100%, **red** above 100%.
+
+## Environment variables
+
+| Variable | Required | Default | Notes |
+|---|---|---|---|
+| `NODE_ENV` | | `development` | `production` turns on strict checks, secure cookies, frontend hosting |
+| `PORT` | | `5000` | Render/Railway set this automatically |
+| `MONGODB_URI` | production | `mongodb://127.0.0.1:27017/queue-mitra` (dev) | e.g. a MongoDB Atlas connection string |
+| `JWT_SECRET` | yes | | production: at least 32 characters, not a placeholder |
+| `JWT_EXPIRES_IN` | | `12h` | |
+| `CLIENT_URL` | | `http://localhost:5180` | allowed browser origin(s), comma-separated. Development also allows any `localhost` port |
+| `PUBLIC_APP_URL` | | first `CLIENT_URL` | base URL printed in slip QR codes (`<url>/my-turn/<publicId>`) |
+| `HOSPITAL_TIMEZONE` | | `Asia/Kolkata` | queues reset at local midnight |
+| `TRUST_PROXY` | | `1` in production | Express `trust proxy` (hops), for correct client IPs behind a proxy |
+| `SERVE_FRONTEND` | | `true` in production | serve `../frontend/dist` with SPA fallback |
+| `FRONTEND_DIST` | | `../frontend/dist` | |
+| `CSP` | | on | `off` disables the Content-Security-Policy header |
+| `LOCAL_DB_PATH` / `LOCAL_DB_PORT` | | `.data/db` / `27027` | development fallback database only |
+| `OPENROUTER_API_KEY` / `OPENROUTER_MODEL` | | | optional LLM for voice translation/triage; rule-based fallback without it |
+
+## Deploying (one service hosts API + frontend)
+
+1. Create a free MongoDB Atlas cluster; copy its connection string.
+2. On Render (Web Service) or Railway, from the repo root:
+   - Build command: `cd frontend && npm ci && npm run build && cd ../backend && npm ci --omit=dev`
+   - Start command: `cd backend && npm start`
+   - Health check path: `/api/health`
+3. Environment: `NODE_ENV=production`, `MONGODB_URI=<atlas uri>`, `JWT_SECRET=<48 random bytes hex>`,
+   `CLIENT_URL=https://<your-app>.onrender.com`.
+   Generate a secret: `node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`
+4. Open the site: the setup wizard creates the hospital and the first admin.
+
+If the frontend is hosted separately (e.g. Vercel), set `SERVE_FRONTEND=false`, list the frontend origin in
+`CLIENT_URL`, and build the frontend with `VITE_API_URL=https://<backend-host>`. Cookies use
+`SameSite=None; Secure` in production; the frontend also sends the token as a Bearer header.
+
+Security in production: helmet headers (CSP, HSTS, nosniff...), gzip, 100 kB JSON limit, rate limits on
+login, staff PIN, setup, registration and urgent help, bcrypt-hashed passwords and staff PIN, JWT revoked on
+logout/password change, no stack traces in error responses, SIGTERM closes the server and database cleanly.
+
+## REST API
+
+All responses are JSON. Errors: `{ "error": "readable message" }` with a proper status
+(400 validation, 401 not signed in, 403 not allowed, 404, 409 conflict/duplicate, 413, 429 rate limited).
+Auth: `Authorization: Bearer <token>` (the `token` cookie also works).
+Roles: `superadmin` (created by setup), `admin`, `doctor`, `staff`. Accounts are only created by admins.
+
+### Setup (public)
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/api/setup/status` | `{ configured, hospital: {_id, code, name, address:{line,city,state,pincode}, contact:{phone,emergencyPhone}, languages, type, floors} \| null, counts: {departments, doctors, staff} }` |
+| GET | `/api/setup/catalog` | `{ departments: [{code, name, description, icon, suggestedRoom, floor, avgConsultMinutes, seatingCapacity, translations:{hi,te,ta}}], rooms: [{id:"room_1", name:"Room 1", floor, landmark}] }` |
+| POST | `/api/setup` | `{ hospital:{name, code?, city?, state?, phone?, emergencyPhone?, addressLine?, pincode?}, admin:{name, email, password}, staffPin }` -> 201 `{ token, user, hospital }`. 409 once a hospital exists. `code` derived from the name if omitted ("City District Hospital" -> `CDH`). PIN 4-6 digits; password at least 8 characters |
+
+### Auth
+
+| Method | Path | Notes |
+|---|---|---|
+| POST | `/api/auth/login` | `{ email, password }` -> `{ token, user }` |
+| POST | `/api/auth/staff-pin` | `{ hospitalCode, pin }` -> `{ token, user }` (shared counter account, role `staff`, `user.isKiosk: true`). Changing the PIN signs out all PIN sessions |
+| GET | `/api/auth/me` | `{ user }` |
+| POST | `/api/auth/logout` | revokes the token |
+
+`user` = `{ _id, name, email, role, isKiosk, hospital, hospitalCode, hospitalName, department, departmentCode, departmentName, floor, room, specialty, status? }`
+
+### Admin (`admin`, `superadmin`)
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/api/admin/overview` | `{ hospital, generatedAt, totals, urgent, departments, doctors }` (departments/totals/urgent as in staff overview) |
+| PATCH | `/api/admin/hospital` | `{ name?, address?:{line,city,state,pincode}, contact?:{phone,emergencyPhone}, languages?, staffPin? }` -> `{ hospital, staffPinChanged }`. Code can't change (printed on posters) |
+| GET | `/api/admin/departments` | `{ departments: [{...department, doctorCount, isActive}] }` (inactive ones included) |
+| POST | `/api/admin/departments` | `{ code, name?, description?, icon?, rooms:["Room 1"], floor?, avgConsultMinutes?, seatingCapacity?, translations?, opdHours?:{start,end} }` -> 201 `{ department }`. A catalog code fills name/description/icon/translations/room/capacity when not given. Code 2-5 letters, unique (409). Rooms must be OPD rooms of the map (400) and not used by another active department (409). Re-adding a removed code reactivates it |
+| PATCH | `/api/admin/departments/:id` | same fields + `isActive`. Code can't change once tickets exist |
+| DELETE | `/api/admin/departments/:id` | `{ ok: true, deactivated }`: deleted if never used, else deactivated. 409 while patients are in today's queue. Its doctors are unassigned |
+| GET | `/api/admin/doctors` | `{ doctors: [{_id, name, email, department, departmentCode, departmentName, room, specialty, status:{state,until,delayMinutes}}] }` |
+| POST | `/api/admin/doctors` | `{ name, email, password, departmentCode, room?, specialty? }` -> 201 `{ doctor }`. Room must be one of the department's rooms (defaults to its first) |
+| PATCH | `/api/admin/doctors/:id` | `{ name?, email?, password?, departmentCode?, room?, specialty?, state? }` -> `{ doctor }` |
+| DELETE | `/api/admin/doctors/:id` | `{ ok: true }` |
+| GET | `/api/admin/staff` | `{ staff: [{_id, name, email, role}] }` (staff, admin, superadmin; not the PIN counter account) |
+| POST | `/api/admin/staff` | `{ name, email, password, role: "staff"\|"admin" }` -> 201 `{ staff }` |
+| PATCH | `/api/admin/staff/:id` | `{ name?, email?, password?, role? }`. Only a superadmin can edit a superadmin; you can't change your own role |
+| DELETE | `/api/admin/staff/:id` | `{ ok: true }`. Not yourself, not the superadmin |
+| POST | `/api/admin/reset-queue` | new day: deletes today's tickets, their notifications, today's token counters, all urgent flags; doctors on break/late become available; stops the auto-simulation. Keeps hospital, departments, people |
+| POST | `/api/admin/factory-reset` | superadmin, `{ confirm: "<hospital code>" }`: empties the whole database (app goes back to setup) |
+
+### Staff console (`doctor`, `staff`, `admin`, `superadmin`)
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/api/staff/overview` | see shape below |
+| POST | `/api/doctor/call-next` | `{ departmentCode?, room? }`. Doctors default to their own department and room; staff/admin give `departmentCode` (room defaults to the department's first; the doctor assigned to that room is recorded). Completes the room's current patient, then calls the next. -> `{ ticket, called, completed: [tokenNumbers] }` or 404 `{ error: "Queue is empty" }` |
+| POST | `/api/doctor/tickets/:ticketId/complete` | `{ diagnosis?, consultationNotes?, prescriptions?, followUpDate? }` (called tickets) |
+| POST | `/api/doctor/tickets/:ticketId/no-show` | waiting or called tickets |
+| POST | `/api/doctor/tickets/:ticketId/requeue` | to the end of the queue (keeps its token number) |
+| POST | `/api/doctor/tickets/:ticketId/transfer` | `{ departmentCode }`: new token in the other department |
+| PATCH | `/api/doctor/status` | `{ state: available\|on_break\|running_late\|offline, until?, delayMinutes?, doctorId? }`. Doctors set their own; staff/admin pass `doctorId`. Defaults: break 15 min, late 10 min. -> `{ user, doctor }` |
+| GET | `/api/doctor/dashboard` | `{ queue, current, waiting }` for the doctor's department (staff/admin: `?departmentCode=`) |
+| GET | `/api/doctor/urgent` | `{ flags: [flag] }` open urgent requests |
+| POST | `/api/doctor/urgent/:id/seen` | `:id` = the flag's `id` (or, for older screens, the `ticketId` of a ticket with a flag) -> `flag` (+ `alreadySeen: true` if someone got there first) |
+| POST | `/api/tickets/counter` | assisted registration (same body as `POST /api/tickets`, hospital from the session) -> 201 slip |
+| GET | `/api/patients?search=` | today's registrations, newest first; search by token, first name or mobile -> `{ patients: [{ticketId, publicId, tokenNumber, firstName, age, gender, mobile, language, departmentCode, departmentName, status, room, doctorName, assisted, isEmergency, complaint, urgent, createdAt, calledAt, completedAt}], total, serviceDate }` |
+| GET | `/api/analytics/:hospitalCode?` | today's totals, urgent response SLA, languages, hourly registrations, crowd heatmap |
+
+`GET /api/staff/overview`:
+
+```js
+{
+  generatedAt, serviceDate, hospital: { _id, code, name },
+  totals: { registeredToday, waiting, serving, completed, noShow, urgentOpen },
+  urgent: [flag],
+  departments: [{
+    _id, code, name, description, icon, translations, rooms, floor, seatingCapacity, avgConsultMinutes, opdHours,
+    waitingCount, estimatedWaitMinutes, crowd: "green"|"amber"|"red", crowdLabel, crowdRatio,
+    nowServing: [{ ticketId, publicId, tokenNumber, firstName, room, calledAt, doctorId, doctorName, isEmergency }],
+    waiting: [{ ticketId, publicId, tokenNumber, firstName, age, gender, language, assisted, urgent, isEmergency,
+                complaint, accessibility, position, estimatedWaitMinutes, createdAt }],
+    doctors: [{ _id, name, room, specialty, status: { state, until, delayMinutes } }]
+  }]
+}
+```
+
+`flag` (urgent request) = `{ id, ticketId, publicId, tokenNumber, firstName, departmentCode, departmentName,
+department:{code,name}|null, isEmergency, complaint, location, note, language, by: "patient"|"registration",
+raisedAt, seenAt, seenBy, responseTimeSeconds }`. Without a ticket, `ticketId`, `tokenNumber` etc. are `null`.
+
+### Patients and public screens (no login)
+
+| Method | Path | Notes |
+|---|---|---|
+| GET | `/api/hospitals`, `/api/hospitals/:code` | hospital info (never the PIN) |
+| GET | `/api/hospitals/:code/departments` | active departments |
+| GET | `/api/hospitals/:code/departments/:deptCode/queue` | live queue snapshot |
+| POST | `/api/tickets` | `{ hospitalCode?, departmentCode, firstName, age, gender: male\|female\|other, mobile?, language?, isAssisted?, helperName?, accessibility?, emergency?, complaint? }` -> 201 ticket status. Only first name, age, gender and an optional 10-digit mobile are stored: never Aadhaar or address. `emergency: true` jumps the queue and alerts staff |
+| GET | `/api/tickets/:publicId` | "My turn": `{ tokenNumber, status, peopleAhead, estimatedWaitMinutes, nowServing, department, room, ... }` |
+| GET | `/api/tickets/:publicId/slip` | printable slip (mobile masked) |
+| GET | `/api/tickets/lookup/:token?hospitalCode=` | "I have my slip": accepts `MED-007`, `med7`, `MED 7` |
+| PATCH | `/api/tickets/:publicId/preferences` | `{ language?, accessibility?: {avoidStairs, largeText, readAloud, highContrast} }` |
+| POST | `/api/tickets/:publicId/urgent` | "I need urgent help" with a ticket -> `{ publicId, urgentRaised, raisedAt, flag }` (pressing again re-alerts, no duplicate) |
+| POST | `/api/urgent` | urgent help **without** a ticket: `{ hospitalCode?, location?, note?, language? }` -> 201 `{ flag }` |
+| POST | `/api/tickets/sync` | offline registrations `{ tickets: [{clientTempId, ...ticket body}] }` (max 10) |
+| GET | `/api/notifications/:publicId` | simulated SMS history for a ticket |
+| GET | `/api/board/:code` | TV board: `{ hospital:{_id,code,name}, rooms:[{departmentCode, departmentName, room, floor, doctorName, doctorState, delayMinutes, nowServing, nextTokens, announcementText:{en,hi,te,ta}}] }` |
+| GET | `/api/navigation/map`, `/places` | building graph; OPD rooms carry the live department (`name: "Room 1 (General Medicine)"`, `roomName`, `departmentCode`) |
+| POST | `/api/navigation/route` | `{ from?, to? \| room? \| departmentCode?, avoidStairs?, language? }` (room "Room 1" -> place `room_1`; a department code resolves to its first room) |
+| GET/POST | `/api/navigation/checkpoints`, `/from-checkpoint`, `/lost` | QR wall checkpoints, "I am lost" |
+| POST/GET | `/api/triage/suggest`, `/warning-signs`, `/voice-translate`, `/api/voice/translate` | symptom -> department suggestion (never says an emergency can wait) |
+| GET | `/api/health` | `{ status, database, databaseMode, uptime }` (503 when the DB is down) |
+
+### Demo controls (`admin`, `superadmin`)
+
+Auto-simulation moves **real** queues forward (call next, which completes the previous patient in that room)
+for every department room that has patients. It never creates patients.
+
+| Method | Path | Notes |
+|---|---|---|
+| POST | `/api/demo/auto-simulate/start` | `{ speed?: 1-20 \| intervalMs? }`. 1x = one step every 30 s; default speed 10 = every 3 s |
+| POST | `/api/demo/auto-simulate/stop` | |
+| GET | `/api/demo/auto-simulate/status` | `{ isRunning, intervalMs, speed, ticksCount, startedAt, lastStepAt, lastAction }` |
+
+## Socket.io events
+
+```js
+import { io } from "socket.io-client";
+const socket = io(API_URL, { auth: { token } });   // token optional (patients and the board are anonymous)
+```
+
+Rooms: signed-in doctor/staff/admin/superadmin sockets join `staff:<hospitalId>` automatically.
+
+| Client -> server | Room |
+|---|---|
+| `ticket:join` / `ticket:leave` (publicId) | `ticket:<publicId>` |
+| `department:join` / `department:leave` (departmentId) | `department:<departmentId>` |
+| `board:join` / `board:leave` (hospitalId) | `board:<hospitalId>` |
+
+| Server -> client | Sent to | Payload |
+|---|---|---|
+| `hospital:updated` | staff, board (every socket after setup/factory reset) | `{ hospitalId, reason, at, departmentId? }`, after **every** mutation: refetch. `reason` e.g. `ticket:registered`, `ticket:called`, `ticket:completed`, `ticket:no_show`, `ticket:requeued`, `ticket:transferred`, `doctor:status`, `urgent:raised`, `urgent:seen`, `department:created\|updated\|deleted`, `doctor:updated`, `staff:updated`, `hospital:updated`, `queue:reset`, `setup`, `factory-reset` |
+| `queue:updated` | department, staff, board | department snapshot (same as `GET .../queue`) |
+| `token:called` | board, department, staff | `{ ticketId, publicId, tokenNumber, firstName, room, floor, department, departmentCode, departmentName, doctorName, calledAt }` |
+| `ticket:called` | ticket | same as `token:called` |
+| `ticket:position` | ticket | `{ publicId, tokenNumber, peopleAhead, estimatedWaitMinutes, nowServing, updatedAt }` |
+| `ticket:updated` | ticket | `{ publicId, status?, message?, urgentRaised?, urgentSeen?, reason? }` (`status: "cancelled", reason: "queue_reset"` after a queue reset) |
+| `ticket:transferred` | ticket | `{ publicId, newTokenNumber, newDepartment:{code,name,floor} }` |
+| `ticket:sms` | ticket | simulated SMS `{ id, type, tokenNumber, message:{en,hi,ta,te}, sentAt }` |
+| `urgent:raised` | staff | `flag` (with `department` = department name) |
+| `urgent:seen` | staff | `{ id, flagId, ticketId, seenBy, responseTimeSeconds }` |
+| `doctor:status` | staff, board, department | `{ doctorId, name, room, departmentId, status }` |
+| `departments:updated`, `doctors:updated`, `staff:updated` | staff, board | `{ reason, departmentId? }` |
+| `queue:reset` | staff, board | `{ at }` |
+| `system:reset` | everyone | `{ at }` after a factory reset: go to `/setup` |

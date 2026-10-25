@@ -1,17 +1,11 @@
 import { Router } from "express";
-import {
-  getSimulationStatus,
-  resetDemo,
-  seedPatients,
-  startSimulation,
-  stopSimulation,
-} from "../controllers/demoController.js";
+import { getSimulationStatus, startSimulation, stopSimulation } from "../controllers/demoController.js";
+import { ADMIN_ROLES, protect, requireRole } from "../middleware/auth.js";
 
+// Demo controls for presentations. They only move real queues; they never create patients.
 const router = Router();
 
-// Demo controls (can be invoked by judges or staff during presentation)
-router.post("/seed-patients", seedPatients);
-router.post("/reset", resetDemo);
+router.use(protect, requireRole(...ADMIN_ROLES));
 router.post("/auto-simulate/start", startSimulation);
 router.post("/auto-simulate/stop", stopSimulation);
 router.get("/auto-simulate/status", getSimulationStatus);

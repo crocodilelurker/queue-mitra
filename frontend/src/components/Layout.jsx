@@ -1,15 +1,23 @@
+import { useOfflineSync } from '../hooks/useOfflineSync.js'
+import { useI18n } from '../i18n/index.jsx'
 import Header from './Header.jsx'
 import OfflineBanner from './OfflineBanner.jsx'
 
-/** Shared page frame: offline banner, header and a centered column. */
-export default function Layout({ children, wide = false, hideEmergency = false, emergencyTo = null, className = '' }) {
+/** Patient page frame: offline notice, header (with Settings and Emergency) and one centred column. */
+export default function Layout({ children, wide = false, className = '', footer = null }) {
+  useOfflineSync()
+  const { t } = useI18n()
   return (
-    <>
+    <div className="page">
+      <a className="skip-link" href="#main">
+        {t.skipToContent}
+      </a>
       <OfflineBanner />
-      <div className="page">
-        <Header hideEmergency={hideEmergency} emergencyTo={emergencyTo} />
-        <main className={`main${wide ? ' main--wide' : ''} ${className}`}>{children}</main>
-      </div>
-    </>
+      <Header />
+      <main id="main" className={`main${wide ? ' main--wide' : ''}${className ? ` ${className}` : ''}`}>
+        {children}
+      </main>
+      {footer && <footer className="page-footer">{footer}</footer>}
+    </div>
   )
 }

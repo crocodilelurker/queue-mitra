@@ -1,570 +1,261 @@
-import { useState } from 'react'
-import AdminLayout from './AdminLayout.jsx'
+import { useEffect, useState } from 'react'
 import { api } from '../../api/client.js'
-import { useAsync } from '../../hooks/useAsync.js'
-import { useSocket } from '../../api/socket.js'
-import { Loading, ErrorNote } from '../../components/common/Status.jsx'
-import { Icon } from '../../components/common/Icons.jsx'
-import { Link, navigate } from '../../router.jsx'
 import { useAuth } from '../../context/AuthContext.jsx'
-import Modal from '../../components/common/Modal.jsx'
-import ReceiptModal from './ReceiptModal.jsx'
+import { useHospital } from '../../context/Hospital.jsx'
+import { Link, navigate } from '../../router.jsx'
+import { Icon } from '../../components/common/Icons.jsx'
+import StaffShell, { useLiveRefetch, useStaffLive } from '../../components/staff/StaffShell.jsx'
+import {
+  Button,
+  Card,
+  CrowdBadge,
+  DoctorStatusChip,
+  EmptyState,
+  InlineError,
+  PageHeader,
+  Skeleton,
+  SkeletonCards,
+  Stat,
+  aboutWait,
+  deptIcon,
+} from '../../components/staff/ui.jsx'
+import './console.css'
+
+function greeting() {
+  const h = new Date().getHours()
+  return h < 12 ? 'Good morning' : h < 17 ? 'Good afternoon' : 'Good evening'
+}
+
+function Checklist({ departments, doctors, registered }) {
+  const items = [
+    { done: true, title: 'Create the hospital', text: 'Done during setup.' },
+    {
+      done: departments > 0,
+      title: 'Add your first department',
+      text: 'Patients can only register once an OPD department exists.',
+      action: (
+        <Button size="sm" variant="primary" icon="plus" onClick={() => navigate('/admin/departments')}>
+          Add department
+        </Button>
+      ),
+    },
+    {
+      done: doctors > 0,
+      title: 'Add doctors',
+      text: 'Each doctor signs in to their room console to call patients.',
+      action: (
+        <Button size="sm" icon="user-plus" onClick={() => navigate('/admin/people')}>
+          Add doctor
+        </Button>
+      ),
+    },
+    {
+      done: registered > 0,
+      title: 'Register the first patient',
+      text: 'On a phone with the patient app, or at the registration counter.',
+      action: (
+        <Button size="sm" icon="user-plus" onClick={() => navigate('/admin/counter')} disabled={!departments}>
+          Open counter
+        </Button>
+      ),
+    },
+    {
+      done: false,
+      optional: true,
+      title: 'Put the TV board on the waiting-hall screen',
+      text: 'It shows who is being seen and announces each call aloud.',
+      action: (
+        <a className="sx-btn sx-btn--sm" href="/board" target="_blank" rel="noreferrer">
+          <Icon name="tv" size={15} /> Open TV board
+        </a>
+      ),
+    },
+  ]
+  const left = items.filter((i) => !i.done && !i.optional).length
+  if (!left) return null
+  return (
+    <Card title="Getting started" icon="sparkles" actions={<span className="sx-small sx-muted">{left} step{left > 1 ? 's' : ''} left</span>}>
+      <ul className="sx-checklist">
+        {items.map((i) => (
+          <li key={i.title} data-done={i.done}>
+            <span className="sx-checklist__mark" aria-hidden="true">
+              {i.done && <Icon name="check" size={14} />}
+            </span>
+            <span className="sx-checklist__text">
+              <strong>
+                {i.title}
+                <span className="sx-visually-hidden">{i.done ? ' (done)' : ' (to do)'}</span>
+              </strong>
+              <span>{i.text}</span>
+            </span>
+            {!i.done && i.action}
+          </li>
+        ))}
+      </ul>
+    </Card>
+  )
+}
+
+export function DepartmentCard({ d }) {
+  const seats = d.seatingCapacity || 0
+  return (
+    <article className="qc-dept">
+      <header className="qc-dept__head">
+        <span className="qc-dept__icon" aria-hidden="true">
+          <Icon name={deptIcon(d)} size={20} />
+        </span>
+        <div className="qc-dept__title">
+          <h3>{d.name}</h3>
+          <span className="sx-small sx-muted">
+            {(d.rooms || []).join(', ') || 'No room'} · Floor {d.floor ?? 1}
+          </span>
+        </div>
+        <CrowdBadge level={d.crowd} />
+      </header>
+      <div className="qc-dept__nums">
+        <div>
+          <span>Waiting</span>
+          <strong>
+            {d.waitingCount ?? 0}
+            {seats ? <small> / {seats} seats</small> : null}
+          </strong>
+        </div>
+        <div>
+          <span>Now serving</span>
+          <strong className="sx-token qc-accent">{d.nowServing?.length ? d.nowServing.map((n) => n.tokenNumber).join(', ') : '—'}</strong>
+        </div>
+        <div>
+          <span>New patient waits</span>
+          <strong>{aboutWait(d.estimatedWaitMinutes)}</strong>
+        </div>
+      </div>
+      <footer className="qc-dept__foot">
+        {d.doctors?.length ? (
+          d.doctors.map((doc) => (
+            <span key={doc._id || doc.name} className="sx-row" style={{ gap: 6 }}>
+              <span className="sx-small">
+                {doc.name} · {doc.room}
+              </span>
+              <DoctorStatusChip status={doc.status} />
+            </span>
+          ))
+        ) : (
+          <span className="sx-small sx-muted">
+            No doctor assigned · <Link to="/admin/people">Add a doctor</Link>
+          </span>
+        )}
+      </footer>
+    </article>
+  )
+}
+
+function Overview() {
+  const { currentUser } = useAuth()
+  const { hospital } = useHospital()
+  const live = useStaffLive()
+  const [admin, setAdmin] = useState(null)
+  const [error, setError] = useState(null)
+
+  const load = () =>
+    api
+      .adminOverview()
+      .then((d) => {
+        setAdmin(d)
+        setError(null)
+      })
+      .catch(setError)
+  useEffect(() => {
+    load()
+    document.title = `Overview · ${hospital?.name || 'Queue Mitra'}`
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [])
+  useLiveRefetch(load)
+
+  const data = live.overview || admin
+  const totals = data?.totals || {}
+  const departments = data?.departments || []
+  const doctors = admin?.doctors
+  const loading = !data && !live.error && !error
+
+  return (
+    <>
+      <PageHeader
+        title={`${greeting()}, ${currentUser.name.split(' ')[0]}`}
+        subtitle={`Today at ${hospital?.name || 'the hospital'} — everything on this page updates live.`}
+        actions={
+          <>
+            <Button icon="user-plus" onClick={() => navigate('/admin/counter')}>
+              Register a patient
+            </Button>
+            <Button variant="primary" icon="queue" onClick={() => navigate('/admin/queues')}>
+              Open queue console
+            </Button>
+          </>
+        }
+      />
+
+      {(live.error || error) && !data && <InlineError error={live.error || error} onRetry={() => (live.refresh(), load())} />}
+
+      {loading ? (
+        <div className="sx-stats">
+          {[1, 2, 3, 4, 5, 6].map((i) => (
+            <Skeleton key={i} height={92} style={{ borderRadius: 12 }} />
+          ))}
+        </div>
+      ) : (
+        <div className="sx-stats" aria-label="Today's totals">
+          <Stat label="Registered today" icon="ticket" value={totals.registeredToday ?? 0} />
+          <Stat label="Waiting" icon="users" value={totals.waiting ?? 0} />
+          <Stat label="Being seen" icon="doctor" value={totals.serving ?? 0} />
+          <Stat label="Completed" icon="check-circle" value={totals.completed ?? 0} />
+          <Stat label="No-shows" icon="user-x" value={totals.noShow ?? 0} />
+          <Stat label="Urgent, not seen yet" icon="alert" value={totals.urgentOpen ?? 0} alert={totals.urgentOpen > 0} hint={totals.urgentOpen > 0 ? 'Shown in red at the top' : 'None open'} />
+        </div>
+      )}
+
+      {data && <Checklist departments={departments.length} doctors={doctors ? doctors.length : 1} registered={totals.registeredToday || 0} />}
+
+      <Card
+        title="Departments right now"
+        icon="layers"
+        actions={
+          departments.length > 0 && (
+            <Button size="sm" variant="ghost" iconRight="arrow-right" onClick={() => navigate('/admin/queues')}>
+              Manage queues
+            </Button>
+          )
+        }
+      >
+        {loading ? (
+          <SkeletonCards count={3} height={170} />
+        ) : departments.length === 0 ? (
+          <EmptyState
+            icon="layers"
+            title="No departments yet"
+            action={
+              <Button variant="primary" icon="plus" onClick={() => navigate('/admin/departments')}>
+                Add your first department
+              </Button>
+            }
+          >
+            Add the OPD departments that run today. Patients pick one when they register, and each gets its own live queue.
+          </EmptyState>
+        ) : (
+          <div className="qc-dept-grid">
+            {departments.map((d) => (
+              <DepartmentCard key={d._id || d.code} d={d} />
+            ))}
+          </div>
+        )}
+      </Card>
+    </>
+  )
+}
 
 export default function AdminDashboard() {
-  const { currentUser } = useAuth()
-  const { data, loading, error, reload } = useAsync(() => api.adminOverview(), [])
-  const [selectedReceipt, setSelectedReceipt] = useState(null)
-  const [isAddPatientOpen, setIsAddPatientOpen] = useState(false)
-  const [isBookAptOpen, setIsBookAptOpen] = useState(false)
-  const [callingNext, setCallingNext] = useState(false)
-
-  // Real-time live updates via WebSockets
-  useSocket({
-    on: {
-      'queue:updated': () => reload(true),
-      'ticket:created': () => reload(true),
-      'ticket:called': () => reload(true),
-      'ticket:completed': () => reload(true),
-    },
-  })
-
-  const firstName = currentUser?.name?.split(' ')[0] || 'Asha'
-
-  const handleCallNextPatient = async () => {
-    setCallingNext(true)
-    try {
-      const res = await api.callNext()
-      alert(`Calling Next Patient: Token ${res.ticket?.tokenNumber || 'Next'} (${res.ticket?.patient?.firstName || 'Patient'})`)
-      await reload(true)
-    } catch (err) {
-      alert(err.message === 'No patients waiting' ? 'No patients currently waiting in queue.' : `Call Next: ${err.message}`)
-    } finally {
-      setCallingNext(false)
-    }
-  }
-
-  if (loading) {
-    return (
-      <AdminLayout>
-        <Loading message="Loading MediFlow Dashboard..." />
-      </AdminLayout>
-    )
-  }
-
-  if (error) {
-    return (
-      <AdminLayout>
-        <ErrorNote error={error} onRetry={reload} />
-      </AdminLayout>
-    )
-  }
-
-  const { metrics, liveQueueTracker, dailySchedule, doctors, financialSummary } = data || {}
-
-  // Real live metrics from active database
-  const totalPatientsToday = metrics?.totalRegisteredPatients ?? 0
-  const appointmentsToday = metrics?.activeAppointmentsToday ?? 0
-  const patientsWaiting = metrics?.currentlyWaitingQueue ?? 0
-  const completedConsultations = metrics?.completedConsultationsToday ?? 0
-  const doctorsAvailable = metrics?.availableDoctorsCount ?? 0
-  const pendingInvoicesCount = financialSummary?.pendingBillsCount ?? 0
-  const pendingDueAmount = financialSummary?.pendingAmount ?? 0
-
   return (
-    <AdminLayout>
-      {/* 1. Header Hero Greeting & Quick Action Buttons */}
-      <section className="mediflow-hero">
-        <div className="mediflow-hero__text">
-          <h1>Hello, {firstName}</h1>
-          <p>Here is how MediFlow Demo Clinic looks today.</p>
-        </div>
-
-        <div className="mediflow-hero__actions">
-          <button
-            type="button"
-            className="btn-action-primary-teal"
-            onClick={() => setIsAddPatientOpen(true)}
-          >
-            <Icon name="plus" size={16} />
-            <span>Add Patient</span>
-          </button>
-
-          <button
-            type="button"
-            className="btn-action-outline"
-            onClick={() => setIsBookAptOpen(true)}
-          >
-            <Icon name="calendar" size={16} />
-            <span>Book Appointment</span>
-          </button>
-
-          <button
-            type="button"
-            className="btn-action-outline"
-            disabled={callingNext}
-            onClick={handleCallNextPatient}
-          >
-            <Icon name="speaker" size={16} />
-            <span>{callingNext ? 'Calling...' : 'Call Next Patient'}</span>
-          </button>
-
-          <button
-            type="button"
-            className="btn-action-outline"
-            onClick={() => navigate('/admin/billing')}
-          >
-            <Icon name="currency-inr" size={16} />
-            <span>Create Bill</span>
-          </button>
-        </div>
-      </section>
-
-      {/* 2. 6 Pastel Metric Cards Grid */}
-      <section className="mediflow-metrics-grid">
-        {/* Card 1: Blue - Total patients today */}
-        <div className="pastel-metric-card pastel-card--blue">
-          <div className="pastel-card__icon">
-            <Icon name="users" size={18} />
-          </div>
-          <div className="pastel-card__value">{totalPatientsToday}</div>
-          <div className="pastel-card__label">Total patients today</div>
-        </div>
-
-        {/* Card 2: Green - Appointments today */}
-        <div className="pastel-metric-card pastel-card--green">
-          <div className="pastel-card__icon">
-            <Icon name="calendar" size={18} />
-          </div>
-          <div className="pastel-card__value">{appointmentsToday}</div>
-          <div className="pastel-card__label">Appointments today</div>
-        </div>
-
-        {/* Card 3: Yellow/Amber - Patients waiting */}
-        <div className="pastel-metric-card pastel-card--amber">
-          <div className="pastel-card__icon">
-            <Icon name="clock" size={18} />
-          </div>
-          <div className="pastel-card__value">{patientsWaiting}</div>
-          <div className="pastel-card__label">Patients waiting</div>
-        </div>
-
-        {/* Card 4: Purple - Completed consultations */}
-        <div className="pastel-metric-card pastel-card--purple">
-          <div className="pastel-card__icon">
-            <Icon name="check-circle" size={18} />
-          </div>
-          <div className="pastel-card__value">{completedConsultations}</div>
-          <div className="pastel-card__label">Completed consultations</div>
-        </div>
-
-        {/* Card 5: Teal - Doctors available */}
-        <div className="pastel-metric-card pastel-card--teal">
-          <div className="pastel-card__icon">
-            <Icon name="doctor" size={18} />
-          </div>
-          <div className="pastel-card__value">{doctorsAvailable}</div>
-          <div className="pastel-card__label">Doctors available</div>
-        </div>
-
-        {/* Card 6: Pink - Pending payments */}
-        <div className="pastel-metric-card pastel-card--pink">
-          <div className="pastel-card__icon">
-            <Icon name="currency-inr" size={18} />
-          </div>
-          <div className="pastel-card__value">{pendingInvoicesCount}</div>
-          <div className="pastel-card__label">Pending payments</div>
-          <div className="pastel-card__sub">₹{pendingDueAmount} due</div>
-        </div>
-      </section>
-
-      {/* 3. Two-Column Lower Section: Today's schedule & Live OPD queue */}
-      <section className="mediflow-columns-grid">
-        {/* Left Column: Today's schedule */}
-        <div className="mediflow-white-box">
-          <div className="mediflow-box-header">
-            <h2>Today's schedule</h2>
-            <Link to="/admin/appointments" className="mediflow-link-sm">
-              View all
-            </Link>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {dailySchedule && dailySchedule.length > 0 ? (
-              dailySchedule.slice(0, 6).map((apt) => {
-                const isCompleted = apt.status === 'completed'
-                const isInProgress = apt.status === 'in_consultation' || apt.status === 'in_queue'
-                return (
-                  <div key={apt._id} className="schedule-item-row">
-                    <span className="schedule-time-badge">{apt.slotTime || '09:00'}</span>
-                    <div className="schedule-patient-meta">
-                      <div>
-                        <span className="schedule-patient-name">{apt.patientName}</span>
-                        <span className="schedule-patient-id">{apt.patientId}</span>
-                      </div>
-                      <div className="schedule-doctor-sub">
-                        {apt.doctorName || 'Dr. Anita Sharma'} - {apt.complaint || 'Routine checkup'}
-                      </div>
-                    </div>
-                    <div>
-                      {isCompleted ? (
-                        <span className="badge-completed">Completed</span>
-                      ) : isInProgress ? (
-                        <span className="badge-inprogress">In Progress</span>
-                      ) : (
-                        <span className="badge-scheduled">Scheduled</span>
-                      )}
-                    </div>
-                  </div>
-                )
-              })
-            ) : (
-              <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.9rem' }}>
-                No appointments scheduled for today.
-              </div>
-            )}
-          </div>
-        </div>
-
-        {/* Right Column: Live OPD queue */}
-        <div className="mediflow-white-box">
-          <div className="mediflow-box-header">
-            <h2>Live OPD queue</h2>
-            <Link to="/board" className="mediflow-link-sm" target="_blank">
-              Open queue
-            </Link>
-          </div>
-
-          <div style={{ display: 'flex', flexDirection: 'column' }}>
-            {liveQueueTracker && liveQueueTracker.length > 0 ? (
-              liveQueueTracker.slice(0, 6).map((dept, idx) => {
-                const tokenCode = dept.nowServingToken !== 'None' ? dept.nowServingToken : '—'
-                const isCoral = idx % 2 === 1
-                return (
-                  <div key={dept.code} className="queue-item-row">
-                    <span className={isCoral ? 'token-badge-coral' : 'token-badge-blue'}>
-                      {tokenCode}
-                    </span>
-                    <div className="queue-patient-meta">
-                      <div className="queue-patient-name">
-                        {dept.nowServingPatient !== '—' ? dept.nowServingPatient : dept.name}
-                      </div>
-                      <div className="queue-doctor-sub">
-                        {dept.doctorName}
-                        {dept.totalWaiting > 0 ? (
-                          <span className="wait-time-tag"> • waiting {dept.estimatedWaitMinutes || 15} min</span>
-                        ) : (
-                          <span style={{ fontSize: '0.78rem', color: '#94a3b8' }}> • Queue clear</span>
-                        )}
-                      </div>
-                    </div>
-                  </div>
-                )
-              })
-            ) : (
-              <div style={{ padding: '2rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.9rem' }}>
-                All OPD queues clear.
-              </div>
-            )}
-          </div>
-        </div>
-      </section>
-
-      {/* Quick Add Patient Modal */}
-      {isAddPatientOpen && (
-        <QuickAddPatientModal
-          onClose={() => setIsAddPatientOpen(false)}
-          onSuccess={() => {
-            setIsAddPatientOpen(false)
-            reload(true)
-          }}
-        />
-      )}
-
-      {/* Quick Book Appointment Modal */}
-      {isBookAptOpen && (
-        <QuickBookAppointmentModal
-          doctors={doctors}
-          onClose={() => setIsBookAptOpen(false)}
-          onSuccess={(res) => {
-            setIsBookAptOpen(false)
-            reload(true)
-            if (res.bill) setSelectedReceipt(res.bill)
-          }}
-        />
-      )}
-
-      {/* Receipt Modal if generated */}
-      {selectedReceipt && (
-        <ReceiptModal bill={selectedReceipt} onClose={() => setSelectedReceipt(null)} />
-      )}
-    </AdminLayout>
-  )
-}
-
-/** Quick Patient Registration Modal */
-function QuickAddPatientModal({ onClose, onSuccess }) {
-  const [formData, setFormData] = useState({
-    firstName: '',
-    lastName: '',
-    gender: 'female',
-    age: '28',
-    mobile: '',
-    bloodGroup: 'B+',
-    city: 'Central District',
-    emergencyName: '',
-    emergencyPhone: '',
-    emergencyRelation: 'Spouse',
-  })
-  const [submitting, setSubmitting] = useState(false)
-  const [err, setErr] = useState(null)
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setSubmitting(true)
-    setErr(null)
-    try {
-      const payload = {
-        firstName: formData.firstName,
-        lastName: formData.lastName,
-        gender: formData.gender,
-        age: Number(formData.age),
-        mobile: formData.mobile,
-        bloodGroup: formData.bloodGroup,
-        address: { city: formData.city },
-        emergencyContact: {
-          name: formData.emergencyName || 'Guardian',
-          phone: formData.emergencyPhone || formData.mobile,
-          relation: formData.emergencyRelation,
-        },
-      }
-      await api.registerPatient(payload)
-      onSuccess()
-    } catch (error) {
-      setErr(error.message || 'Registration failed')
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <Modal open={true} onClose={onClose}>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div>
-          <h3 className="modal__title" style={{ margin: 0 }}>Add New Patient</h3>
-          <p className="modal__lead" style={{ margin: '0.2rem 0 0' }}>
-            Creates digital OPD record with auto-assigned CDH-P-XXXX Hospital ID.
-          </p>
-        </div>
-
-        {err && <div className="note note--danger">{err}</div>}
-
-        <div className="form-grid-2col">
-          <div className="form-group">
-            <label>First Name *</label>
-            <input
-              type="text"
-              required
-              className="form-control"
-              value={formData.firstName}
-              onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-              placeholder="e.g. Ananya"
-            />
-          </div>
-          <div className="form-group">
-            <label>Last Name *</label>
-            <input
-              type="text"
-              required
-              className="form-control"
-              value={formData.lastName}
-              onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-              placeholder="e.g. Reddy"
-            />
-          </div>
-        </div>
-
-        <div className="form-grid-2col">
-          <div className="form-group">
-            <label>Gender *</label>
-            <select
-              className="form-control"
-              value={formData.gender}
-              onChange={(e) => setFormData({ ...formData, gender: e.target.value })}
-            >
-              <option value="female">Female</option>
-              <option value="male">Male</option>
-              <option value="other">Other</option>
-            </select>
-          </div>
-          <div className="form-group">
-            <label>Age *</label>
-            <input
-              type="number"
-              required
-              className="form-control"
-              value={formData.age}
-              onChange={(e) => setFormData({ ...formData, age: e.target.value })}
-            />
-          </div>
-        </div>
-
-        <div className="form-grid-2col">
-          <div className="form-group">
-            <label>Mobile Number (10 digits) *</label>
-            <input
-              type="tel"
-              required
-              pattern="[0-9]{10}"
-              className="form-control"
-              value={formData.mobile}
-              onChange={(e) => setFormData({ ...formData, mobile: e.target.value })}
-              placeholder="9876543299"
-            />
-          </div>
-          <div className="form-group">
-            <label>Blood Group</label>
-            <select
-              className="form-control"
-              value={formData.bloodGroup}
-              onChange={(e) => setFormData({ ...formData, bloodGroup: e.target.value })}
-            >
-              <option value="O+">O+</option>
-              <option value="A+">A+</option>
-              <option value="B+">B+</option>
-              <option value="AB+">AB+</option>
-              <option value="O-">O-</option>
-              <option value="A-">A-</option>
-              <option value="B-">B-</option>
-            </select>
-          </div>
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
-          <button type="button" className="btn btn--subtle" onClick={onClose} disabled={submitting}>
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="btn btn--primary"
-            disabled={submitting}
-            style={{ background: '#0d9488', borderColor: '#0d9488' }}
-          >
-            {submitting ? 'Registering...' : 'Register Patient'}
-          </button>
-        </div>
-      </form>
-    </Modal>
-  )
-}
-
-/** Quick Book Appointment Modal */
-function QuickBookAppointmentModal({ doctors, onClose, onSuccess }) {
-  const [formData, setFormData] = useState({
-    patientId: 'CDH-P-1001',
-    departmentCode: 'MED',
-    slotTime: '11:00 AM',
-    complaint: 'Follow-up consultation',
-  })
-  const [submitting, setSubmitting] = useState(false)
-
-  const handleSubmit = async (e) => {
-    e.preventDefault()
-    setSubmitting(true)
-    try {
-      const res = await api.bookAppointment({
-        ...formData,
-        appointmentDate: new Date().toISOString().split('T')[0],
-        type: 'walk_in',
-      })
-      onSuccess(res)
-    } catch (err) {
-      alert('Booking failed: ' + err.message)
-    } finally {
-      setSubmitting(false)
-    }
-  }
-
-  return (
-    <Modal open={true} onClose={onClose}>
-      <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-        <div>
-          <h3 className="modal__title" style={{ margin: 0 }}>Book OPD Appointment</h3>
-          <p className="modal__lead" style={{ margin: '0.2rem 0 0' }}>
-            Issues live consultation token and assigns doctor chamber.
-          </p>
-        </div>
-
-        <div className="form-group">
-          <label>Hospital Patient ID *</label>
-          <input
-            type="text"
-            required
-            className="form-control"
-            value={formData.patientId}
-            onChange={(e) => setFormData({ ...formData, patientId: e.target.value })}
-            placeholder="e.g. CDH-P-1001"
-          />
-        </div>
-
-        <div className="form-grid-2col">
-          <div className="form-group">
-            <label>Department</label>
-            <select
-              className="form-control"
-              value={formData.departmentCode}
-              onChange={(e) => setFormData({ ...formData, departmentCode: e.target.value })}
-            >
-              <option value="MED">General Medicine (Room 1)</option>
-              <option value="CHD">Pediatrics (Room 3)</option>
-              <option value="WOM">Gynecology (Room 4)</option>
-              <option value="ORT">Orthopedics (Room 5)</option>
-              <option value="ENT">ENT (Room 6)</option>
-              <option value="EYE">Ophthalmology (Room 7)</option>
-              <option value="SKN">Dermatology (Room 8)</option>
-            </select>
-          </div>
-
-          <div className="form-group">
-            <label>Time Slot</label>
-            <select
-              className="form-control"
-              value={formData.slotTime}
-              onChange={(e) => setFormData({ ...formData, slotTime: e.target.value })}
-            >
-              <option value="09:00 AM">09:00 AM</option>
-              <option value="09:30 AM">09:30 AM</option>
-              <option value="10:00 AM">10:00 AM</option>
-              <option value="11:00 AM">11:00 AM</option>
-              <option value="11:30 AM">11:30 AM</option>
-            </select>
-          </div>
-        </div>
-
-        <div className="form-group">
-          <label>Symptoms / Complaint</label>
-          <input
-            type="text"
-            className="form-control"
-            value={formData.complaint}
-            onChange={(e) => setFormData({ ...formData, complaint: e.target.value })}
-            placeholder="e.g. Mild headache, viral fever"
-          />
-        </div>
-
-        <div style={{ display: 'flex', justifyContent: 'flex-end', gap: '0.5rem', marginTop: '0.5rem' }}>
-          <button type="button" className="btn btn--subtle" onClick={onClose} disabled={submitting}>
-            Cancel
-          </button>
-          <button
-            type="submit"
-            className="btn btn--primary"
-            disabled={submitting}
-            style={{ background: '#0d9488', borderColor: '#0d9488' }}
-          >
-            {submitting ? 'Booking...' : 'Confirm Appointment'}
-          </button>
-        </div>
-      </form>
-    </Modal>
+    <StaffShell>
+      <Overview />
+    </StaffShell>
   )
 }

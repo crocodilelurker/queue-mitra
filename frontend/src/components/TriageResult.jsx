@@ -1,80 +1,45 @@
-import { useDepartments } from '../api/departments.js'
+import { departmentIcon, useDepartments } from '../api/departments.js'
 import { useI18n } from '../i18n/index.jsx'
+import { Link } from '../router.jsx'
 import { Icon } from './common/Icons.jsx'
-import ListenButton from './common/ListenButton.jsx'
 
-/**
- * Modern clinical recommendation card with department match score, room information, and pre-consultation guidelines.
- */
-export default function TriageResult({ result, onAccept, onChoose, acceptLabel }) {
+/** A department SUGGESTION from the problem the patient described. The patient always chooses. */
+export default function TriageResult({ result, onAccept }) {
   const { t, f, deptName, deptDesc } = useI18n()
-  useDepartments()
-  const dept = result.suggestedDepartment
-  const advice = result.preConsultationAdvice
-  const speech = `${f('suggestedDept')} ${deptName(dept)}. ${advice}`
-  const matchPct = Math.round(result.confidence * 100)
-  const code = dept.code?.toLowerCase() || 'med'
+  const { byCode } = useDepartments()
+  const live = byCode[result?.suggestedDepartment?.code]
+
+  if (!live) {
+    return (
+      <section className="notice" aria-live="polite">
+        <Icon name="help" size={24} />
+        <div>
+          <p className="notice__title">{t.suggestNone}</p>
+          <Link className="link-strong" to="/map?to=help_desk_0">
+            {t.showWayHelpDesk}
+          </Link>
+        </div>
+      </section>
+    )
+  }
 
   return (
-    <section className="triage-card card" aria-live="polite">
-      <div className="triage-card__header">
-        <div className="triage-card__title-wrap">
-          <span className="badge badge--ok">
-            <Icon name="check" size={13} />
-            <span>{f('matchPct', { n: matchPct })} Match</span>
-          </span>
-          <h2 className="triage-card__title">{t.suggestedDept}</h2>
-        </div>
-        <ListenButton text={speech} />
-      </div>
-
-      <div className="triage-card__body">
-        <div className={`triage-card__dept-badge triage-card__dept-badge--${code}`}>
-          <Icon name={code} size={30} />
-        </div>
-        <div className="triage-card__dept-info">
-          <strong className="triage-card__dept-name">{deptName(dept)}</strong>
-          <p className="triage-card__dept-desc">{deptDesc(dept) || dept.description}</p>
-          <div className="triage-card__tags">
-            <span className="triage-card__tag">
-              <Icon name="map-pin" size={13} />
-              <span>Floor {dept.floor}</span>
-            </span>
-            {dept.rooms?.length > 0 && (
-              <span className="triage-card__tag">
-                <span>Rooms {dept.rooms.join(', ')}</span>
-              </span>
-            )}
-          </div>
+    <section className="suggestion" aria-live="polite">
+      <p className="suggestion__label">{t.suggestedDept}</p>
+      <div className="suggestion__dept">
+        <span className="dept-icon" aria-hidden="true">
+          <Icon name={departmentIcon(live)} size={28} />
+        </span>
+        <div>
+          <p className="suggestion__name">{deptName(live)}</p>
+          {deptDesc(live) && <p className="muted">{deptDesc(live)}</p>}
         </div>
       </div>
-
-      {advice && (
-        <div className="triage-advice">
-          <div className="triage-advice__icon">
-            <Icon name="sparkles" size={18} />
-          </div>
-          <div className="triage-advice__content">
-            <strong>{t.adviceTitle}</strong>
-            <p>{advice}</p>
-          </div>
-        </div>
-      )}
-
-      <p className="triage-disclaimer">{t.suggestionNote}</p>
-
-      <div className="triage-card__actions">
-        <button type="button" className="btn btn--primary" onClick={() => onAccept(dept.code)}>
-          <Icon name="ticket" size={18} />
-          <span>{acceptLabel || t.registerForDept}</span>
-        </button>
-        {onChoose && (
-          <button type="button" className="btn btn--outline" onClick={onChoose}>
-            <Icon name="chevron-right" size={18} />
-            <span>{t.chooseOther}</span>
-          </button>
-        )}
-      </div>
+      <p className="muted small">{t.suggestionNote}</p>
+      <button type="button" className="btn btn--primary btn--block" onClick={() => onAccept(live.code)}>
+        <Icon name="check" size={22} />
+        <span>{f('chooseThis', { name: deptName(live) })}</span>
+      </button>
     </section>
   )
 }

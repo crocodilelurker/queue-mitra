@@ -1,0 +1,389 @@
+/* Waiting-room TV board. Dark, calm, high contrast; saffron only for token numbers.
+   Sized in vw/vh so it reads from 3 m on 1920×1080 and still fits 1280×720 and phones. */
+
+.tvb {
+  --tvb-bg: #06201f;
+  --tvb-card: #0c2f2d;
+  --tvb-line: #1d4744;
+  --tvb-ink: #f2fbf9;
+  --tvb-soft: #b8d6d1;
+  --tvb-muted: #8fb5af;
+  --tvb-token: #fbbf24;
+  --tvb-amber-bg: #3b2a06;
+  --tvb-amber: #fcd34d;
+  --tvb-red-bg: #3f1010;
+  --tvb-red: #fca5a5;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  background: var(--tvb-bg);
+  color: var(--tvb-ink);
+  font-family: var(--font);
+  position: relative;
+  isolation: isolate;
+  overflow-x: hidden;
+}
+
+.tvb-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 2vw;
+  padding: clamp(12px, 1.6vh, 24px) clamp(16px, 2.2vw, 44px);
+  border-bottom: 1px solid var(--tvb-line);
+}
+.tvb-head__brand {
+  display: flex;
+  align-items: center;
+  gap: clamp(10px, 1vw, 18px);
+  min-width: 0;
+}
+.tvb-head__mark {
+  width: clamp(36px, 3vw, 58px);
+  height: clamp(36px, 3vw, 58px);
+  border-radius: 12px;
+  background: #0f766e;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  flex: none;
+}
+.tvb-head h1 {
+  font-size: clamp(1.25rem, 2vw, 2.6rem);
+  font-weight: 760;
+  line-height: 1.15;
+  color: var(--tvb-ink);
+  letter-spacing: -0.01em;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tvb-head p {
+  color: var(--tvb-soft);
+  font-size: clamp(0.9rem, 1.05vw, 1.4rem);
+  margin: 0;
+}
+.tvb-head__right {
+  display: flex;
+  align-items: center;
+  gap: clamp(10px, 1.4vw, 28px);
+  flex: none;
+}
+.tvb-clock {
+  font-size: clamp(1.6rem, 2.6vw, 3.4rem);
+  font-weight: 760;
+  font-variant-numeric: tabular-nums;
+  line-height: 1;
+}
+.tvb-live {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: clamp(0.8rem, 0.9vw, 1.1rem);
+  color: var(--tvb-soft);
+}
+.tvb-live__dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  background: #34d399;
+  box-shadow: 0 0 0 4px rgba(52, 211, 153, 0.18);
+}
+.tvb-live--off .tvb-live__dot {
+  background: var(--tvb-amber);
+  box-shadow: 0 0 0 4px rgba(252, 211, 77, 0.18);
+}
+
+.tvb-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  min-height: 48px;
+  padding: 10px 18px;
+  border-radius: 12px;
+  border: 1px solid #2f6b66;
+  background: #0f766e;
+  color: #fff;
+  font: inherit;
+  font-weight: 680;
+  font-size: clamp(0.95rem, 1vw, 1.25rem);
+  cursor: pointer;
+}
+.tvb-btn:hover {
+  background: #115e59;
+}
+.tvb-btn--quiet {
+  background: transparent;
+  color: var(--tvb-soft);
+}
+.tvb-btn:focus-visible {
+  outline: 3px solid var(--tvb-token);
+  outline-offset: 3px;
+}
+
+.tvb-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: clamp(10px, 1.2vh, 18px) clamp(16px, 2.2vw, 44px) 0;
+}
+.tvb-bar__lang {
+  font-size: clamp(0.9rem, 1vw, 1.3rem);
+  color: var(--tvb-muted);
+}
+
+.tvb-main {
+  flex: 1;
+  padding: clamp(12px, 1.6vh, 26px) clamp(16px, 2.2vw, 44px);
+}
+.tvb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(100%, clamp(260px, 21vw, 460px)), 1fr));
+  gap: clamp(12px, 1.2vw, 24px);
+}
+
+.tvb-room {
+  container-type: inline-size;
+  background: var(--tvb-card);
+  border: 1px solid var(--tvb-line);
+  border-radius: clamp(14px, 1vw, 22px);
+  padding: clamp(14px, 1.3vw, 26px);
+  display: grid;
+  gap: clamp(4px, 0.6vh, 12px);
+  align-content: start;
+  min-width: 0;
+}
+.tvb-room__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+}
+.tvb-room__room {
+  font-size: clamp(1.4rem, 1.9vw, 2.6rem);
+  font-weight: 780;
+  line-height: 1.1;
+  color: var(--tvb-ink);
+}
+.tvb-room__dept {
+  font-size: clamp(1rem, 1.25vw, 1.7rem);
+  color: var(--tvb-soft);
+  font-weight: 600;
+  line-height: 1.25;
+  margin-top: 4px;
+}
+.tvb-room__floor {
+  font-size: clamp(0.85rem, 0.95vw, 1.2rem);
+  color: var(--tvb-muted);
+  white-space: nowrap;
+  border: 1px solid var(--tvb-line);
+  border-radius: 999px;
+  padding: 2px 12px;
+}
+.tvb-label {
+  font-size: clamp(0.8rem, 0.9vw, 1.15rem);
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--tvb-muted);
+  font-weight: 700;
+}
+.tvb-room__token {
+  font-size: clamp(2.4rem, 19cqi, 7.4rem);
+  white-space: nowrap;
+  font-weight: 820;
+  line-height: 1;
+  color: var(--tvb-token);
+  letter-spacing: 0.01em;
+  word-break: break-word;
+}
+.tvb-room__token--none {
+  white-space: normal;
+  color: var(--tvb-muted);
+  font-size: clamp(1.4rem, 2vw, 2.6rem);
+  font-weight: 600;
+  line-height: 1.3;
+}
+.tvb-room__next {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+}
+.tvb-next {
+  font-size: clamp(0.95rem, 1.2vw, 1.7rem);
+  font-weight: 720;
+  padding: 1px 10px;
+  border-radius: 9px;
+  background: rgba(255, 255, 255, 0.06);
+  border: 1px solid var(--tvb-line);
+  color: var(--tvb-ink);
+}
+.tvb-next--none {
+  color: var(--tvb-muted);
+  font-size: clamp(0.95rem, 1.1vw, 1.4rem);
+}
+.tvb-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  font-size: clamp(0.9rem, 1.05vw, 1.4rem);
+  font-weight: 680;
+  padding: 4px 12px;
+  border-radius: 10px;
+  width: fit-content;
+}
+.tvb-status--late {
+  background: var(--tvb-amber-bg);
+  color: var(--tvb-amber);
+}
+.tvb-status--off {
+  background: var(--tvb-red-bg);
+  color: var(--tvb-red);
+}
+.tvb-room__doctor {
+  font-size: clamp(0.85rem, 0.95vw, 1.2rem);
+  color: var(--tvb-muted);
+}
+
+/* New call: a short, bright pulse around the room card */
+.tvb-room--flash {
+  border-color: var(--tvb-token);
+  animation: tvb-flash 1s ease-in-out 5;
+}
+.tvb-room--flash .tvb-room__token {
+  animation: tvb-pop 0.6s var(--ease-out, ease-out);
+}
+@keyframes tvb-flash {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 rgba(251, 191, 36, 0);
+    background: var(--tvb-card);
+  }
+  50% {
+    box-shadow: 0 0 0 6px rgba(251, 191, 36, 0.55);
+    background: #173f33;
+  }
+}
+@keyframes tvb-pop {
+  from {
+    transform: scale(0.85);
+    opacity: 0.4;
+  }
+  to {
+    transform: none;
+    opacity: 1;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tvb-room--flash,
+  .tvb-room--flash .tvb-room__token {
+    animation: none;
+  }
+  .tvb-room--flash {
+    box-shadow: 0 0 0 6px rgba(251, 191, 36, 0.55);
+  }
+}
+
+/* Call banner across the top while a token is being announced */
+.tvb-call {
+  margin: 0 clamp(16px, 2.2vw, 44px);
+  margin-top: clamp(10px, 1.2vh, 18px);
+  padding: clamp(10px, 1.4vh, 20px) clamp(14px, 1.6vw, 30px);
+  border-radius: 14px;
+  background: var(--tvb-token);
+  color: #1f1300;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
+  font-size: clamp(1.1rem, 1.8vw, 2.4rem);
+  font-weight: 760;
+}
+.tvb-call strong {
+  font-size: 1.25em;
+}
+
+.tvb-empty,
+.tvb-loading {
+  display: grid;
+  place-items: center;
+  text-align: center;
+  gap: 14px;
+  min-height: 50vh;
+  color: var(--tvb-soft);
+  padding: 20px;
+}
+.tvb-empty h2 {
+  font-size: clamp(1.4rem, 2.4vw, 3rem);
+  color: var(--tvb-ink);
+  font-weight: 720;
+  max-width: 28ch;
+}
+.tvb-empty p {
+  font-size: clamp(1rem, 1.4vw, 1.8rem);
+  max-width: 40ch;
+}
+.tvb-skel {
+  border-radius: 18px;
+  background: linear-gradient(90deg, #0c2f2d 0%, #14403d 50%, #0c2f2d 100%);
+  background-size: 200% 100%;
+  animation: tvb-shimmer 1.4s ease-in-out infinite;
+  min-height: 260px;
+}
+@keyframes tvb-shimmer {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+.tvb-error {
+  margin: 12px clamp(16px, 2.2vw, 44px) 0;
+  padding: 10px 16px;
+  border-radius: 12px;
+  background: var(--tvb-amber-bg);
+  color: var(--tvb-amber);
+  font-size: clamp(0.95rem, 1vw, 1.3rem);
+}
+
+.tvb-foot {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  flex-wrap: wrap;
+  padding: clamp(10px, 1.4vh, 20px) clamp(16px, 2.2vw, 44px);
+  background: #7f1d1d;
+  color: #fff;
+  font-size: clamp(0.95rem, 1.2vw, 1.6rem);
+  font-weight: 650;
+}
+.tvb-foot__msg {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+.tvb-foot a {
+  color: #fecaca;
+  font-size: 0.85em;
+  text-decoration: underline;
+}
+
+@media (max-width: 640px) {
+  .tvb-head {
+    flex-wrap: wrap;
+  }
+  .tvb-head h1 {
+    white-space: normal;
+  }
+  .tvb-room__token {
+    font-size: clamp(2.6rem, 17cqi, 4.4rem);
+  }
+  .tvb-foot__sep {
+    display: none;
+  }
+}

@@ -1,4 +1,6 @@
+import { resolveRoom } from "../data/departmentCatalog.js";
 import { CHECKPOINTS, HOSPITAL_FLOORS, PATH_EDGES, PLACES } from "../data/hospitalMapData.js";
+import Department from "../models/Department.js";
 import ApiError from "../utils/ApiError.js";
 
 // Lookup maps for fast access
@@ -20,17 +22,42 @@ export function findPlaceById(placeId) {
   return placesById.get(placeId) || null;
 }
 
-// Find destination node from room name or department code
-export function findPlaceByRoomOrDept(roomName, deptCode) {
+// Live departments by room name ("room 1" -> department), so the map shows what each OPD room is today.
+async function departmentsByRoom() {
+  const departments = await Department.find({ isActive: true }).select("code name rooms translations").lean();
+  const byRoom = new Map();
+  for (const d of departments) for (const r of d.rooms ?? []) byRoom.set(r.toLowerCase(), d);
+  return byRoom;
+}
+
+// OPD rooms labelled with the department the admin assigned to them ("Room 1 (General Medicine)").
+export async function getLivePlaces() {
+  const byRoom = await departmentsByRoom();
+  return PLACES.map((p) => {
+    if (p.category !== "opd_room") return p;
+    const d = byRoom.get(p.name.toLowerCase());
+    return d
+      ? { ...p, roomName: p.name, name: `${p.name} (${d.name})`, departmentCode: d.code, departmentName: d.name, departmentTranslations: d.translations }
+      : { ...p, roomName: p.name, departmentCode: null, departmentName: null };
+  });
+}
+
+export async function getLiveLayout() {
+  return { floors: HOSPITAL_FLOORS, places: await getLivePlaces(), edges: PATH_EDGES };
+}
+
+// Find the destination node from a room name ("Room 1", "room_1") or a live department code.
+export async function findPlaceByRoomOrDept(roomName, deptCode) {
   if (roomName) {
-    const byRoom = PLACES.find(
-      (p) => p.name.toLowerCase().includes(roomName.toLowerCase()) || p.id.toLowerCase().includes(roomName.toLowerCase())
-    );
-    if (byRoom) return byRoom;
+    const room = resolveRoom(String(roomName).replace(/\s*\(.*\)\s*$/, ""));
+    if (room) return placesById.get(room.id);
+    const byId = placesById.get(String(roomName));
+    if (byId) return byId;
   }
   if (deptCode) {
-    const byDept = PLACES.find((p) => p.departmentCode === deptCode.toUpperCase());
-    if (byDept) return byDept;
+    const department = await Department.findOne({ code: String(deptCode).toUpperCase(), isActive: true }).select("rooms").lean();
+    const room = department?.rooms?.map(resolveRoom).find(Boolean);
+    if (room) return placesById.get(room.id);
   }
   return null;
 }
@@ -273,13 +300,13 @@ export function getCheckpoints() {
   return CHECKPOINTS;
 }
 
-export function routeFromCheckpoint(checkpointId, { to, departmentCode, room, avoidStairs = false, language = "en" }) {
+export async function routeFromCheckpoint(checkpointId, { to, departmentCode, room, avoidStairs = false, language = "en" }) {
   const cp = CHECKPOINTS.find((c) => c.id === checkpointId);
   if (!cp) throw ApiError.badRequest(`Unknown checkpoint: ${checkpointId}`);
 
   let destinationId = to;
   if (!destinationId && (room || departmentCode)) {
-    const found = findPlaceByRoomOrDept(room, departmentCode);
+    const found = await findPlaceByRoomOrDept(room, departmentCode);
     if (found) destinationId = found.id;
   }
 

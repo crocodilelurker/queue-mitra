@@ -6,11 +6,11 @@ export const GENDERS = ["male", "female", "other"];
 
 const patientSchema = new mongoose.Schema(
   {
-    // Only made-up / minimal data: no Aadhaar, ABHA or address.
+    // Minimal data only: first name, age, gender, optional mobile. Never Aadhaar, ABHA or address.
     firstName: { type: String, required: true, trim: true, maxlength: 50 },
     age: { type: Number, required: true, min: 0, max: 120 },
     gender: { type: String, enum: GENDERS, required: true },
-    mobile: { type: String, trim: true, match: /^[6-9]\d{9}$/ },
+    mobile: { type: String, trim: true, match: [/^\d{10}$/, "mobile must be 10 digits"] },
   },
   { _id: false }
 );
@@ -83,5 +83,7 @@ ticketSchema.index({ department: 1, serviceDate: 1, status: 1, sequence: 1 });
 ticketSchema.index({ department: 1, serviceDate: 1, sequence: 1 }, { unique: true });
 // Unseen urgent flags for one hospital's staff dashboard.
 ticketSchema.index({ hospital: 1, "urgent.raised": 1, "urgent.seenAt": 1 });
+// Staff overview and today's registrations.
+ticketSchema.index({ hospital: 1, serviceDate: 1, status: 1 });
 
 export default mongoose.model("Ticket", ticketSchema);

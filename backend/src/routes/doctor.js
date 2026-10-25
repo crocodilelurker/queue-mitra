@@ -10,11 +10,12 @@ import {
   transferTicket,
   updateStatus,
 } from "../controllers/doctorController.js";
-import { protect, requireRole } from "../middleware/auth.js";
+import { CONSOLE_ROLES, protect, requireRole } from "../middleware/auth.js";
 
+// Queue actions for doctors (their own room) and staff/admins (any department: pass departmentCode).
 const router = Router();
 
-router.use(protect, requireRole("doctor", "staff"));
+router.use(protect, requireRole(...CONSOLE_ROLES));
 
 router.get("/dashboard", getDashboard);
 router.post("/call-next", callNext);

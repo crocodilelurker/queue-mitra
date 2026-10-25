@@ -1,586 +1,501 @@
-import { useEffect, useState } from 'react'
-import { api, session } from '../api/client.js'
-import { useDepartments } from '../api/departments.js'
-import { useSocket, reconnectSocket } from '../api/socket.js'
-import Modal from '../components/common/Modal.jsx'
-import { ErrorNote, Loading } from '../components/common/Status.jsx'
-import { useAsync } from '../hooks/useAsync.js'
-import { useStaffSession } from '../hooks/useStaffSession.js'
+import { useCallback, useEffect, useState } from 'react'
+import { api } from '../api/client.js'
 import { useAuth } from '../context/AuthContext.jsx'
-import { Link, navigate } from '../router.jsx'
 import { Icon } from '../components/common/Icons.jsx'
+import StaffShell, { useLiveRefetch } from '../components/staff/StaffShell.jsx'
+import {
+  Button,
+  Card,
+  Chip,
+  CrowdBadge,
+  Dialog,
+  EmptyState,
+  InlineError,
+  Notice,
+  SelectField,
+  Skeleton,
+  GENDER_LABEL,
+  LANG_SHORT,
+  aboutWait,
+  clockTime,
+  errorText,
+  minutesSince,
+  useConfirm,
+  useNow,
+  useToast,
+} from '../components/staff/ui.jsx'
 import './doctor.css'
 
-const minutesSince = (value) => Math.max(0, Math.floor((Date.now() - new Date(value)) / 60000))
+const isAssisted = (t) => Boolean(t?.isAssisted || t?.assisted)
+const isUrgent = (t) => (typeof t?.urgent === 'object' ? Boolean(t.urgent?.raised && !t.urgent?.seenAt) : Boolean(t?.urgent))
+const firstName = (t) => t?.patient?.firstName || t?.firstName || 'Patient'
+const ageGender = (t) => {
+  const p = t?.patient || t || {}
+  return [p.age !== undefined && p.age !== null ? `${p.age} yrs` : null, GENDER_LABEL[p.gender] || null].filter(Boolean).join(' · ')
+}
 
-function ConsultTimer({ since }) {
-  const [, tick] = useState(0)
-  useEffect(() => {
-    const id = setInterval(() => tick((n) => n + 1), 1000)
-    return () => clearInterval(id)
-  }, [])
-  const seconds = Math.max(0, Math.floor((Date.now() - new Date(since)) / 1000))
+function statusText(s) {
+  if (!s || !s.state || s.state === 'available') return 'Available — patients see “Doctor is in the room”'
+  if (s.state === 'on_break') return s.until ? `On a break until ${clockTime(s.until)}` : 'On a break'
+  if (s.state === 'running_late') return `Running late by ${s.delayMinutes || 0} min`
+  return 'Not available'
+}
+
+/* ---------------- Status controls ---------------- */
+function StatusCard({ status, onSet, busy }) {
+  const [time, setTime] = useState('')
+  const state = status?.state || 'available'
+  const inMinutes = (m) => new Date(Date.now() + m * 60000).toISOString()
+  const setBreakAt = () => {
+    if (!time) return
+    const [h, m] = time.split(':').map(Number)
+    const d = new Date()
+    d.setHours(h, m, 0, 0)
+    if (d < new Date()) d.setDate(d.getDate() + 1)
+    onSet({ state: 'on_break', until: d.toISOString() })
+  }
+  const currentDelay = state === 'running_late' ? Number(status?.delayMinutes) || 0 : 0
+
   return (
-    <span className="consultation-timer">
-      <Icon name="clock" size={15} />
-      <span>
-        {String(Math.floor(seconds / 60)).padStart(2, '0')}:{String(seconds % 60).padStart(2, '0')}
-      </span>
-    </span>
+    <Card title="Your status" icon="activity">
+      <p className="dr-status-now" data-state={state} role="status">
+        <Icon name={state === 'available' ? 'check-circle' : state === 'on_break' ? 'coffee' : state === 'running_late' ? 'clock' : 'alert'} size={18} />
+        {statusText(status)}
+      </p>
+      <div className="dr-status-group">
+        <h3>
+          <Icon name="check-circle" size={16} /> In the room
+        </h3>
+        <div>
+          <Button
+            variant={state === 'available' ? 'primary' : undefined}
+            icon="check"
+            busy={busy === 'available'}
+            onClick={() => onSet({ state: 'available' })}
+          >
+            Available
+          </Button>
+        </div>
+      </div>
+      <div className="dr-status-group">
+        <h3>
+          <Icon name="coffee" size={16} /> Take a break
+        </h3>
+        <p>Patients see when you will be back, and their wait time includes it.</p>
+        <div className="sx-row">
+          {[10, 15, 30].map((m) => (
+            <Button key={m} size="sm" icon="coffee" busy={busy === `break${m}`} onClick={() => onSet({ state: 'on_break', until: inMinutes(m) }, `break${m}`)}>
+              {m} min
+            </Button>
+          ))}
+        </div>
+        <div className="dr-time">
+          <label className="sx-field">
+            <span className="sx-field__label">Back at</span>
+            <input className="sx-input" type="time" value={time} onChange={(e) => setTime(e.target.value)} />
+          </label>
+          <Button icon="clock" disabled={!time} busy={busy === 'breakAt'} onClick={setBreakAt}>
+            Set break
+          </Button>
+        </div>
+      </div>
+      <div className="dr-status-group">
+        <h3>
+          <Icon name="clock" size={16} /> Running late
+        </h3>
+        <p>{currentDelay ? `Now ${currentDelay} min late. Add more:` : 'Adds the delay to every waiting patient’s estimate.'}</p>
+        <div className="sx-row">
+          {[5, 10, 15].map((m) => (
+            <Button
+              key={m}
+              size="sm"
+              icon="plus"
+              busy={busy === `late${m}`}
+              onClick={() => onSet({ state: 'running_late', delayMinutes: currentDelay + m }, `late${m}`)}
+            >
+              {m} min
+            </Button>
+          ))}
+        </div>
+      </div>
+    </Card>
   )
 }
 
-export default function DoctorDashboard() {
-  const { user, signOut } = useStaffSession()
-  const { currentUser, loginAsDoctor, logout } = useAuth()
-  const activeDoctorUser = user?.role === 'doctor' ? user : currentUser?.role === 'doctor' ? currentUser : null
-
-  const handleSignOut = async () => {
-    signOut()
-    await logout()
-  }
-
-  // If not logged in as doctor, display clean chamber selector
-  if (!activeDoctorUser) {
-    return (
-      <DoctorChamberSelector
-        onSelectDoctor={async (doc) => {
-          try {
-            const res = await api.login(doc.email, 'doctor123')
-            session.set(res.token)
-            reconnectSocket()
-          } catch {
-            /* use local doctor fallback */
-          }
-          await loginAsDoctor(doc)
-        }}
-      />
-    )
-  }
-
-  return <DoctorChamberWorkspace doctor={activeDoctorUser} onSignOut={handleSignOut} />
-}
-
-/** Doctor Chamber Workspace Component */
-function DoctorChamberWorkspace({ doctor, onSignOut }) {
-  const { list } = useDepartments()
-  const { data, error, loading, reload } = useAsync(() => api.dashboard(), [])
+/* ---------------- Transfer dialog ---------------- */
+function TransferDialog({ ticket, ownCode, onClose, onDone }) {
+  const [departments, setDepartments] = useState(null)
+  const [code, setCode] = useState('')
+  const [error, setError] = useState(null)
   const [busy, setBusy] = useState(false)
-  const [actionError, setActionError] = useState(null)
-  const [transferOpen, setTransferOpen] = useState(false)
 
-  // Clinical form state for currently examined patient
-  const [diagnosis, setDiagnosis] = useState('')
-  const [consultationNotes, setConsultationNotes] = useState('')
-  const [prescriptions, setPrescriptions] = useState('')
-  const [needsFollowUp, setNeedsFollowUp] = useState(true)
-  const [followUpDate, setFollowUpDate] = useState(() => {
-    const d = new Date(Date.now() + 7 * 86400000)
-    return d.toISOString().split('T')[0]
-  })
-  const [followUpReason, setFollowUpReason] = useState('Review after 7-day treatment course')
-
-  const deptCode = data?.queue?.department?.code
-  useSocket({
-    on: {
-      'queue:updated': (snap) => snap.department.code === deptCode && reload(true),
-      'ticket:called': () => reload(true),
-      'ticket:completed': () => reload(true),
-    },
-  })
-
-  // Pre-fill diagnosis if present on current ticket
   useEffect(() => {
-    if (data?.current) {
-      setDiagnosis(data.current.diagnosis || '')
-      setConsultationNotes(data.current.consultationNotes || '')
-      setPrescriptions(data.current.prescriptions || '')
-    } else {
-      setDiagnosis('')
-      setConsultationNotes('')
-      setPrescriptions('')
-    }
-  }, [data?.current?.id])
+    if (!ticket) return
+    setCode('')
+    setError(null)
+    api
+      .departments()
+      .then((res) => setDepartments((res.departments || res || []).filter((d) => d.code !== ownCode && d.isActive !== false)))
+      .catch((e) => setError(e))
+  }, [ticket, ownCode])
 
-  const act = async (fn) => {
+  const submit = async () => {
+    if (!code) return setError(new Error('Choose a department.'))
     setBusy(true)
-    setActionError(null)
+    setError(null)
     try {
-      await fn()
-      await reload(true)
-    } catch (err) {
-      setActionError(err)
+      await api.transfer(ticket.id || ticket._id, code)
+      onDone(departments.find((d) => d.code === code))
+    } catch (e) {
+      setError(e)
     } finally {
       setBusy(false)
     }
   }
 
-  if (loading) return <Loading message="Entering Doctor Consultation Chamber..." />
-  if (error) return <ErrorNote error={error} onRetry={reload} />
-
-  const { queue, current, waiting } = data || { queue: {}, current: null, waiting: [] }
-  const me = queue.doctors?.find((d) => d.name === doctor.name)
-  const currentState = me?.state || 'available'
-
-  const handleSetStatus = (state, delayMinutes = 0, until = null) => {
-    act(() => api.setStatus({ state, delayMinutes, until }))
-  }
-
-  const handleCompleteConsultation = async () => {
-    if (!current) return
-    act(async () => {
-      await api.complete(current.id, {
-        diagnosis,
-        consultationNotes,
-        prescriptions,
-        followUpDate: needsFollowUp ? followUpDate : undefined,
-      })
-    })
-  }
-
   return (
-    <div className="doctor-shell">
-      {/* 1. Doctor Topbar (Focused Chamber Identity) */}
-      <header className="doctor-topbar">
-        <div style={{ display: 'flex', alignItems: 'center', gap: '0.85rem' }}>
-          <div className="doctor-brand-crest">
-            <Icon name="med" size={22} color="#ffffff" />
-          </div>
-          <div className="doctor-chamber-meta">
-            <span className="doctor-chamber-title">{doctor.name}</span>
-            <span className="doctor-chamber-sub">
-              {doctor.specialty || queue.department?.name || 'General Medicine'} • Chamber {doctor.room || 'Room 1'}
-            </span>
-          </div>
-        </div>
-
-        <div className="doctor-topbar__right">
-          {/* Presence State Toggle Pills */}
-          <div className="doctor-status-pill-group">
-            <button
-              type="button"
-              className={`btn-status-toggle btn-status-toggle--available ${
-                currentState === 'available' ? 'btn-status-toggle--active' : ''
-              }`}
-              disabled={busy}
-              onClick={() => handleSetStatus('available')}
-            >
-              ● In Chamber
-            </button>
-            <button
-              type="button"
-              className={`btn-status-toggle ${currentState === 'on_break' ? 'btn-status-toggle--active' : ''}`}
-              disabled={busy}
-              onClick={() =>
-                handleSetStatus('on_break', 0, new Date(Date.now() + 15 * 60000).toISOString())
-              }
-            >
-              ☕ Break (15m)
-            </button>
-            <button
-              type="button"
-              className={`btn-status-toggle ${currentState === 'running_late' ? 'btn-status-toggle--active' : ''}`}
-              disabled={busy}
-              onClick={() => handleSetStatus('running_late', 15)}
-            >
-              ⏳ Late (15m)
-            </button>
-          </div>
-
-          <Link to="/admin" className="btn-action-sm" title="Open Hospital Admin Overview">
-            <Icon name="hospital-building" size={14} />
-            <span>Admin Desk</span>
-          </Link>
-
-          <button
-            type="button"
-            className="btn-action-sm"
-            onClick={onSignOut}
-            title="Switch Doctor Chamber"
-          >
-            <Icon name="arrow-right" size={14} />
-            <span>Switch Doctor</span>
-          </button>
-        </div>
-      </header>
-
-      {/* 2. Main Doctor Workspace */}
-      <main className="doctor-workspace">
-        {/* Left Column: Current Patient in Examination Room */}
-        <section className="doctor-clinical-card">
-          <div className="consultation-active-header">
-            <div>
-              <h2 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a', fontWeight: 800 }}>
-                Active Patient Consultation
-              </h2>
-              <span style={{ fontSize: '0.8rem', color: '#64748b' }}>
-                Examine, diagnose, prescribe, and schedule follow-up
-              </span>
-            </div>
-
-            {current && <ConsultTimer since={current.calledAt || Date.now()} />}
-          </div>
-
-          <ErrorNote error={actionError} />
-
-          {current ? (
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '1.25rem' }}>
-              {/* Token & Patient Bio Header */}
-              <div
-                style={{
-                  display: 'flex',
-                  alignItems: 'center',
-                  justifyContent: 'space-between',
-                  background: '#f8fafc',
-                  border: '1px solid #e2e8f0',
-                  borderRadius: '12px',
-                  padding: '1rem 1.25rem',
-                }}
-              >
-                <div>
-                  <div style={{ display: 'flex', alignItems: 'center', gap: '0.65rem' }}>
-                    <span className="consultation-token-badge">{current.tokenNumber}</span>
-                    <div>
-                      <strong style={{ fontSize: '1.2rem', color: '#0f172a' }}>
-                        {current.patient?.firstName} {current.patient?.lastName || ''}
-                      </strong>
-                      <div style={{ fontSize: '0.85rem', color: '#64748b' }}>
-                        {current.patient?.age} Years •{' '}
-                        <span style={{ textTransform: 'capitalize' }}>{current.patient?.gender}</span> • Phone:{' '}
-                        {current.patient?.mobile || '555-0100'}
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {current.isEmergency && (
-                  <span
-                    style={{
-                      background: '#fee2e2',
-                      color: '#b91c1c',
-                      fontWeight: 800,
-                      fontSize: '0.8rem',
-                      padding: '0.35rem 0.75rem',
-                      borderRadius: '8px',
-                    }}
-                  >
-                    EMERGENCY 108
-                  </span>
-                )}
-              </div>
-
-              {/* What the patient came in for (Chief Complaint / Symptoms) */}
-              <div className="patient-symptom-quote">
-                <strong>Chief Complaint / Patient Symptoms:</strong>
-                <span>“{current.complaint || 'Patient reported mild fever and bodily fatigue at registration counter.'}”</span>
-              </div>
-
-              {/* Doctor Clinical Diagnosis Form */}
-              <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
-                <div className="form-group">
-                  <label style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0f172a' }}>
-                    Clinical Diagnosis *
-                  </label>
-                  <input
-                    type="text"
-                    required
-                    className="form-control"
-                    placeholder="e.g. Acute Bronchitis, Mild Hypertension, Viral Pharyngitis"
-                    value={diagnosis}
-                    onChange={(e) => setDiagnosis(e.target.value)}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0f172a' }}>
-                    Examination Findings & Doctor Clinical Notes
-                  </label>
-                  <textarea
-                    rows={3}
-                    className="form-control"
-                    placeholder="Physical examination observations, vitals, chest auscultation, throat inspection..."
-                    value={consultationNotes}
-                    onChange={(e) => setConsultationNotes(e.target.value)}
-                  />
-                </div>
-
-                <div className="form-group">
-                  <label style={{ fontWeight: 700, fontSize: '0.88rem', color: '#0f172a' }}>
-                    Prescriptions & Advice
-                  </label>
-                  <textarea
-                    rows={2}
-                    className="form-control"
-                    placeholder="e.g. 1. Tab Paracetamol 650mg TDS x 3 days&#10;2. Inhaler Levolin 2 puffs BD"
-                    value={prescriptions}
-                    onChange={(e) => setPrescriptions(e.target.value)}
-                  />
-                </div>
-
-                {/* Doctor Scheduled Follow-up Order */}
-                <div className="followup-order-box">
-                  <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                    <div className="followup-order-title">
-                      <Icon name="clock" size={16} />
-                      <span>Doctor-Prescribed Follow-up Visit</span>
-                    </div>
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.35rem', fontSize: '0.85rem', cursor: 'pointer', fontWeight: 600 }}>
-                      <input
-                        type="checkbox"
-                        checked={needsFollowUp}
-                        onChange={(e) => setNeedsFollowUp(e.target.checked)}
-                      />
-                      <span>Schedule Follow-up</span>
-                    </label>
-                  </div>
-
-                  {needsFollowUp && (
-                    <div className="form-grid-2col" style={{ marginTop: '0.25rem' }}>
-                      <div className="form-group">
-                        <label style={{ fontSize: '0.78rem' }}>Next Review Date</label>
-                        <input
-                          type="date"
-                          className="form-control"
-                          value={followUpDate}
-                          onChange={(e) => setFollowUpDate(e.target.value)}
-                        />
-                      </div>
-                      <div className="form-group">
-                        <label style={{ fontSize: '0.78rem' }}>Follow-up Clinical Purpose</label>
-                        <input
-                          type="text"
-                          className="form-control"
-                          value={followUpReason}
-                          onChange={(e) => setFollowUpReason(e.target.value)}
-                          placeholder="e.g. Review after treatment"
-                        />
-                      </div>
-                    </div>
-                  )}
-                </div>
-
-                {/* Main Action: Complete & Save Diagnosis */}
-                <button
-                  type="button"
-                  disabled={busy || !diagnosis.trim()}
-                  className="btn-complete-consultation"
-                  onClick={handleCompleteConsultation}
-                >
-                  <Icon name="check" size={18} />
-                  <span>Complete Consultation & Save Diagnosis</span>
-                </button>
-
-                {/* Secondary Actions */}
-                <div style={{ display: 'flex', gap: '0.5rem', justifyContent: 'space-between', borderTop: '1px solid #f1f5f9', paddingTop: '0.75rem' }}>
-                  <button
-                    type="button"
-                    className="btn btn--subtle"
-                    disabled={busy}
-                    onClick={() => act(() => api.requeue(current.id))}
-                  >
-                    <Icon name="clock" size={14} />
-                    <span>Requeue</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn--subtle"
-                    disabled={busy}
-                    onClick={() => act(() => api.noShow(current.id))}
-                  >
-                    <Icon name="close" size={14} />
-                    <span>Mark No-Show</span>
-                  </button>
-                  <button
-                    type="button"
-                    className="btn btn--subtle"
-                    disabled={busy}
-                    onClick={() => setTransferOpen(true)}
-                  >
-                    <Icon name="arrow-right" size={14} />
-                    <span>Transfer Dept</span>
-                  </button>
-                </div>
-              </div>
-            </div>
-          ) : (
-            <div className="chamber-empty-box">
-              <div className="chamber-empty-icon">
-                <Icon name="doctor" size={32} />
-              </div>
-              <div>
-                <h3 style={{ margin: 0, fontSize: '1.25rem', color: '#0f172a' }}>
-                  Chamber Ready for Examination
-                </h3>
-                <p style={{ margin: '0.35rem 0 0', color: '#64748b', fontSize: '0.9rem' }}>
-                  {waiting.length} patient{waiting.length !== 1 ? 's' : ''} currently waiting outside in the queue.
-                </p>
-              </div>
-
-              <button
-                type="button"
-                disabled={busy}
-                className="btn-call-next-lg"
-                onClick={() => act(() => api.callNext())}
-              >
-                <Icon name="speaker" size={20} />
-                <span>
-                  Call Next Patient ({waiting[0]?.tokenNumber || 'Next in Queue'})
-                </span>
-              </button>
-            </div>
-          )}
-        </section>
-
-        {/* Right Column: Waiting Line Outside My Chamber */}
-        <section style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-          {/* Waiting Queue Card */}
-          <div className="mediflow-white-box">
-            <div className="mediflow-box-header">
-              <h2>Waiting Outside My Chamber ({waiting.length})</h2>
-              {waiting.length > 0 && !current && (
-                <button
-                  type="button"
-                  disabled={busy}
-                  className="btn-action-sm btn-action-primary"
-                  onClick={() => act(() => api.callNext())}
-                >
-                  <Icon name="speaker" size={14} />
-                  <span>Call Next</span>
-                </button>
-              )}
-            </div>
-
-            <div style={{ display: 'flex', flexDirection: 'column' }}>
-              {waiting.length === 0 ? (
-                <div style={{ padding: '2.5rem', textAlign: 'center', color: '#94a3b8', fontSize: '0.88rem' }}>
-                  No patients waiting in queue outside chamber.
-                </div>
-              ) : (
-                waiting.map((p) => (
-                  <div key={p.id} className="doctor-waiting-item">
-                    <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', flex: 1 }}>
-                      <span className="doctor-token-sm">{p.tokenNumber}</span>
-                      <div>
-                        <strong style={{ fontSize: '0.92rem', color: '#0f172a', display: 'block' }}>
-                          {p.patient.firstName}, {p.patient.age}y
-                        </strong>
-                        <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                          {p.complaint ? `“${p.complaint}”` : 'Routine consultation'}
-                        </span>
-                      </div>
-                    </div>
-
-                    <div style={{ textAlign: 'right' }}>
-                      <span style={{ fontSize: '0.75rem', color: '#64748b' }}>
-                        {minutesSince(p.createdAt)}m wait
-                      </span>
-                      {p.isEmergency && (
-                        <div style={{ fontSize: '0.7rem', color: '#dc2626', fontWeight: 700 }}>
-                          EMERGENCY
-                        </div>
-                      )}
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-          {/* Quick Department Transfer Modal */}
-          <Modal open={transferOpen} onClose={() => setTransferOpen(false)} title="Transfer Patient to Another Department">
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.5rem', padding: '0.5rem 0' }}>
-              {list
-                .filter((d) => d.code !== deptCode)
-                .map((d) => (
-                  <button
-                    key={d.code}
-                    type="button"
-                    className="btn btn--subtle"
-                    style={{ justifyContent: 'flex-start', textAlign: 'left', padding: '0.75rem 1rem' }}
-                    disabled={busy}
-                    onClick={() => {
-                      setTransferOpen(false)
-                      act(() => api.transfer(current.id, d.code))
-                    }}
-                  >
-                    <strong>{d.name}</strong> • Floor {d.floor} ({d.code})
-                  </button>
-                ))}
-            </div>
-          </Modal>
-        </section>
-      </main>
-    </div>
+    <Dialog
+      open={Boolean(ticket)}
+      onClose={onClose}
+      title={`Move ${ticket?.tokenNumber || ''} to another department`}
+      footer={
+        <>
+          <Button onClick={onClose}>Cancel</Button>
+          <Button variant="primary" icon="transfer" busy={busy} onClick={submit} disabled={!departments?.length}>
+            Move patient
+          </Button>
+        </>
+      }
+    >
+      <p className="sx-muted">{firstName(ticket)} gets a new token in that department and their phone shows the new room.</p>
+      {!departments && !error && <Skeleton height={42} />}
+      {departments && departments.length === 0 && <Notice tone="warn">There is no other department to move this patient to.</Notice>}
+      {departments && departments.length > 0 && (
+        <SelectField label="Department" value={code} onChange={(e) => setCode(e.target.value)}>
+          <option value="">Choose a department</option>
+          {departments.map((d) => (
+            <option key={d.code} value={d.code}>
+              {d.name}
+              {d.rooms?.[0] ? ` · ${d.rooms[0]}` : ''}
+            </option>
+          ))}
+        </SelectField>
+      )}
+      {error && <InlineError error={error} />}
+    </Dialog>
   )
 }
 
-/** Doctor Chamber Selector */
-function DoctorChamberSelector({ onSelectDoctor }) {
-  const DOCTOR_CHAMBERS = [
-    { name: 'Dr. Anita Sharma', email: 'anita@queuemitra.test', specialty: 'Internal Medicine', room: 'Room 1' },
-    { name: 'Dr. Sunita Rao', email: 'sunita@queuemitra.test', specialty: 'Obstetrics & Gynaecology', room: 'Room 4' },
-    { name: 'Dr. Meena Iyer', email: 'meena@queuemitra.test', specialty: 'Pediatrics & Child Care', room: 'Room 3' },
-    { name: 'Dr. Imran Khan', email: 'imran@queuemitra.test', specialty: 'Orthopedic Surgery', room: 'Room 5' },
-    { name: 'Dr. Priya Nair', email: 'priya@queuemitra.test', specialty: 'ENT Specialist', room: 'Room 6' },
-    { name: 'Dr. Arjun Mehta', email: 'arjun@queuemitra.test', specialty: 'Ophthalmology', room: 'Room 7' },
-    { name: 'Dr. Kavita Joshi', email: 'kavita@queuemitra.test', specialty: 'Dermatology', room: 'Room 8' },
-  ]
+/* ---------------- Console ---------------- */
+function DoctorConsole() {
+  const { currentUser } = useAuth()
+  const toast = useToast()
+  const confirm = useConfirm()
+  const now = useNow(30000)
+  const [data, setData] = useState(null)
+  const [error, setError] = useState(null)
+  const [busy, setBusy] = useState(null)
+  const [actionError, setActionError] = useState(null)
+  const [transferring, setTransferring] = useState(null)
+  const [status, setStatus] = useState(currentUser?.status || null)
 
-  return (
-    <div style={{ minHeight: '100vh', background: '#f8fafc', display: 'flex', alignItems: 'center', justifyContent: 'center', padding: '2rem' }}>
-      <div style={{ background: '#ffffff', border: '1px solid #e2e8f0', borderRadius: '16px', maxWidth: '520px', width: '100%', padding: '2rem', boxShadow: '0 4px 12px rgba(0,0,0,0.05)' }}>
-        <div style={{ textAlign: 'center', marginBottom: '1.5rem' }}>
-          <div style={{ width: 52, height: 52, borderRadius: '14px', background: '#0284c7', display: 'inline-flex', alignItems: 'center', justifyContent: 'center', marginBottom: '0.75rem' }}>
-            <Icon name="med" size={26} color="#ffffff" />
+  const load = useCallback(async () => {
+    try {
+      const res = await api.dashboard()
+      setData(res)
+      setError(null)
+      const me = (res.queue?.doctors || []).find(
+        (d) => (d._id && d._id === currentUser?._id) || (d.name === currentUser?.name && (!d.room || d.room === currentUser?.room)),
+      )
+      if (me) setStatus(me.status || { state: me.state, until: me.until, delayMinutes: me.delayMinutes })
+    } catch (e) {
+      setError(e)
+    }
+  }, [currentUser])
+
+  useEffect(() => {
+    load()
+  }, [load])
+  useLiveRefetch(load)
+
+  useEffect(() => {
+    document.title = `Room console · ${currentUser?.name || 'Doctor'}`
+  }, [currentUser])
+
+  const run = async (key, fn, success) => {
+    setBusy(key)
+    setActionError(null)
+    try {
+      const res = await fn()
+      if (success) toast(typeof success === 'function' ? success(res) : success)
+      await load()
+      return res
+    } catch (e) {
+      if (e.status === 404 && key === 'call') toast('No one is waiting right now.', 'error')
+      else setActionError(errorText(e))
+      return null
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  const current = data?.current
+  const waiting = data?.waiting || []
+  const queue = data?.queue || {}
+  const dept = queue.department || {}
+  const crowd = queue.overcrowding || {}
+  const room = currentUser?.room || dept.rooms?.[0]
+
+  const callNext = () =>
+    run(
+      'call',
+      () => api.callNext(),
+      (res) => {
+        const t = res?.called || res?.ticket
+        return t ? `Called ${t.tokenNumber} — ${firstName(t)}. The board is announcing it.` : 'Queue is empty.'
+      },
+    )
+  const complete = () => run('complete', () => api.complete(current.id || current._id), `${current.tokenNumber} marked as seen.`)
+  const noShow = async () => {
+    const ok = await confirm({
+      title: `Mark ${current.tokenNumber} as a no-show?`,
+      message: `${firstName(current)} did not come in. They leave the queue; staff can register them again if they arrive later.`,
+      confirmLabel: 'Mark no-show',
+      icon: 'no-show',
+      danger: true,
+    })
+    if (ok) run('noshow', () => api.noShow(current.id || current._id), `${current.tokenNumber} marked as no-show.`)
+  }
+  const requeue = () => run('requeue', () => api.requeue(current.id || current._id), `${current.tokenNumber} sent to the end of the queue.`)
+
+  const setDoctorStatus = async (body, key = body.state) => {
+    setBusy(key)
+    setActionError(null)
+    try {
+      const res = await api.setStatus(body)
+      const s = res?.user?.status || res?.status || { state: body.state, until: body.until || null, delayMinutes: body.delayMinutes || 0 }
+      setStatus(s)
+      toast(`Status: ${statusText(s).split(' — ')[0]}. Patients see this now.`)
+      load()
+    } catch (e) {
+      setActionError(errorText(e))
+    } finally {
+      setBusy(null)
+    }
+  }
+
+  if (error && !data) {
+    if (error.status === 400)
+      return (
+        <EmptyState icon="doctor" title="You are not assigned to a department yet">
+          Ask your hospital administrator to set your department and room under People. This page updates once that is done.
+        </EmptyState>
+      )
+    return <InlineError error={error} onRetry={load} />
+  }
+
+  if (!data)
+    return (
+      <div className="sx-grid" aria-busy="true">
+        <Skeleton height={40} width="45%" />
+        <div className="dr-layout">
+          <div className="dr-col">
+            <Skeleton height={260} style={{ borderRadius: 12 }} />
+            <Skeleton height={300} style={{ borderRadius: 12 }} />
           </div>
-          <h1 style={{ margin: 0, fontSize: '1.4rem', color: '#0f172a', fontWeight: 800 }}>
-            Doctor Consultation Chamber
-          </h1>
-          <p style={{ margin: '0.35rem 0 0', fontSize: '0.88rem', color: '#64748b' }}>
-            Select your assigned clinical chamber to manage your patients & diagnoses.
-          </p>
-        </div>
-
-        <div style={{ display: 'flex', flexDirection: 'column', gap: '0.65rem' }}>
-          {DOCTOR_CHAMBERS.map((doc) => (
-            <button
-              key={doc.email}
-              type="button"
-              className="btn btn--subtle"
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                justifyContent: 'space-between',
-                padding: '0.9rem 1.15rem',
-                borderRadius: '10px',
-                border: '1px solid #e2e8f0',
-                background: '#ffffff',
-                textAlign: 'left',
-                cursor: 'pointer',
-              }}
-              onClick={() => onSelectDoctor(doc)}
-            >
-              <div>
-                <strong style={{ fontSize: '0.95rem', color: '#0f172a', display: 'block' }}>
-                  {doc.name}
-                </strong>
-                <span style={{ fontSize: '0.78rem', color: '#64748b' }}>
-                  {doc.specialty} • Chamber {doc.room}
-                </span>
-              </div>
-              <span className="token-badge-blue" style={{ fontSize: '0.75rem', padding: '0.2rem 0.5rem' }}>
-                ENTER
-              </span>
-            </button>
-          ))}
-        </div>
-
-        <div style={{ marginTop: '1.5rem', textAlign: 'center', borderTop: '1px solid #f1f5f9', paddingTop: '1rem' }}>
-          <Link to="/admin" style={{ fontSize: '0.85rem', color: '#0284c7', textDecoration: 'none', fontWeight: 600 }}>
-            ← Return to MediFlow Admin Overview
-          </Link>
+          <Skeleton height={420} style={{ borderRadius: 12 }} />
         </div>
       </div>
-    </div>
+    )
+
+  return (
+    <>
+      <div className="dr-head">
+        <div>
+          <h1>{currentUser?.name}</h1>
+          <div className="dr-head__meta">
+            <Chip tone="teal" icon="door">
+              {room || 'No room set'}
+            </Chip>
+            <Chip icon="layers">{dept.name || currentUser?.departmentName || currentUser?.departmentCode}</Chip>
+            {dept.floor !== undefined && dept.floor !== null && <Chip icon="lift">Floor {dept.floor}</Chip>}
+          </div>
+        </div>
+        <div className="dr-head__stats">
+          <div className="dr-mini">
+            <span>Waiting</span>
+            <strong>{queue.waitingCount ?? waiting.length}</strong>
+          </div>
+          <div className="dr-mini">
+            <span>New patient waits</span>
+            <strong>{queue.estimatedWaitMinutes ? `${queue.estimatedWaitMinutes} min` : '—'}</strong>
+          </div>
+          <div className="dr-mini">
+            <span>Waiting area</span>
+            <strong style={{ fontSize: '0.95rem', paddingTop: 4 }}>
+              <CrowdBadge level={crowd.status || 'green'} waiting={crowd.waitingCount} seats={crowd.capacity} />
+            </strong>
+          </div>
+        </div>
+      </div>
+
+      {actionError && <InlineError>{actionError}</InlineError>}
+
+      <div className="dr-layout">
+        <div className="dr-col">
+          <Card
+            title="Now in your room"
+            icon="user"
+            actions={
+              <Button
+                variant="primary"
+                size="lg"
+                className="dr-call"
+                icon="megaphone"
+                busy={busy === 'call'}
+                onClick={callNext}
+                disabled={!waiting.length && !current}
+              >
+                {current ? 'Finish & call next' : 'Call next patient'}
+              </Button>
+            }
+          >
+            {current ? (
+              <div className="sx-grid">
+                <div className="dr-now">
+                  <div>
+                    <span className="dr-now__label">Token</span>
+                    <div className="dr-now__token">{current.tokenNumber}</div>
+                  </div>
+                  <div>
+                    <p className="dr-now__name">{firstName(current)}</p>
+                    <p className="dr-now__facts">
+                      {ageGender(current) && (
+                        <span>
+                          <Icon name="user" size={16} /> {ageGender(current)}
+                        </span>
+                      )}
+                      {current.language && (
+                        <span>
+                          <Icon name="message" size={16} /> Speaks {LANG_SHORT[current.language] || current.language}
+                        </span>
+                      )}
+                      {current.calledAt && (
+                        <span>
+                          <Icon name="clock" size={16} /> Called{' '}
+                          {minutesSince(current.calledAt, now) < 1 ? 'just now' : `${minutesSince(current.calledAt, now)} min ago`}
+                        </span>
+                      )}
+                    </p>
+                    <div className="dr-now__chips">
+                      {isUrgent(current) && (
+                        <Chip tone="red" icon="alert">
+                          Asked for urgent help
+                        </Chip>
+                      )}
+                      {isAssisted(current) && (
+                        <Chip tone="amber" icon="accessibility">
+                          Needs assistance
+                        </Chip>
+                      )}
+                      {current.isEmergency && (
+                        <Chip tone="red" icon="emergency">
+                          Emergency signs reported
+                        </Chip>
+                      )}
+                    </div>
+                  </div>
+                </div>
+                <div className="dr-actions">
+                  <Button variant="primary" icon="check" busy={busy === 'complete'} onClick={complete}>
+                    Complete
+                  </Button>
+                  <Button icon="skip" busy={busy === 'requeue'} onClick={requeue}>
+                    Send to end
+                  </Button>
+                  <Button icon="transfer" onClick={() => setTransferring(current)}>
+                    Transfer
+                  </Button>
+                  <Button variant="danger" icon="no-show" busy={busy === 'noshow'} onClick={noShow}>
+                    No-show
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <EmptyState compact icon="door" title={waiting.length ? 'Ready for the next patient' : 'No one is waiting right now'}>
+                {waiting.length
+                  ? `${waiting.length} ${waiting.length === 1 ? 'person is' : 'people are'} waiting. Press “Call next patient” — their phone and the TV board will call them to ${room || 'your room'}.`
+                  : 'New registrations for your department appear here instantly.'}
+              </EmptyState>
+            )}
+          </Card>
+          <Card
+            title={`Waiting (${waiting.length})`}
+            icon="users"
+            bodyClass={null}
+            actions={queue.estimatedWaitMinutes ? <span className="sx-small sx-muted">Last in line: {aboutWait(queue.estimatedWaitMinutes)}</span> : null}
+          >
+            {waiting.length === 0 ? (
+              <EmptyState compact icon="users" title="No one is waiting right now">
+                Patients who register for {dept.name || 'your department'} appear here in order.
+              </EmptyState>
+            ) : (
+              <ol className="dr-wait">
+                {waiting.map((t, i) => {
+                  const mins = minutesSince(t.createdAt, now)
+                  return (
+                    <li key={t.id || t._id || t.publicId} data-urgent={isUrgent(t)}>
+                      <span className="dr-wait__pos" aria-label={`Position ${i + 1}`}>
+                        {i + 1}
+                      </span>
+                      <span className="dr-wait__token">{t.tokenNumber}</span>
+                      <span className="dr-wait__who">
+                        <strong>{firstName(t)}</strong>
+                        <small>
+                          {[ageGender(t), t.language ? LANG_SHORT[t.language] || t.language : null, `waiting ${mins < 1 ? 'under a minute' : `${mins} min`}`]
+                            .filter(Boolean)
+                            .join(' · ')}
+                        </small>
+                      </span>
+                      <span className="dr-wait__badges">
+                        {isUrgent(t) && (
+                          <Chip tone="red" icon="alert">
+                            Urgent
+                          </Chip>
+                        )}
+                        {isAssisted(t) && <Chip tone="amber">Assisted</Chip>}
+                      </span>
+                    </li>
+                  )
+                })}
+              </ol>
+            )}
+          </Card>
+        </div>
+
+        <div className="dr-col">
+          <StatusCard status={status} onSet={setDoctorStatus} busy={busy} />
+        </div>
+      </div>
+
+      <TransferDialog
+        ticket={transferring}
+        ownCode={dept.code || currentUser?.departmentCode}
+        onClose={() => setTransferring(null)}
+        onDone={(d) => {
+          toast(`${transferring.tokenNumber} moved to ${d?.name || 'the new department'}.`)
+          setTransferring(null)
+          load()
+        }}
+      />
+    </>
+  )
+}
+
+export default function DoctorDashboard() {
+  return (
+    <StaffShell roles={['doctor']} variant="doctor">
+      <DoctorConsole />
+    </StaffShell>
   )
 }

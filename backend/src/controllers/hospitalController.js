@@ -13,7 +13,7 @@ export async function listHospitals(req, res) {
 
 // GET /api/hospitals/:code: what the gate QR code opens first.
 export async function getHospital(req, res) {
-  const { staffPin, ...hospital } = (await findHospital(req.params.code)).toObject(); // never expose the staff PIN
+  const hospital = (await findHospital(req.params.code)).toJSON(); // toJSON never includes the staff PIN hash
   res.json({ hospital });
 }
 

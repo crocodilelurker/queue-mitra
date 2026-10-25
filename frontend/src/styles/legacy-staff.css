@@ -1,0 +1,660 @@
+/* Older staff screens (doctor room, TV board, analytics) still being rebuilt by the staff console.
+   Delete once nothing uses these classes. */
+/* ---------- Doctor Dashboard & Staff Desk ---------- */
+.staff-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  padding: 1rem 1.25rem;
+  background: var(--surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.staff-bar__title-box {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.staff-grid {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  margin-top: var(--sp-2);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.doctor-status-card {
+  padding: var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.doctor-status-card__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.doctor-status-card__profile {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.doctor-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: var(--primary-light);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+}
+
+.status-pill {
+  padding: 0.25rem 0.75rem;
+  border-radius: var(--radius-full);
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  text-transform: capitalize;
+}
+
+.status-pill--available {
+  background: var(--ok-bg);
+  color: var(--ok);
+  border: 1px solid var(--ok-border);
+}
+
+.status-pill--on_break {
+  background: var(--warn-bg);
+  color: var(--warn);
+  border: 1px solid var(--warn-border);
+}
+
+.status-pill--running_late {
+  background: var(--danger-bg);
+  color: var(--danger);
+  border: 1px solid var(--danger-border);
+}
+
+.current-patient-card {
+  padding: var(--sp-3);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.current-patient-box {
+  padding: 1rem;
+  background: var(--surface-subtle);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.current-patient-box__header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.current-token-badge {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: var(--primary);
+  line-height: 1;
+}
+
+.timer {
+  font-family: monospace;
+  font-size: 1.1rem;
+  font-weight: 700;
+  padding: 0.25rem 0.6rem;
+  background: var(--ink);
+  color: #ffffff;
+  border-radius: var(--radius-xs);
+}
+
+.current-patient-name {
+  font-size: var(--fs-md);
+  color: var(--ink);
+}
+
+.emergency-indicator-bar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.4rem 0.6rem;
+  background: var(--danger-bg);
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--danger-border);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.emergency-complaint {
+  font-size: var(--fs-xs);
+  color: var(--danger-dark);
+}
+
+.wait-list {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.wait-list__item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.6rem 0.85rem;
+  background: var(--surface-subtle);
+  border-radius: var(--radius-xs);
+  border: 1px solid var(--border-color);
+  font-size: var(--fs-sm);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.wait-list__token {
+  font-weight: 800;
+  color: var(--primary);
+}
+
+.wait-list__name {
+  font-weight: 600;
+  color: var(--ink);
+}
+
+/* ---------- TV Waiting Board ---------- */
+.board {
+  min-height: 100vh;
+  background: #05201f;
+  color: #e6f5f2;
+  padding: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+  box-sizing: border-box;
+}
+
+.board__head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-bottom: 1px solid #123f3c;
+  padding-bottom: 1rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.board__head h1 {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #ffffff;
+  letter-spacing: -0.02em;
+}
+
+.board__head p {
+  color: #8fb0ac;
+  font-size: 1rem;
+}
+
+.board__clock {
+  font-family: monospace;
+  font-size: 2.2rem;
+  font-weight: 800;
+  color: #5eead4;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.board__sound {
+  background: #123f3c;
+  color: #5eead4;
+  border: 1px solid #1d514d;
+  padding: 0.6rem 1.2rem;
+  border-radius: var(--radius-sm);
+  font-weight: 700;
+  cursor: pointer;
+  margin: 0 auto;
+}
+
+.board__grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1.25rem;
+  flex: 1;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+@media (max-width: 54em) {
+  .board__grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.board-room {
+  background: #0a2f2d;
+  border: 1px solid #17504b;
+  border-radius: var(--radius);
+  padding: 1.25rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+  transition: all 0.3s ease;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.board-room--flash {
+  border-color: #5eead4;
+  background: #0f4a45;
+  box-shadow: 0 0 30px rgba(94, 234, 212, 0.4);
+}
+
+.board-room__info h2 {
+  font-size: 1.35rem;
+  font-weight: 800;
+  color: #ffffff;
+}
+
+.board-room__alt {
+  font-size: 0.85rem;
+  color: #8fb0ac;
+}
+
+.board-room__doctor {
+  font-size: 0.85rem;
+  color: #c9e4df;
+}
+
+.board-room__queue {
+  display: flex;
+  flex-direction: column;
+  gap: 0.4rem;
+  background: #041a19;
+  padding: 1rem;
+  border-radius: var(--radius-sm);
+  border: 1px solid #17504b;
+  text-align: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.board-room__label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: #7aa39e;
+}
+
+.board-room__token {
+  font-size: 3rem;
+  font-weight: 800;
+  color: #fbbf24;
+  line-height: 1;
+}
+
+.board-room__next {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+  margin-top: 0.4rem;
+  font-size: 1rem;
+  color: #8fb0ac;
+}
+
+.board-room__next span {
+  font-weight: 700;
+}
+
+.board__foot {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  border-top: 1px solid #123f3c;
+  padding-top: 1rem;
+  font-size: 0.85rem;
+  color: #7aa39e;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+/* ---------- Analytics Dashboard ---------- */
+.stat-cards {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(10rem, 1fr));
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.stat-card {
+  padding: 1.15rem;
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  gap: 0.2rem;
+  background: var(--surface);
+  border: 1px solid var(--border-color);
+  border-radius: var(--radius);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.stat-card__value {
+  font-size: 2rem;
+  font-weight: 800;
+  color: var(--primary);
+  line-height: 1.1;
+}
+
+.stat-card p:last-child {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+
+.analytics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(18rem, 1fr));
+  gap: var(--sp-2);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.heatmap {
+  display: grid;
+  gap: 0.75rem;
+  grid-template-columns: repeat(auto-fit, minmax(12rem, 1fr));
+  margin-top: 0.75rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.heat {
+  padding: 1rem;
+  border-radius: var(--radius-sm);
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  border: 1px solid var(--border-color);
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.heat--ok {
+  background: var(--ok-bg);
+  border-color: var(--ok-border);
+  color: #14532d;
+}
+
+.heat--warn {
+  background: var(--warn-bg);
+  border-color: var(--warn-border);
+  color: #78350f;
+}
+
+.heat--bad {
+  background: var(--danger-bg);
+  border-color: var(--danger-border);
+  color: #7f1d1d;
+}
+
+.heat__name {
+  font-size: var(--fs-sm);
+  font-weight: 700;
+}
+
+.heat__count {
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+
+.bar {
+  display: grid;
+  grid-template-columns: 5.5rem 1fr 2.5rem;
+  align-items: center;
+  gap: 0.6rem;
+  margin-bottom: 0.4rem;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.bar__label {
+  font-size: var(--fs-xs);
+  color: var(--ink-soft);
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+}
+
+.bar__track {
+  height: 8px;
+  background: var(--surface-subtle);
+  border-radius: var(--radius-full);
+  overflow: hidden;
+  width: 100%;
+}
+
+.bar__fill {
+  display: block;
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary) 0%, var(--teal) 100%);
+  border-radius: var(--radius-full);
+}
+
+.bar__value {
+  font-size: var(--fs-xs);
+  font-weight: 700;
+  color: var(--ink);
+  text-align: end;
+}
+
+/* ---------- (3) Components that had no styles ---------- */
+
+/* Page titles used on the staff, 404 and /new screens */
+.hero {
+  margin: 0;
+  font-size: var(--fs-xl);
+  font-weight: 800;
+  letter-spacing: -0.03em;
+  line-height: 1.12;
+  color: var(--ink);
+}
+.hero--sm {
+  font-size: clamp(1.6rem, 1.2rem + 1.6vw, 2.1rem);
+}
+
+/* Centered staff login */
+.login {
+  display: grid;
+  gap: var(--sp-3);
+  width: 100%;
+  max-width: 32rem;
+  margin-inline: auto;
+}
+
+/* Queue summary and analytics figures */
+.queue-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-1);
+}
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8.5rem, 1fr));
+  gap: 0.6rem;
+  margin: 0;
+}
+.stats > div {
+  padding: 0.75rem 0.9rem;
+  background: var(--surface-subtle);
+  border: var(--border-subtle);
+  border-radius: var(--radius-sm);
+}
+.stats dt {
+  font-size: var(--fs-xs);
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+.stats dd {
+  margin: 0.15rem 0 0;
+  font-size: var(--fs-lg);
+  font-weight: 800;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Small helper text styles */
+.meta-label {
+  font-size: var(--fs-sm);
+  font-weight: 600;
+  color: var(--ink-soft);
+}
+.modal__reason {
+  font-weight: 700;
+  color: var(--danger-dark);
+}
+
+/* Live connection dot (board clock) */
+.live {
+  display: inline-block;
+  width: 0.7rem;
+  height: 0.7rem;
+  border-radius: 50%;
+  background: #8fa7a3;
+}
+.live--on {
+  background: #22c55e;
+  box-shadow: 0 0 0 4px rgba(34, 197, 94, 0.25);
+}
+.live--off {
+  background: #f59e0b;
+}
+.live-beacon__text {
+  font-weight: 700;
+}
+
+/* Doctor on duty rows: a missing state colour */
+.doc--offline {
+  border-left-color: #8fa7a3;
+}
+
+/* Urgent help siren banner on the staff screens: unmistakable, and impossible to scroll away from */
+.urgent-banner {
+  position: sticky;
+  top: 0.75rem;
+  z-index: 120;
+  display: grid;
+  gap: var(--sp-1);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--grad-emergency);
+  color: #fff;
+  border-radius: var(--radius);
+  box-shadow: 0 12px 32px rgba(185, 28, 28, 0.4);
+}
+.urgent-banner__title {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  font-size: var(--fs-lg);
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.urgent-banner ul {
+  display: grid;
+  gap: 0.5rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.urgent-banner li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem 0.75rem;
+  padding: 0.6rem 0.75rem;
+  background: rgba(255, 255, 255, 0.16);
+  border-radius: var(--radius-sm);
+}
+.urgent-banner .btn {
+  background: #fff;
+  border-color: transparent;
+  color: var(--danger-dark);
+}
+.urgent-banner .btn:hover:not(:disabled) {
+  background: #fef2f2;
+}
+.urgent-banner .btn[aria-pressed='true'] {
+  background: rgba(255, 255, 255, 0.25);
+  color: #fff;
+}
+
+/* Floating demo dock: stays in the bottom corner while the page scrolls */
+.demo {
+  position: fixed;
+  right: max(0.75rem, env(safe-area-inset-right));
+  bottom: max(0.75rem, env(safe-area-inset-bottom));
+  z-index: 90;
+  display: grid;
+  gap: 0.5rem;
+  justify-items: end;
+}
+.demo__panel {
+  display: grid;
+  gap: 0.5rem;
+  width: min(19rem, calc(100vw - 1.5rem));
+  padding: 0.75rem;
+  background: #fff;
+  box-shadow: var(--shadow-xl);
+}
+.demo__toggle {
+  background: var(--ink);
+  border-color: var(--ink);
+  border-radius: var(--radius-full);
+  color: #fff;
+  box-shadow: var(--shadow-lg);
+}
+.demo__toggle:hover:not(:disabled) {
+  background: #14393d;
+  border-color: #14393d;
+}
+

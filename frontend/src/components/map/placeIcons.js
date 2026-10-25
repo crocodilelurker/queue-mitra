@@ -1,3 +1,5 @@
+import { departmentForRoom, departmentIcon } from '../../api/departments.js'
+
 // Vector icon (name from components/common/Icons.jsx) for each kind of place on the floor plan.
 const BY_CATEGORY = {
   entrance: 'door',
@@ -24,17 +26,27 @@ const BY_ID = {
   stairs_2: 'stairs',
 }
 
-// OPD rooms use their department's icon (ear for ENT, eye for Eyes, ...).
-const DEPARTMENT_ICON = { MED: 'med', CHD: 'child', WOM: 'woman', ORT: 'bone', ENT: 'ear', EYE: 'eye', SKN: 'skin' }
+const roomOf = (place) => `Room ${String(place.id).replace('room_', '')}`
 
-export const placeIconName = (place) =>
-  BY_ID[place.id] || (place.category === 'opd_room' && DEPARTMENT_ICON[place.departmentCode]) || BY_CATEGORY[place.category] || 'pin'
-
-// Find the OPD room place on the map for a slip's room name (e.g. "Room 6") and/or department code.
-export function findRoomPlace(places, room, deptCode) {
-  if (room) {
-    const exact = places.find((p) => p.category === 'opd_room' && p.name.startsWith(`${room} (`))
-    if (exact) return exact
+// OPD rooms use the icon of the department working there today (ear for ENT, eye for Eyes, ...).
+export const placeIconName = (place) => {
+  if (!place) return 'pin'
+  if (BY_ID[place.id]) return BY_ID[place.id]
+  if (place.category === 'opd_room') {
+    const dept = departmentForRoom(roomOf(place))
+    return dept ? departmentIcon(dept) : 'door'
   }
-  return deptCode ? places.find((p) => p.departmentCode === deptCode.toUpperCase()) || null : null
+  return BY_CATEGORY[place.category] || 'pin'
+}
+
+// The map place for a slip's room ("Room 6") or, failing that, the department's first room.
+export function findRoomPlace(places, room, deptCode, departments = []) {
+  const n = String(room || '').match(/\d+/)?.[0]
+  if (n) {
+    const byId = places.find((p) => p.id === `room_${n}`)
+    if (byId) return byId
+  }
+  const dept = departments.find((d) => d.code === String(deptCode || '').toUpperCase())
+  const deptRoom = dept?.rooms?.[0]?.match(/\d+/)?.[0]
+  return deptRoom ? places.find((p) => p.id === `room_${deptRoom}`) || null : null
 }

@@ -4,7 +4,7 @@ import { emit, rooms } from "../socket/index.js";
 export async function sendSimulatedSms({ ticket, type, metadata = {} }) {
   if (!ticket || !ticket.patient) return null;
 
-  const mobile = ticket.patient.mobile || "9876543210";
+  const mobile = ticket.patient.mobile || null;
   const firstName = ticket.patient.firstName || "Patient";
   const tokenNumber = ticket.tokenNumber;
   const deptName = metadata.deptName || ticket.department?.name || "OPD";
@@ -18,10 +18,10 @@ export async function sendSimulatedSms({ ticket, type, metadata = {} }) {
   switch (type) {
     case "registered":
       message = {
-        en: `Queue Mitra CDH: Welcome ${firstName}. Token: ${tokenNumber} (${deptName}, ${room}). Estimated wait: ${metadata.estimatedWaitMinutes || 15} mins. Track live: /my-turn/${ticket.publicId}`,
-        hi: `कतार मित्र CDH: स्वागत है ${firstName}। टोकन: ${tokenNumber} (${deptName}, ${room})। अनुमानित समय: ${metadata.estimatedWaitMinutes || 15} मिनट। ट्रैक करें: /my-turn/${ticket.publicId}`,
-        ta: `கியூ மித்ரா CDH: வணக்கம் ${firstName}. டோக்கன்: ${tokenNumber} (${deptName}, ${room}). நேரடி கண்காணிப்பு: /my-turn/${ticket.publicId}`,
-        te: `క్యూ మిత్ర CDH: స్వాగతం ${firstName}. టోకెన్: ${tokenNumber} (${deptName}, ${room}). అంచనా సమయం: ${metadata.estimatedWaitMinutes || 15} నిమిషాలు. లైవ్ ట్రాక్: /my-turn/${ticket.publicId}`,
+        en: `Queue Mitra: Welcome ${firstName}. Token: ${tokenNumber} (${deptName}, ${room}). Estimated wait: ${metadata.estimatedWaitMinutes || 15} mins. Track live: /my-turn/${ticket.publicId}`,
+        hi: `कतार मित्र: स्वागत है ${firstName}। टोकन: ${tokenNumber} (${deptName}, ${room})। अनुमानित समय: ${metadata.estimatedWaitMinutes || 15} मिनट। ट्रैक करें: /my-turn/${ticket.publicId}`,
+        ta: `கியூ மித்ரா: வணக்கம் ${firstName}. டோக்கன்: ${tokenNumber} (${deptName}, ${room}). நேரடி கண்காணிப்பு: /my-turn/${ticket.publicId}`,
+        te: `క్యూ మిత్ర: స్వాగతం ${firstName}. టోకెన్: ${tokenNumber} (${deptName}, ${room}). అంచనా సమయం: ${metadata.estimatedWaitMinutes || 15} నిమిషాలు. లైవ్ ట్రాక్: /my-turn/${ticket.publicId}`,
       };
       break;
 
@@ -45,10 +45,10 @@ export async function sendSimulatedSms({ ticket, type, metadata = {} }) {
 
     case "doctor_delay":
       message = {
-        en: `Update from CDH: Doctor in ${room} is running approximately ${delayMinutes} minutes behind schedule. Your estimated wait has been updated.`,
-        hi: `सीडीएच सूचना: ${room} में डॉक्टर लगभग ${delayMinutes} मिनट की देरी से हैं। आपका अनुमानित समय अपडेट कर दिया गया है।`,
-        ta: `சிடிஹெச் தகவல்: ${room}-ல் உள்ள மருத்துவர் சுமார் ${delayMinutes} நிமிடங்கள் தாமதமாக உள்ளார். காத்திருப்பு நேரம் புதுப்பிக்கப்பட்டது.`,
-        te: `CDH సమాచారం: ${room} లో డాక్టర్ దాదాపు ${delayMinutes} నిమిషాలు ఆలస్యంగా ఉన్నారు. మీ వేచి ఉండే సమయం అప్‌డేట్ చేయబడింది.`,
+        en: `Queue Mitra update: Doctor in ${room} is running approximately ${delayMinutes} minutes behind schedule. Your estimated wait has been updated.`,
+        hi: `कतार मित्र सूचना: ${room} में डॉक्टर लगभग ${delayMinutes} मिनट की देरी से हैं। आपका अनुमानित समय अपडेट कर दिया गया है।`,
+        ta: `கியூ மித்ரா தகவல்: ${room}-ல் உள்ள மருத்துவர் சுமார் ${delayMinutes} நிமிடங்கள் தாமதமாக உள்ளார். காத்திருப்பு நேரம் புதுப்பிக்கப்பட்டது.`,
+        te: `క్యూ మిత్ర సమాచారం: ${room} లో డాక్టర్ దాదాపు ${delayMinutes} నిమిషాలు ఆలస్యంగా ఉన్నారు. మీ వేచి ఉండే సమయం అప్‌డేట్ చేయబడింది.`,
       };
       break;
 
@@ -63,7 +63,7 @@ export async function sendSimulatedSms({ ticket, type, metadata = {} }) {
 
     default:
       message = {
-        en: `Queue Mitra CDH notification for token ${tokenNumber}`,
+        en: `Queue Mitra notification for token ${tokenNumber}`,
         hi: `टोकन ${tokenNumber} के लिए कतार मित्र सूचना`,
         ta: `டோக்கன் ${tokenNumber} க்கான கியூ மித்ரா அறிவிப்பு`,
         te: `టోకెన్ ${tokenNumber} కొరకు క్యూ మిత్ర సమాచారం`,
@@ -78,6 +78,7 @@ export async function sendSimulatedSms({ ticket, type, metadata = {} }) {
     type,
     message,
     sentAt: new Date(),
+    status: mobile ? "delivered" : "in_app",
   });
 
   // Push SMS alert live to patient's active screen
@@ -93,9 +94,8 @@ export async function sendSimulatedSms({ ticket, type, metadata = {} }) {
 }
 
 export async function getNotifications(publicIdOrMobile) {
-  const query = publicIdOrMobile.includes("-")
-    ? { publicId: publicIdOrMobile }
-    : { mobile: publicIdOrMobile };
+  // Only by the unguessable ticket id: looking up by mobile number would expose other people's messages.
+  const query = { publicId: String(publicIdOrMobile) };
 
   return Notification.find(query).sort({ sentAt: -1 }).limit(20).lean();
 }

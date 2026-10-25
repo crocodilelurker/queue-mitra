@@ -1,179 +1,100 @@
-import Counter from "../models/Counter.js";
+// Demo auto-simulation: moves REAL queues forward on its own (call next -> the previous patient is
+// completed) so a presenter can show the system working hands-free. It never creates patients.
 import Department from "../models/Department.js";
 import Ticket from "../models/Ticket.js";
-import User from "../models/User.js";
-import { findHospital } from "./hospitalService.js";
 import { serviceDate } from "../utils/date.js";
-import { emit, rooms } from "../socket/index.js";
-import { callNext, getQueueSnapshot } from "./queueService.js";
+import { callNext } from "./queueService.js";
 
-const SAMPLE_PATIENTS = [
-  { firstName: "Kamla", age: 62, gender: "female", dept: "MED", lang: "hi" },
-  { firstName: "Ramesh", age: 45, gender: "male", dept: "MED", lang: "en" },
-  { firstName: "Sunil", age: 38, gender: "male", dept: "MED", lang: "hi" },
-  { firstName: "Geeta", age: 50, gender: "female", dept: "MED", lang: "hi" },
-  { firstName: "Aarav", age: 5, gender: "male", dept: "CHD", lang: "en" },
-  { firstName: "Ananya", age: 8, gender: "female", dept: "CHD", lang: "hi" },
-  { firstName: "Pooja", age: 28, gender: "female", dept: "WOM", lang: "hi" },
-  { firstName: "Deepa", age: 31, gender: "female", dept: "WOM", lang: "te" },
-  { firstName: "Harish", age: 64, gender: "male", dept: "ORT", lang: "hi" },
-  { firstName: "Manish", age: 42, gender: "male", dept: "ORT", lang: "en" },
-  { firstName: "Vikram", age: 29, gender: "male", dept: "ORT", lang: "en" },
-  { firstName: "Suresh", age: 55, gender: "male", dept: "ENT", lang: "hi" },
-  { firstName: "Kavita", age: 34, gender: "female", dept: "ENT", lang: "hi" },
-  { firstName: "Lakshmi", age: 48, gender: "female", dept: "EYE", lang: "te" },
-  { firstName: "Mohan", age: 70, gender: "male", dept: "EYE", lang: "hi" },
-  { firstName: "Rahul", age: 22, gender: "male", dept: "SKN", lang: "en" },
-  { firstName: "Shalini", age: 26, gender: "female", dept: "SKN", lang: "hi" },
-  { firstName: "Vijay", age: 58, gender: "male", dept: "MED", lang: "hi" },
-  { firstName: "Srinivas", age: 45, gender: "male", dept: "MED", lang: "te" },
-  { firstName: "Fatima", age: 36, gender: "female", dept: "WOM", lang: "en" },
-  { firstName: "Gurpreet", age: 11, gender: "male", dept: "CHD", lang: "hi" },
-];
+const BASE_STEP_MS = 30000; // 1x: one queue step every 30 seconds
+const MIN_STEP_MS = 1000;
 
-export async function seedDemoPatients(hospitalCode = "CDH") {
-  const hospital = await findHospital(hospitalCode);
-  const departments = await Department.find({ hospital: hospital._id, isActive: true });
-  const deptMap = new Map(departments.map((d) => [d.code, d]));
-  const date = serviceDate();
-
-  const createdTickets = [];
-
-  for (const p of SAMPLE_PATIENTS) {
-    const dept = deptMap.get(p.dept) || departments[0];
-    const sequence = await Counter.next(`${hospital.code}:${dept.code}:${date}`);
-    const tokenNumber = `${dept.code}-${String(sequence).padStart(3, "0")}`;
-
-    const ticket = await Ticket.create({
-      tokenNumber,
-      sequence,
-      serviceDate: date,
-      hospital: hospital._id,
-      department: dept._id,
-      patient: {
-        firstName: p.firstName,
-        age: p.age,
-        gender: p.gender,
-        mobile: "9876543210",
-      },
-      language: p.lang || "en",
-      status: "waiting",
-    });
-
-    createdTickets.push({
-      publicId: ticket.publicId,
-      tokenNumber: ticket.tokenNumber,
-      firstName: ticket.patient.firstName,
-      departmentCode: dept.code,
-    });
-  }
-
-  // Refresh all department queues via sockets
-  for (const dept of departments) {
-    try {
-      const snap = await getQueueSnapshot(dept._id);
-      emit([rooms.department(dept._id), rooms.staff(hospital._id), rooms.board(hospital._id)], "queue:updated", snap);
-    } catch {
-      // safe continue
-    }
-  }
-
-  return {
-    message: `Successfully seeded ${createdTickets.length} sample patients across all OPD departments.`,
-    count: createdTickets.length,
-    tickets: createdTickets,
-  };
-}
-
-export async function resetDemoState(hospitalCode = "CDH") {
-  const hospital = await findHospital(hospitalCode);
-  const departments = await Department.find({ hospital: hospital._id });
-  const deptIds = departments.map((d) => d._id);
-
-  // Clear tickets for this hospital
-  await Ticket.deleteMany({ hospital: hospital._id });
-
-  // Clear counters
-  const date = serviceDate();
-  for (const dept of departments) {
-    await Counter.deleteOne({ _id: `${hospital.code}:${dept.code}:${date}` });
-  }
-
-  // Reset doctors in this hospital to available
-  await User.updateMany(
-    { hospital: hospital._id, role: "doctor" },
-    { $set: { status: { state: "available", until: null, delayMinutes: 0 } } }
-  );
-
-  // Broadcast fresh empty queues
-  for (const dept of departments) {
-    try {
-      const snap = await getQueueSnapshot(dept._id);
-      emit([rooms.department(dept._id), rooms.staff(hospital._id), rooms.board(hospital._id)], "queue:updated", snap);
-    } catch {
-      // safe continue
-    }
-  }
-
-  return {
-    message: "Demo reset complete: all tickets, counters, and doctor delays have been cleared.",
-    hospitalCode: hospital.code,
-  };
-}
-
-let simulationTimer = null;
-let simulationTicks = 0;
+let timer = null;
+let state = { hospitalId: null, intervalMs: null, speed: null, ticks: 0, startedAt: null, lastStepAt: null, lastAction: null };
 
 export function getSimulationStatus() {
   return {
-    isRunning: Boolean(simulationTimer),
-    ticksCount: simulationTicks,
-    speed: "10x simulation (3s step)",
+    isRunning: Boolean(timer),
+    intervalMs: state.intervalMs,
+    speed: state.speed,
+    ticksCount: state.ticks,
+    startedAt: state.startedAt,
+    lastStepAt: state.lastStepAt,
+    lastAction: state.lastAction,
   };
 }
 
-export function stopAutoSimulation() {
-  if (simulationTimer) {
-    clearInterval(simulationTimer);
-    simulationTimer = null;
+// hospitalId: only stop if it is this hospital's simulation (undefined = stop any).
+export function stopAutoSimulation(hospitalId) {
+  if (timer && (!hospitalId || String(state.hospitalId) === String(hospitalId))) {
+    clearInterval(timer);
+    timer = null;
   }
-  return { isRunning: false, message: "Auto-simulation stopped." };
+  return { ...getSimulationStatus(), message: "Auto-simulation stopped." };
 }
 
-export async function startAutoSimulation({ intervalMs = 3000, hospitalCode = "CDH" } = {}) {
-  stopAutoSimulation();
-  simulationTicks = 0;
-
-  const hospital = await findHospital(hospitalCode);
-  const doctors = await User.find({ hospital: hospital._id, role: "doctor" });
-  if (!doctors.length) throw new Error("No doctors found for simulation");
-
-  let doctorIndex = 0;
-
-  simulationTimer = setInterval(async () => {
-    try {
-      simulationTicks++;
-      const doctor = doctors[doctorIndex % doctors.length];
-      doctorIndex++;
-
-      // Check if department has waiting tickets
-      const waitingCount = await Ticket.countDocuments({
-        department: doctor.department,
-        serviceDate: serviceDate(),
-        status: "waiting",
-      });
-
-      if (waitingCount > 0) {
-        await callNext(doctor);
+// One step: for every department room with patients, finish the current patient and call the next one.
+async function step(actor) {
+  const date = serviceDate();
+  const departments = await Department.find({ hospital: actor.hospital, isActive: true }).lean();
+  const actions = [];
+  for (const dept of departments) {
+    const rooms = dept.rooms?.length ? dept.rooms : [null];
+    for (const room of rooms) {
+      const [waiting, calledHere] = await Promise.all([
+        Ticket.exists({ department: dept._id, serviceDate: date, status: "waiting" }),
+        Ticket.exists({ department: dept._id, serviceDate: date, status: "called", ...(room ? { room } : {}) }),
+      ]);
+      if (!waiting && !calledHere) continue;
+      try {
+        const result = await callNext(actor, { departmentCode: dept.code, room: room ?? undefined });
+        actions.push(`${result.ticket.tokenNumber} -> ${room ?? dept.code}`);
+      } catch (err) {
+        // 404 "Queue is empty": the last patient in that room was completed.
+        if (err.statusCode !== 404) throw err;
+        actions.push(`${room ?? dept.code} finished`);
       }
-    } catch (err) {
-      console.error("Auto simulation step failed:", err);
     }
-  }, intervalMs);
+  }
+  return actions;
+}
 
-  return {
-    isRunning: true,
-    message: `10x Auto-simulation started. Progressing queue every ${intervalMs / 1000}s.`,
-    intervalMs,
+/**
+ * @param actor the signed-in admin (the steps run with their permissions)
+ * @param intervalMs explicit step length, or
+ * @param speed 1-20: speed 10 = one step every 3 seconds (default speed 10)
+ */
+export function startAutoSimulation(actor, { intervalMs, speed } = {}) {
+  stopAutoSimulation();
+  const s = Number(speed) > 0 ? Math.min(20, Number(speed)) : null;
+  const ms = Number(intervalMs) > 0 ? Number(intervalMs) : BASE_STEP_MS / (s ?? 10);
+  const stepMs = Math.max(MIN_STEP_MS, Math.min(120000, Math.round(ms)));
+
+  state = {
+    hospitalId: actor.hospital,
+    intervalMs: stepMs,
+    speed: Number((BASE_STEP_MS / stepMs).toFixed(1)),
+    ticks: 0,
+    startedAt: new Date().toISOString(),
+    lastStepAt: null,
+    lastAction: null,
   };
+
+  let running = false;
+  timer = setInterval(async () => {
+    if (running) return; // never overlap steps
+    running = true;
+    try {
+      const actions = await step(actor);
+      state.ticks += 1;
+      state.lastStepAt = new Date().toISOString();
+      state.lastAction = actions.length ? actions.join(", ") : "No patients waiting";
+    } catch (err) {
+      console.error("Auto-simulation step failed:", err.message);
+    } finally {
+      running = false;
+    }
+  }, stepMs);
+  timer.unref?.();
+
+  return { ...getSimulationStatus(), message: `Auto-simulation started: one queue step every ${stepMs / 1000}s.` };
 }

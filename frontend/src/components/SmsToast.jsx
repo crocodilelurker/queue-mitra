@@ -15,12 +15,13 @@ export default function SmsToast({ sms, onClose }) {
   return (
     <div className="sms-toast" role="status">
       <div className="sms-toast__head">
-        <Icon name="message" size={16} /> {t.smsFrom} · {formatTime(sms.sentAt, lang)}
+        <Icon name="message" size={18} />
+        <span>{t.smsFrom} · {formatTime(sms.sentAt || Date.now(), lang)}</span>
         <button type="button" className="sms-toast__close" onClick={onClose} aria-label={t.close}>
           <Icon name="close" size={16} />
         </button>
       </div>
-      <p>{pick(sms.message)}</p>
+      <p>{sms.text || pick(sms.message)}</p>
     </div>
   )
 }

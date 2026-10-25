@@ -26,7 +26,7 @@ export async function getBoardData(req, res) {
         .select("tokenNumber")
         .limit(3)
         .lean(),
-      User.find({ department: dept._id, role: "doctor" })
+      User.find({ hospital: hospital._id, department: dept._id, role: "doctor" })
         .select("name room status")
         .lean(),
     ]);
@@ -49,15 +49,16 @@ export async function getBoardData(req, res) {
         departmentTranslations: dept.translations,
         floor: dept.floor,
         room: roomName,
-        doctorName: roomDoctor?.name ?? "On Duty Doctor",
-        doctorState: roomDoctor?.status?.state ?? "available",
+        doctorName: roomDoctor?.name ?? null,
+        doctorState: roomDoctor?.status?.state ?? (roomDoctor ? "offline" : "unassigned"),
         delayMinutes,
         nowServing: currentToken,
         nextTokens: waitingTickets.map((t) => t.tokenNumber),
         announcementText: currentToken
           ? {
               en: `Token ${currentToken}, please proceed to ${roomName} (${dept.name}) on Floor ${dept.floor}.`,
-              hi: `टोकन ${currentToken}, कृपया पहली मंजिल पर ${roomName} (${dept.name}) में जाएं।`,
+              hi: `टोकन ${currentToken}, कृपया मंजिल ${dept.floor} पर ${roomName} (${dept.translations?.hi?.name || dept.name}) में जाएं।`,
+              te: `టోకెన్ ${currentToken}, దయచేసి అంతస్తు ${dept.floor} లోని ${roomName} (${dept.translations?.te?.name || dept.name}) కి వెళ్లండి.`,
               ta: `டோக்கன் ${currentToken}, தயவுசெய்து தளம் ${dept.floor}-ல் உள்ள ${roomName}-க்கு செல்லவும்.`,
             }
           : null,
@@ -67,6 +68,7 @@ export async function getBoardData(req, res) {
 
   res.json({
     hospital: {
+      _id: hospital._id, // join the "board:<_id>" socket room with this
       code: hospital.code,
       name: hospital.name,
     },

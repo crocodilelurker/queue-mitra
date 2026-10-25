@@ -2,14 +2,14 @@ import * as navigationService from "../services/navigationService.js";
 import ApiError from "../utils/ApiError.js";
 
 // GET /api/navigation/map
-export function getMap(req, res) {
-  res.json(navigationService.getHospitalLayout());
+export async function getMap(req, res) {
+  res.json(await navigationService.getLiveLayout());
 }
 
 // GET /api/navigation/places
-export function listPlaces(req, res) {
+export async function listPlaces(req, res) {
   const { floor, category, q } = req.query;
-  let places = navigationService.getAllPlaces();
+  let places = await navigationService.getLivePlaces();
 
   if (floor !== undefined) {
     places = places.filter((p) => p.floor === Number(floor));
@@ -17,7 +17,7 @@ export function listPlaces(req, res) {
   if (category) {
     places = places.filter((p) => p.category === category);
   }
-  if (q) {
+  if (typeof q === "string" && q) {
     const search = q.toLowerCase();
     places = places.filter(
       (p) =>
@@ -31,7 +31,7 @@ export function listPlaces(req, res) {
 }
 
 // POST /api/navigation/route: Dijkstra shortest path between two points
-export function calculateRoute(req, res) {
+export async function calculateRoute(req, res) {
   const { from, to, avoidStairs, language, departmentCode, room } = req.body ?? {};
 
   let startId = from;
@@ -39,7 +39,7 @@ export function calculateRoute(req, res) {
 
   // Convenience resolution from slip details (department / room)
   if (!endId && (departmentCode || room)) {
-    const place = navigationService.findPlaceByRoomOrDept(room, departmentCode);
+    const place = await navigationService.findPlaceByRoomOrDept(room, departmentCode);
     if (place) endId = place.id;
   }
 
@@ -80,12 +80,12 @@ export function listCheckpoints(req, res) {
 }
 
 // POST /api/navigation/from-checkpoint: route from scanned checkpoint poster
-export function routeFromCheckpoint(req, res) {
+export async function routeFromCheckpoint(req, res) {
   const { checkpointId, to, departmentCode, room, avoidStairs, language } = req.body ?? {};
   if (!checkpointId) throw ApiError.badRequest("checkpointId is required");
 
   res.json(
-    navigationService.routeFromCheckpoint(checkpointId, {
+    await navigationService.routeFromCheckpoint(checkpointId, {
       to,
       departmentCode,
       room,

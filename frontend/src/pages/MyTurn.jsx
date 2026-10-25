@@ -2,94 +2,153 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import { api } from '../api/client.js'
 import { useDepartments } from '../api/departments.js'
 import { useSocket } from '../api/socket.js'
-import EmergencyTicketNotice from '../components/common/EmergencyTicketNotice.jsx'
-import Modal from '../components/common/Modal.jsx'
-import { ErrorNote, Loading } from '../components/common/Status.jsx'
-import Toggle from '../components/common/Toggle.jsx'
 import Layout from '../components/Layout.jsx'
 import SmsToast from '../components/SmsToast.jsx'
+import UrgentHelp from '../components/UrgentHelp.jsx'
+import ListenButton from '../components/common/ListenButton.jsx'
+import { ErrorNote, Loading } from '../components/common/Status.jsx'
+import { Icon } from '../components/common/Icons.jsx'
 import { useAccess } from '../context/Access.jsx'
 import { useAsync } from '../hooks/useAsync.js'
 import { useI18n } from '../i18n/index.jsx'
 import { Link } from '../router.jsx'
 import { formatTime } from '../utils/format.js'
+import { askNotificationPermission, canNotify, notificationPermission, showNotification } from '../utils/notify.js'
+import { rememberTicket } from '../utils/patientStore.js'
 import { chime, vibrate } from '../utils/sound.js'
-import { Icon } from '../components/common/Icons.jsx'
+import { speak } from '../utils/speech.js'
 
-function DoctorLine({ doctor }) {
-  const { t, f, lang } = useI18n()
-  const status = {
+const NEAR = 3 // alert when this many people (or fewer) are ahead
+
+function once(key) {
+  try {
+    if (localStorage.getItem(key)) return false
+    localStorage.setItem(key, '1')
+  } catch {
+    /* storage unavailable: alert anyway */
+  }
+  return true
+}
+
+function useMinutesSince(ts) {
+  const [, tick] = useState(0)
+  useEffect(() => {
+    const timer = setInterval(() => tick((n) => n + 1), 20000)
+    return () => clearInterval(timer)
+  }, [])
+  return ts ? Math.floor((Date.now() - ts) / 60000) : null
+}
+
+function DoctorStatus({ doctor }) {
+  const { t, f, lang, roomName } = useI18n()
+  const state = doctor.state || 'available'
+  const text = {
     available: t.docInRoom,
-    on_break: f('docBreak', { time: formatTime(doctor.until, lang) }),
-    running_late: f('docLate', { n: doctor.delayMinutes }),
+    on_break: doctor.until ? f('docBreakUntil', { time: formatTime(doctor.until, lang) }) : t.docBreak,
+    running_late: f('docLate', { n: doctor.delayMinutes || 0 }),
     offline: t.docOffline,
-  }[doctor.state] || t.docInRoom
+  }[state] || t.docInRoom
+  const icon = { available: 'check-circle', on_break: 'coffee', running_late: 'clock', offline: 'user-x' }[state] || 'doctor'
   return (
-    <li className={`doc doc--${doctor.state}`}>
-      <div className="doc__indicator" />
-      <div className="doc__details">
-        <strong>{doctor.name}</strong>
-        <span>{doctor.room} · {status}</span>
+    <li className={`doc-status doc-status--${state}`}>
+      <Icon name={icon} size={24} />
+      <div>
+        <p className="doc-status__name">
+          {doctor.name}
+          {doctor.room && <span className="muted"> · {roomName(doctor.room)}</span>}
+        </p>
+        <p className="doc-status__state">{text}</p>
       </div>
     </li>
   )
 }
 
 export default function MyTurn({ publicId }) {
-  const { t, f, lang, pick, deptName } = useI18n()
-  const { prefs, setPref } = useAccess()
-  useDepartments()
+  const { t, f, lang, pick, deptName, floorName, floorWord, roomName } = useI18n()
+  const { prefs } = useAccess()
+  const { byCode } = useDepartments()
   const { data: ticket, error, loading, reload, setData } = useAsync(() => api.ticket(publicId), [publicId])
   const [queue, setQueue] = useState(null)
   const [messages, setMessages] = useState([])
   const [toast, setToast] = useState(null)
   const [updatedAt, setUpdatedAt] = useState(null)
-  const [urgentOpen, setUrgentOpen] = useState(false)
-  const [urgentBusy, setUrgentBusy] = useState(false)
-  const [urgentError, setUrgentError] = useState(null)
   const [urgentSeen, setUrgentSeen] = useState(false)
-  const lastAhead = useRef(null)
+  const [calledOpen, setCalledOpen] = useState(false)
+  const [permission, setPermission] = useState(notificationPermission)
+  const minutesAgo = useMinutesSince(updatedAt)
 
-  const hospitalCode = ticket?.hospital.code
-  const deptCode = ticket?.department.code
-
-  useEffect(() => {
-    if (!deptCode) return
-    api.departmentQueue(deptCode, hospitalCode).then(setQueue).catch(() => {})
-  }, [deptCode, hospitalCode, ticket?.status])
+  const deptCode = ticket?.department?.code
+  const hospitalCode = ticket?.hospital?.code
 
   useEffect(() => {
-    api.notifications(publicId).then((d) => setMessages(d.notifications.map((n) => ({ ...n, id: n._id })))).catch(() => {})
-  }, [publicId])
-
-  useEffect(() => {
-    if (ticket && lastAhead.current === null) lastAhead.current = ticket.peopleAhead
+    if (!ticket) return
+    setUpdatedAt(Date.now())
+    rememberTicket(ticket)
   }, [ticket])
 
-  const onPosition = useCallback(
-    (d) => {
-      if (d.publicId !== publicId) return
-      if (d.peopleAhead <= 3 && lastAhead.current !== null && lastAhead.current > 3) {
-        chime()
-        vibrate()
-      }
-      lastAhead.current = d.peopleAhead
-      setUpdatedAt(d.updatedAt)
-      setData((prev) => (prev ? { ...prev, status: 'waiting', peopleAhead: d.peopleAhead, estimatedWaitMinutes: d.estimatedWaitMinutes, nowServing: d.nowServing } : prev))
-    },
-    [publicId, setData]
-  )
+  const loadQueue = useCallback(() => {
+    if (!deptCode) return
+    api.departmentQueue(deptCode, hospitalCode).then(setQueue).catch(() => {})
+  }, [deptCode, hospitalCode])
+  useEffect(loadQueue, [loadQueue, ticket?.status])
+
+  useEffect(() => {
+    api
+      .notifications(publicId)
+      .then((d) => setMessages((d.notifications || []).map((n) => ({ ...n, id: n._id }))))
+      .catch(() => {})
+  }, [publicId])
+
+  // Fallback when the live connection is down: check again every minute.
+  useEffect(() => {
+    const timer = setInterval(() => reload(true), 60000)
+    return () => clearInterval(timer)
+  }, [reload])
+
+  const room = ticket?.room || queue?.department?.rooms?.[0] || byCode[ticket?.department?.code]?.rooms?.[0] || ''
+  const floor = ticket?.department?.floor ?? queue?.department?.floor ?? 0
+  const where = room ? f('roomOnFloor', { room: roomName(room), floor: floorName(floor) }) : floorName(floor)
+
+  // ---- Alerts: 3 people ahead, and "it's your turn" ----
+  const ahead = ticket?.status === 'waiting' ? ticket.peopleAhead : null
+  useEffect(() => {
+    if (ahead === null || ahead === undefined || ahead > NEAR || !room) return
+    if (!once(`qm-near-${publicId}`)) return
+    const text = f('nearSms', { room: roomName(room), floor: floorWord(floor) })
+    chime()
+    vibrate([300, 150, 300])
+    setToast({ id: `near-${publicId}`, text, sentAt: new Date().toISOString() })
+    showNotification(t.nearTitle, text, `near-${publicId}`)
+    if (prefs.readAloud) speak(text, lang)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ahead, publicId, room])
+
+  useEffect(() => {
+    if (ticket?.status !== 'called') return
+    setCalledOpen(true)
+    if (!once(`qm-called-${publicId}-${ticket.calledAt || ''}`)) return
+    const text = f('calledBody', { where })
+    chime()
+    vibrate([400, 150, 400, 150, 400])
+    showNotification(t.calledTitle, text, `called-${publicId}`)
+    if (prefs.readAloud) speak(`${t.calledTitle}. ${text}`, lang)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [ticket?.status, publicId])
 
   const connected = useSocket({
-    join: [['ticket:join', publicId], ...(queue ? [['department:join', queue.department.id]] : [])],
+    join: [['ticket:join', publicId], ...(queue?.department?.id ? [['department:join', queue.department.id]] : [])],
     on: {
-      'ticket:position': onPosition,
+      'ticket:position': (d) => {
+        if (d.publicId !== publicId) return
+        setUpdatedAt(Date.now())
+        setData((prev) => (prev ? { ...prev, status: 'waiting', peopleAhead: d.peopleAhead, estimatedWaitMinutes: d.estimatedWaitMinutes, nowServing: d.nowServing } : prev))
+      },
       'ticket:called': (c) => {
         if (c.publicId !== publicId) return
-        chime()
-        vibrate([300, 100, 300, 100, 300])
-        setUpdatedAt(c.calledAt)
-        setData((prev) => (prev ? { ...prev, status: 'called', room: c.room, doctorName: c.doctorName, calledAt: c.calledAt, department: { ...prev.department, floor: c.floor } } : prev))
+        setUpdatedAt(Date.now())
+        setData((prev) =>
+          prev ? { ...prev, status: 'called', room: c.room, doctorName: c.doctorName, calledAt: c.calledAt, department: { ...prev.department, floor: c.floor ?? prev.department.floor } } : prev
+        )
       },
       'ticket:sms': (m) => {
         setMessages((prev) => [m, ...prev.filter((x) => x.id !== m.id)])
@@ -97,6 +156,7 @@ export default function MyTurn({ publicId }) {
       },
       'ticket:updated': (u) => {
         if (u.publicId !== publicId) return
+        setUpdatedAt(Date.now())
         if (u.urgentSeen) {
           setUrgentSeen(true)
           setData((prev) => (prev ? { ...prev, urgentRaised: false } : prev))
@@ -105,224 +165,200 @@ export default function MyTurn({ publicId }) {
         else if (u.status) setData((prev) => (prev ? { ...prev, status: u.status } : prev))
       },
       'ticket:transferred': (x) => x.publicId === publicId && reload(true),
-      'queue:updated': (snap) => setQueue(snap),
+      'queue:updated': (snap) => {
+        setQueue(snap)
+        setUpdatedAt(Date.now())
+      },
+      'hospital:updated': () => {
+        reload(true)
+        loadQueue()
+      },
     },
   })
 
+  // After a reconnect, fetch the latest position (events may have been missed).
   const wasConnected = useRef(false)
   useEffect(() => {
-    if (connected && wasConnected.current) reload(true)
+    if (connected && wasConnected.current === false && ticket) reload(true)
     wasConnected.current = connected
-  }, [connected, reload])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [connected])
 
   const closeToast = useCallback(() => setToast(null), [])
-
-  const raiseUrgent = async () => {
-    setUrgentBusy(true)
-    setUrgentError(null)
-    try {
-      await api.urgent(publicId)
-      setData((prev) => ({ ...prev, urgentRaised: true }))
-      setUrgentSeen(false)
-      setUrgentOpen(false)
-    } catch (err) {
-      setUrgentError(err)
-    } finally {
-      setUrgentBusy(false)
-    }
-  }
-
-  const savePref = (name, value) => {
-    setPref(name, value)
-    api.preferences(publicId, { language: lang, accessibility: { ...prefs, [name]: value } }).catch(() => {})
-  }
 
   if (loading) return <Layout><Loading /></Layout>
   if (error) return <Layout><ErrorNote error={error} onRetry={reload} /></Layout>
 
   const status = ticket.status
   const dept = deptName(ticket.department)
-  const rooms = queue?.department.rooms?.join(' / ') || ''
-  const room = ticket.room || rooms
-  const floor = ticket.department.floor
-  const ahead = ticket.peopleAhead
-  const mapLink = `/map?${new URLSearchParams({ room: ticket.room || queue?.department.rooms?.[0] || '', dept: deptCode })}`
+  const mapQuery = new URLSearchParams({ room, dept: deptCode || '' })
+  if (prefs.avoidStairs) mapQuery.set('avoidStairs', '1')
+  const mapLink = `/map?${mapQuery}`
+  const nowServing = (ticket.nowServing?.length ? ticket.nowServing : queue?.nowServing) || []
+  const doctors = queue?.doctors || []
+  const minutes = ticket.estimatedWaitMinutes ?? 0
+
+  const nextStep = {
+    waiting: ahead !== null && ahead <= NEAR ? f('nextNear', { where }) : t.nextWait,
+    called: f('calledBody', { where }),
+    completed: t.nextDone,
+    no_show: t.nextNoShow,
+  }[status]
+
+  const spoken = [
+    `${t.yourToken} ${ticket.tokenNumber}`,
+    status === 'waiting' && (ahead === 0 ? t.youAreNext : ahead === 1 ? t.aheadOne : f('aheadMany', { n: ahead })),
+    status === 'waiting' && ahead > 0 && f('aboutMin', { n: minutes }),
+    nextStep,
+  ]
+    .filter(Boolean)
+    .join('. ')
 
   return (
     <Layout>
       <SmsToast sms={toast} onClose={closeToast} />
 
-      <div className="turn-hero card">
-        <div className="turn-hero__top">
-          <div className="turn-hero__badge">
-            <span className="slip__token-label">YOUR TOKEN</span>
-            <span className="turn-hero__token">{ticket.tokenNumber}</span>
-          </div>
-          <div className="turn-hero__status">
-            <span className={`live-beacon ${connected ? 'live-beacon--connected' : ''}`}>
-              <span className="live-beacon__dot" />
-              <span>{connected ? t.liveOn : t.liveOff}</span>
-            </span>
-            {updatedAt && <span className="turn-hero__sync">{f('updatedAt', { time: formatTime(updatedAt, lang) })}</span>}
-          </div>
+      <section className="turn-head">
+        <div>
+          <p className="turn-head__label">{t.yourToken}</p>
+          <p className="turn-head__token">{ticket.tokenNumber}</p>
         </div>
-
-        <div className="turn-hero__patient">
-          <strong>{ticket.firstName}</strong>
-          <span>{dept} · Floor {floor}</span>
+        <div className="turn-head__who">
+          <p className="turn-head__name">{ticket.firstName}</p>
+          <p className="muted">{dept}</p>
         </div>
-      </div>
+      </section>
 
-      {ticket.isEmergency && (status === 'waiting' || status === 'called') && <EmergencyTicketNotice />}
+      <p className={`live-status${connected ? ' is-live' : ''}`} role="status">
+        <span className="live-status__dot" aria-hidden="true" />
+        <span>
+          {connected ? t.liveOn : t.liveOff}
+          {minutesAgo !== null && ` · ${minutesAgo < 1 ? t.updatedJustNow : f('updatedMinAgo', { n: minutesAgo })}`}
+        </span>
+      </p>
 
-      {status === 'called' && (
-        <section className="turn-card turn-card--called card" role="alert">
-          <div className="turn-card__called-icon">
-            <Icon name="bell" size={32} />
+      {status === 'waiting' && ahead !== null && ahead <= NEAR && (
+        <section className="notice notice--near" role="alert">
+          <Icon name="bell" size={26} />
+          <div>
+            <p className="notice__title">{t.nearTitle}</p>
+            <p>{f('nearSms', { room: roomName(room) || t.yourRoom, floor: floorWord(floor) })}</p>
           </div>
-          <h1 className="turn-card__called-title">{t.yourTurn}</h1>
-          <p className="turn-card__called-desc">{f('yourTurnBody', { room: ticket.room, doctor: ticket.doctorName || '' })}</p>
-          <Link className="btn btn--primary btn--lg" to={mapLink}>
-            <Icon name="map-pin" size={20} />
-            <span>{t.guideRoom}</span>
-          </Link>
         </section>
       )}
 
       {status === 'waiting' && (
-        <>
-          {ahead !== null && ahead <= 3 && (
-            <section className="turn-alert-banner card" role="alert">
-              <Icon name="bell" size={22} />
-              <div>
-                <strong>Turn Approaching!</strong>
-                <p>{f('closeAlert', { room, floor })}</p>
-              </div>
-            </section>
+        <section className="turn-card" aria-live="polite">
+          <p className="turn-card__big">{ahead === 0 ? t.youAreNext : ahead === 1 ? t.aheadOne : f('aheadMany', { n: ahead })}</p>
+          {ahead > 0 && (
+            <p className="turn-card__wait">
+              <Icon name="clock" size={24} />
+              <span>{f('aboutMin', { n: minutes })}</span>
+            </p>
           )}
-
-          <section className="turn-metrics card" aria-live="polite">
-            <div className="turn-metrics__ahead-box">
-              <span className="turn-metrics__number">{ahead}</span>
-              <span className="turn-metrics__label">
-                {ahead === 0 ? t.youAreNext : ahead === 1 ? t.aheadOne : f('aheadMany', { n: ahead })}
-              </span>
+          <dl className="turn-card__rows">
+            <div>
+              <dt>{t.nowServing}</dt>
+              <dd>{nowServing.length ? nowServing.map((n) => n.tokenNumber).join(', ') : t.nobodyYet}</dd>
             </div>
-
-            <div className="turn-metrics__wait-chip">
-              <Icon name="clock" size={16} />
-              <span>{f('aboutMin', { n: ticket.estimatedWaitMinutes })}</span>
+            <div>
+              <dt>{t.labelRoom}</dt>
+              <dd>{where}</dd>
             </div>
-
-            <div className="turn-metrics__meta">
-              {ticket.nowServing?.length > 0 && (
-                <div className="turn-metrics__meta-row">
-                  <span className="meta-label">{t.nowServing}:</span>
-                  <strong>{ticket.nowServing.map((n) => `${n.tokenNumber} (${n.room})`).join(', ')}</strong>
-                </div>
-              )}
-              <div className="turn-metrics__meta-row">
-                <span className="meta-label">{t.goTo}:</span>
-                <strong>{room} · {f('floorN', { n: floor })}</strong>
-              </div>
-            </div>
-
-            <Link className="btn btn--primary btn--block" to={mapLink}>
-              <Icon name="compass" size={18} />
-              <span>{t.directionsToRoom}</span>
-            </Link>
-          </section>
-        </>
-      )}
-
-      {status === 'completed' && (
-        <section className="turn-card card text-center">
-          <Icon name="check" size={36} color="#157238" />
-          <p className="mt-2 font-semibold">{t.finished}</p>
+          </dl>
         </section>
       )}
 
-      {status === 'no_show' && (
-        <section className="turn-card card text-center">
-          <Icon name="alert" size={36} color="#dc2626" />
-          <p className="mt-2 font-semibold">{t.noShow}</p>
+      {status === 'called' && (
+        <section className="turn-card turn-card--called" role="alert">
+          <p className="turn-card__big">{t.calledTitle}</p>
+          <p className="turn-card__wait">{f('calledBody', { where })}</p>
         </section>
       )}
 
-      {queue?.doctors?.length > 0 && (
-        <section className="card panel">
-          <h2 className="panel__title">
-            <Icon name="doctor" size={18} />
-            <span>{t.doctorStatus}</span>
-          </h2>
+      {(status === 'completed' || status === 'no_show') && (
+        <section className={`turn-card turn-card--${status}`}>
+          <Icon name={status === 'completed' ? 'check-circle' : 'alert'} size={40} />
+          <p className="turn-card__big">{status === 'completed' ? t.doneTitle : t.noShowTitle}</p>
+        </section>
+      )}
+
+      <section className="next-step">
+        <h2 className="section-title">{t.nextStepTitle}</h2>
+        <p>{nextStep}</p>
+      </section>
+
+      {status === 'waiting' || status === 'called' ? (
+        <Link className="btn btn--primary btn--block" to={mapLink}>
+          <Icon name="compass" size={22} />
+          <span>{t.showMeWay}</span>
+        </Link>
+      ) : (
+        <Link className="btn btn--primary btn--block" to={status === 'completed' ? '/map?to=pharmacy_0' : '/map?to=help_desk_0'}>
+          <Icon name="compass" size={22} />
+          <span>{status === 'completed' ? t.showWayPharmacy : t.showWayHelpDesk}</span>
+        </Link>
+      )}
+
+      {doctors.length > 0 && (status === 'waiting' || status === 'called') && (
+        <section className="card">
+          <h2 className="section-title">{t.doctorStatus}</h2>
           <ul className="doc-list">
-            {queue.doctors.map((d) => (
-              <DoctorLine key={d.name} doctor={d} />
+            {doctors.map((d) => (
+              <DoctorStatus key={`${d.name}-${d.room}`} doctor={d} />
             ))}
           </ul>
         </section>
       )}
 
-      {(ticket.urgentRaised || urgentSeen) && (
-        <section className="emergency-note" role="status">
-          <Icon name="alert" size={18} />
-          <p>{urgentSeen && !ticket.urgentRaised ? t.urgentSeen : t.urgentSent}</p>
-        </section>
-      )}
-
-      <details className="card panel" open={messages.length > 0 && messages.length < 3}>
-        <summary className="panel__summary">
-          <Icon name="chat" size={18} />
-          <span>{t.smsTitle} ({messages.length})</span>
-        </summary>
-        {messages.length === 0 ? (
-          <p className="field__hint mt-2">{t.noMessages}</p>
-        ) : (
-          <ul className="sms-list">
-            {messages.map((m) => (
-              <li key={m.id} className="sms-list__item">
-                <span className="sms-list__time">{formatTime(m.sentAt, lang)}</span>
-                <p className="sms-list__body">{pick(m.message)}</p>
-              </li>
-            ))}
-          </ul>
-        )}
-      </details>
-
-      <details className="card panel">
-        <summary className="panel__summary">
-          <Icon name="user" size={18} />
-          <span>{t.prefsTitle}</span>
-        </summary>
-        <div className="toggles mt-2">
-          <Toggle iconName="map" label={t.prefAvoidStairs} checked={prefs.avoidStairs} onChange={(v) => savePref('avoidStairs', v)} />
-          <Toggle iconName="sparkles" label={t.prefLargeText} checked={prefs.largeText} onChange={(v) => savePref('largeText', v)} />
-          <Toggle iconName="speaker" label={t.prefReadAloud} checked={prefs.readAloud} onChange={(v) => savePref('readAloud', v)} />
-          <Toggle iconName="eye" label={t.prefHighContrast} checked={prefs.highContrast} onChange={(v) => savePref('highContrast', v)} />
-        </div>
-      </details>
-
-      {(status === 'waiting' || status === 'called') && (
-        <button type="button" className="btn btn--danger btn--block" onClick={() => setUrgentOpen(true)}>
-          <Icon name="emergency" size={18} />
-          <span>{t.urgentBtn}</span>
+      {canNotify && permission === 'default' && status === 'waiting' && (
+        <button type="button" className="btn btn--outline btn--block" onClick={async () => setPermission(await askNotificationPermission())}>
+          <Icon name="bell" size={22} />
+          <span>{t.allowAlerts}</span>
         </button>
       )}
 
-      <Modal open={urgentOpen} onClose={() => setUrgentOpen(false)} title={t.urgentBtn}>
-        <p>{t.urgentConfirm}</p>
-        <ErrorNote error={urgentError} />
-        <div className="form__actions">
-          <button type="button" className="btn btn--outline" onClick={() => setUrgentOpen(false)} disabled={urgentBusy}>
-            <Icon name="close" size={16} />
-            <span>{t.cancel}</span>
-          </button>
-          <button type="button" className="btn btn--danger" onClick={raiseUrgent} disabled={urgentBusy}>
-            <Icon name="emergency" size={16} />
-            <span>{urgentBusy ? t.loading : t.urgentYes}</span>
+      <ListenButton text={spoken} label={t.listenPage} className="btn btn--ghost btn--block" />
+
+      {(status === 'waiting' || status === 'called') && (
+        <UrgentHelp publicId={publicId} raised={ticket.urgentRaised || urgentSeen} seen={urgentSeen} onRaised={() => setData((prev) => ({ ...prev, urgentRaised: true }))} />
+      )}
+
+      {messages.length > 0 && (
+        <details className="messages">
+          <summary>
+            <Icon name="message" size={22} />
+            <span>{f('messagesN', { n: messages.length })}</span>
+          </summary>
+          <ul className="sms-list">
+            {messages.map((m) => (
+              <li key={m.id}>
+                <span className="muted small">{formatTime(m.sentAt, lang)}</span>
+                <p>{m.text || pick(m.message)}</p>
+              </li>
+            ))}
+          </ul>
+        </details>
+      )}
+
+      {calledOpen && status === 'called' && (
+        <div className="called-screen" role="alertdialog" aria-modal="true" aria-labelledby="called-title">
+          <Icon name="bell" size={64} />
+          <h1 id="called-title" className="called-screen__title">
+            {t.calledTitle}
+          </h1>
+          <p className="called-screen__where">{f('calledGo', { where })}</p>
+          <p className="called-screen__token">{ticket.tokenNumber}</p>
+          <Link className="btn btn--light btn--block" to={mapLink}>
+            <Icon name="compass" size={24} />
+            <span>{t.showMeWay}</span>
+          </Link>
+          <button type="button" className="btn btn--ghost-light btn--block" onClick={() => setCalledOpen(false)}>
+            <Icon name="close" size={22} />
+            <span>{t.close}</span>
           </button>
         </div>
-      </Modal>
+      )}
     </Layout>
   )
 }

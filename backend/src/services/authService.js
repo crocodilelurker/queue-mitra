@@ -1,11 +1,15 @@
+import crypto from "node:crypto";
+import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import env from "../config/env.js";
+import Department from "../models/Department.js";
+import Hospital from "../models/Hospital.js";
 import User from "../models/User.js";
 import ApiError from "../utils/ApiError.js";
-import { findDepartment, findHospital } from "./hospitalService.js";
+import { findHospital } from "./hospitalService.js";
 
 export function signToken(user) {
-  return jwt.sign({ sub: user.id, role: user.role, v: user.tokenVersion }, env.jwtSecret, {
+  return jwt.sign({ sub: String(user._id), role: user.role, v: user.tokenVersion ?? 0 }, env.jwtSecret, {
     expiresIn: env.jwtExpiresIn,
   });
 }
@@ -27,60 +31,78 @@ export async function verifyToken(token) {
   return user;
 }
 
-// Simple self-registration for doctors. Open to anyone for now; to be locked down later.
-export async function registerDoctor({ name, email, password, hospitalCode, departmentCode, room }) {
-  const hospital = await findHospital(hospitalCode);
-  const department = await findDepartment(hospital, departmentCode);
+// What the frontend gets for the signed-in user.
+export async function serializeUser(user) {
+  const [department, hospital] = await Promise.all([
+    user.department ? Department.findById(user.department).select("code name floor rooms").lean() : null,
+    user.hospital ? Hospital.findById(user.hospital).select("code name").lean() : null,
+  ]);
+  return {
+    _id: user._id,
+    id: user._id,
+    name: user.name,
+    email: user.isKiosk ? null : user.email,
+    role: user.role,
+    isKiosk: Boolean(user.isKiosk),
+    hospital: user.hospital ?? null,
+    hospitalCode: hospital?.code ?? null,
+    hospitalName: hospital?.name ?? null,
+    department: user.department ?? null,
+    departmentCode: department?.code ?? null,
+    departmentName: department?.name ?? null,
+    floor: department?.floor ?? null,
+    room: user.room ?? null,
+    specialty: user.specialty ?? null,
+    status: user.role === "doctor" ? user.status : undefined,
+  };
+}
 
-  if (department.rooms.length && !department.rooms.includes(room)) {
-    throw ApiError.badRequest(`room must be one of: ${department.rooms.join(", ")}`);
-  }
-
-  const exists = await User.exists({ email: String(email).toLowerCase().trim() });
-  if (exists) throw ApiError.conflict("An account with this email already exists");
-
-  const user = await User.create({
-    name,
-    email,
-    password,
-    role: "doctor",
-    hospital: hospital._id,
-    department: department._id,
-    room,
-  });
-  return { user, token: signToken(user) };
+export async function session(user) {
+  return { user: await serializeUser(user), token: signToken(user) };
 }
 
 export async function login(email, password) {
-  const user = await User.findOne({ email: String(email).toLowerCase().trim() }).select("+password");
+  const user = await User.findOne({ email: String(email).toLowerCase().trim(), isKiosk: { $ne: true } }).select(
+    "+password"
+  );
   if (!user || !(await user.comparePassword(password))) {
     throw ApiError.unauthorized("Wrong email or password");
   }
-  return { user, token: signToken(user) };
+  return session(user);
 }
 
+export const hashPin = (pin) => bcrypt.hash(String(pin), 10);
+
+// Counter login with the hospital's staff PIN. Signs in as the hospital's shared counter account.
 export async function loginWithStaffPin(hospitalCode, pin) {
-  const hospital = await findHospital(hospitalCode);
-  const expectedPin = hospital.staffPin || "1234";
-  if (String(pin).trim() !== String(expectedPin).trim()) {
-    throw ApiError.unauthorized("Invalid staff PIN for this hospital");
+  const hospital = await findHospital(hospitalCode, { withPin: true });
+  if (!hospital.staffPinHash || !(await bcrypt.compare(String(pin).trim(), hospital.staffPinHash))) {
+    throw ApiError.unauthorized("Wrong staff PIN");
   }
 
-  const staffEmail = `staff-${hospital.code.toLowerCase()}@queuemitra.test`;
-  let user = await User.findOne({ email: staffEmail });
+  let user = await User.findOne({ hospital: hospital._id, isKiosk: true });
   if (!user) {
     user = await User.create({
-      name: `${hospital.code} Staff Kiosk`,
-      email: staffEmail,
-      password: "staffPassword123!",
+      name: "Registration counter",
+      // Internal, never used to log in: the kiosk account can only be reached with the PIN.
+      email: `counter-${hospital._id}@kiosk.invalid`,
+      password: crypto.randomBytes(24).toString("hex"),
       role: "staff",
       hospital: hospital._id,
+      isKiosk: true,
     });
   }
+  return session(user);
+}
 
-  return { user, token: signToken(user) };
+// Changing the PIN signs out every counter screen that used the old one.
+export async function setStaffPin(hospitalId, pin) {
+  await Hospital.updateOne({ _id: hospitalId }, { $set: { staffPinHash: await hashPin(pin) } });
+  await User.updateMany({ hospital: hospitalId, isKiosk: true }, { $inc: { tokenVersion: 1 } });
 }
 
 export async function logout(user) {
+  // The counter account is shared by every PIN screen: signing out one screen must not sign out the others.
+  if (user.isKiosk) return;
   await User.updateOne({ _id: user._id }, { $inc: { tokenVersion: 1 } });
 }
