@@ -1,0 +1,15 @@
+{
+  "name": "queue-mitra",
+  "version": "1.0.0",
+  "description": "Queue Mitra - Digital OPD Queue & Indoor Navigation",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build": "npm --prefix frontend install && npm --prefix frontend run build && npm --prefix backend install",
+    "start": "npm --prefix backend start",
+    "dev:backend": "npm --prefix backend run dev",
+    "dev:frontend": "npm --prefix frontend run dev"
+  }
+}

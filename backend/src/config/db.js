@@ -1,4 +1,5 @@
 import fs from "node:fs";
+import net from "node:net";
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 import mongoose from "mongoose";
@@ -28,24 +29,67 @@ async function tryConnect(uri, options = {}) {
 
 // Development fallback when no MongoDB is installed: a real mongod (mongodb-memory-server) that stores
 // its files in backend/.data/db, so everything survives restarts.
+const localDbUri = () => `mongodb://127.0.0.1:${env.localDbPort}/`;
+
+function portInUse(port) {
+  return new Promise((resolve) => {
+    const socket = net.connect({ port, host: "127.0.0.1" });
+    socket.once("connect", () => {
+      socket.destroy();
+      resolve(true);
+    });
+    socket.once("error", () => resolve(false));
+    socket.setTimeout(500, () => {
+      socket.destroy();
+      resolve(false);
+    });
+  });
+}
+
+// The library prints a stack trace for every failed start; we report our own one-line status instead.
+async function quietly(fn) {
+  const warn = console.warn;
+  console.warn = (...args) => {
+    if (!String(args[0]).includes("MongoMemoryServer Instance failed")) warn(...args);
+  };
+  try {
+    return await fn();
+  } finally {
+    console.warn = warn;
+  }
+}
+
+// Returns the URI of a usable local database. If a mongod from a previous (killed) server process is
+// still running on the data folder, it is reused; if it is still shutting down, we wait for it.
 async function startLocalFileDb() {
   const { MongoMemoryServer } = await import("mongodb-memory-server");
   fs.mkdirSync(localDbPath, { recursive: true });
 
   let lastErr;
-  // After a quick restart (node --watch) the previous mongod may still be releasing the files.
-  for (let attempt = 0; attempt < 6; attempt += 1) {
+  for (let attempt = 0; attempt < 15; attempt += 1) {
+    if (await portInUse(env.localDbPort)) {
+      if (await tryConnect(localDbUri(), { dbName: DB_NAME, serverSelectionTimeoutMS: 1500 })) {
+        await mongoose.disconnect();
+        return { uri: localDbUri(), reused: true };
+      }
+      if (attempt === 0) console.log("Waiting for the previous local database process to exit...");
+      await sleep(1000);
+      continue;
+    }
     try {
-      mongod = await MongoMemoryServer.create({
-        instance: { dbPath: localDbPath, storageEngine: "wiredTiger", port: env.localDbPort, dbName: DB_NAME },
-      });
-      return mongod.getUri();
+      mongod = await quietly(() =>
+        MongoMemoryServer.create({
+          instance: { dbPath: localDbPath, storageEngine: "wiredTiger", port: env.localDbPort, dbName: DB_NAME },
+        })
+      );
+      return { uri: mongod.getUri(), reused: false };
     } catch (err) {
+      // The lock file can stay held for a moment after the old process has closed its port.
       lastErr = err;
       await sleep(1000);
     }
   }
-  throw lastErr;
+  throw lastErr ?? new Error(`Could not start the local database on port ${env.localDbPort}`);
 }
 
 /**
@@ -78,10 +122,15 @@ export async function connectDB({ reuseLocalFileDb = false } = {}) {
   }
 
   console.log("No MongoDB server found at MONGODB_URI: starting the local development database...");
-  const localUri = await startLocalFileDb();
+  const { uri: localUri, reused } = await startLocalFileDb();
   await mongoose.connect(localUri, { dbName: DB_NAME });
   mode = "local-file";
-  console.log(`Local development database ready (data kept in ${path.relative(process.cwd(), localDbPath) || localDbPath})`);
+  const where = path.relative(process.cwd(), localDbPath) || localDbPath;
+  console.log(
+    reused
+      ? `Reusing the local database left running on port ${env.localDbPort} (data in ${where})`
+      : `Local development database ready (data kept in ${where})`
+  );
   return mode;
 }
 

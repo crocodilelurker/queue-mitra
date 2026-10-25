@@ -13,7 +13,7 @@ if (!jwtSecret) {
 } else if (isProduction && (jwtSecret.length < 32 || /change-?me/i.test(jwtSecret))) {
   problems.push(
     "JWT_SECRET must be at least 32 characters and not a placeholder in production. " +
-      `Generate one with: node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`
+    `Generate one with: node -e "console.log(require('crypto').randomBytes(48).toString('hex'))"`
   );
 }
 
@@ -28,10 +28,16 @@ if (problems.length) {
 }
 
 // CLIENT_URL may be a comma-separated list of allowed browser origins.
-const clientUrls = (process.env.CLIENT_URL || "http://localhost:5180")
-  .split(",")
-  .map((s) => s.trim().replace(/\/$/, ""))
-  .filter(Boolean);
+// When deployed on Render, RENDER_EXTERNAL_URL is automatically populated.
+const defaultOrigins = [process.env.RENDER_EXTERNAL_URL, "http://localhost:5180"].filter(Boolean);
+const clientUrls = Array.from(
+  new Set(
+    (process.env.CLIENT_URL ? process.env.CLIENT_URL.split(",") : defaultOrigins)
+      .concat(process.env.RENDER_EXTERNAL_URL ? [process.env.RENDER_EXTERNAL_URL] : [])
+      .map((s) => s.trim().replace(/\/$/, ""))
+      .filter(Boolean)
+  )
+);
 
 function parseTrustProxy(value) {
   if (value === undefined || value === "") return isProduction ? 1 : false;
@@ -55,7 +61,7 @@ const env = {
   clientUrls,
   clientUrl: clientUrls[0],
   // Public URL of the patient app, used in the QR code printed on slips.
-  publicAppUrl: (process.env.PUBLIC_APP_URL || clientUrls[0] || "").replace(/\/$/, ""),
+  publicAppUrl: (process.env.PUBLIC_APP_URL || process.env.RENDER_EXTERNAL_URL || clientUrls[0] || "").replace(/\/$/, ""),
   timeZone: process.env.HOSPITAL_TIMEZONE || "Asia/Kolkata",
   trustProxy: parseTrustProxy(process.env.TRUST_PROXY),
   // Serve ../frontend/dist from this server (default: on in production when the folder exists).
